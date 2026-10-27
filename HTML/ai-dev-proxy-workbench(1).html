@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 迭代代理工作台 — 让业务直面迭代，让产研释放生产力</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.75;
+    font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;
+    padding:88px 0 72px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:680px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+
+  /* ===== TOC ===== */
+  .toc{
+    background:var(--card);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:20;
+    box-shadow:0 1px 0 rgba(16,24,40,.02);
+  }
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:720px}
+
+  /* ===== Pain points ===== */
+  .pains{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .pain{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 22px 20px;box-shadow:var(--shadow);position:relative;
+  }
+  .pain::before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:3px;border-radius:3px;background:#d97706}
+  .pain h3{font-size:16px;font-weight:700;margin-bottom:8px;padding-left:10px}
+  .pain p{font-size:14px;color:var(--ink-soft);padding-left:10px}
+
+  /* ===== Value cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .ico{
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);flex:none;
+  }
+  .value h3{font-size:16.5px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+  .value ul{font-size:14px;color:var(--ink-soft);padding-left:18px}
+  .value ul li{margin:3px 0}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:640px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:700px}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{
+    border-radius:14px;padding:18px 22px;position:relative;
+    border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);
+  }
+  .layer + .arrow-down{height:34px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+  .layer-head h3{font-size:16px;font-weight:800}
+  .layer-head .need{font-size:12.5px;font-weight:600;border-radius:999px;padding:3px 12px;white-space:nowrap}
+  .need.free{background:#e7f6ec;color:#15803d}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{
+    font-size:13.5px;border:1px solid var(--line);border-radius:10px;padding:8px 14px;
+    background:#fbfaf7;color:var(--ink-soft);
+  }
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:12px;color:var(--muted)}
+  .layer.workbench{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Pipeline overview ===== */
+  .pipeline{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);margin-bottom:34px;
+  }
+  .stage-chip{
+    font-size:13px;font-weight:600;border-radius:9px;padding:7px 12px;
+    background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap;
+  }
+  .stage-chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .stage-chip .g{
+    display:inline-block;margin-left:5px;font-size:10.5px;font-weight:700;
+    border-radius:5px;padding:1px 5px;background:var(--amber);color:#fff;vertical-align:1px;
+  }
+  .chev{color:#c3bcab;flex:none}
+  .legend{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+  .lg{display:inline-block;width:12px;height:12px;border-radius:4px;margin-left:10px}
+  .lg:first-child{margin-left:0}
+  .lg-auto{background:var(--teal-bg);border:1px solid #bfe3ea}
+  .lg-gate{background:var(--amber-bg);border:1px solid #f0d9b5}
+
+  /* ===== Stage cards ===== */
+  .stages{display:flex;flex-direction:column;gap:14px;position:relative;padding-left:30px}
+  .stages::before{content:"";position:absolute;left:11px;top:14px;bottom:14px;width:2px;background:linear-gradient(#c7d2fe,#a5f3fc)}
+  .stage{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 24px;box-shadow:var(--shadow);position:relative;
+  }
+  .stage::before{
+    content:"";position:absolute;left:-26px;top:26px;width:12px;height:12px;border-radius:50%;
+    background:#fff;border:3px solid var(--brand);
+  }
+  .stage.gate-stage{border-color:#ecd3ab;background:linear-gradient(180deg,#fffdf8,#fff)}
+  .stage.gate-stage::before{border-color:var(--amber)}
+  .stage-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .stage-num{
+    font-size:12px;font-weight:800;color:#fff;background:var(--ink);border-radius:7px;
+    min-width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;
+  }
+  .stage-top h3{font-size:17px;font-weight:800}
+  .badge{font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 11px}
+  .badge.gate{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.auto{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.art{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+  .stage-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.stage-cols{grid-template-columns:1fr}}
+  .stage-cols h4{
+    font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:6px;
+  }
+  .stage-cols p,.stage-cols li{font-size:14px;color:var(--ink-soft)}
+  .stage-cols ul{padding-left:18px}
+  .stage-cols li{margin:3px 0}
+  .stage-cols .custom{border-right:1px dashed var(--line);padding-right:18px}
+  @media(max-width:720px){.stage-cols .custom{border-right:none;padding-right:0}}
+
+  /* ===== Drift ===== */
+  .rails{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+  .rail{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);
+  }
+  .rail .no{
+    font-size:13px;font-weight:800;color:var(--brand);background:var(--brand-bg);
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;
+  }
+  .rail h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+  .rail p{font-size:13.5px;color:var(--ink-soft)}
+
+  /* ===== Case timeline ===== */
+  .case{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:28px 30px;
+  }
+  .case .quote{
+    border-left:3px solid var(--brand);padding:4px 0 4px 16px;color:var(--ink-soft);
+    font-size:15px;margin-bottom:22px;font-style:italic;
+  }
+  .tl{display:flex;flex-direction:column;gap:0}
+  .tl-item{display:flex;gap:16px;position:relative;padding-bottom:20px}
+  .tl-item:last-child{padding-bottom:0}
+  .tl-item::before{content:"";position:absolute;left:7px;top:20px;bottom:0;width:2px;background:var(--line)}
+  .tl-item:last-child::before{display:none}
+  .tl-dot{
+    width:16px;height:16px;border-radius:50%;flex:none;margin-top:5px;
+    background:var(--teal-bg);border:3px solid var(--teal);
+  }
+  .tl-item h4{font-size:14.5px;font-weight:700}
+  .tl-item p{font-size:13.5px;color:var(--muted)}
+  .case .result{
+    margin-top:20px;background:#e7f6ec;border:1px solid #bbe5c8;border-radius:12px;
+    padding:14px 18px;font-size:14px;color:#14532d;
+  }
+
+  /* ===== Roadmap ===== */
+  .road{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:stretch}
+  @media(max-width:820px){.road{grid-template-columns:1fr}}
+  .phase{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px;box-shadow:var(--shadow);position:relative;
+  }
+  .phase .ph{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+  .phase h3{font-size:17px;font-weight:800;margin-bottom:8px}
+  .phase p,.phase li{font-size:13.5px;color:var(--ink-soft)}
+  .phase ul{padding-left:18px;margin-top:6px}
+  .phase.now{border-color:#c3bdf0;background:linear-gradient(180deg,#fbfaff,#fff)}
+  .phase .state{
+    position:absolute;top:20px;right:20px;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;
+  }
+  .state.on{background:#e7f6ec;color:#15803d}
+  .state.next{background:var(--brand-bg);color:var(--brand)}
+  .state.future{background:#f1efe9;color:var(--muted)}
+
+  @media(min-width:821px){
+    .phase:not(:last-child)::after{
+      content:"";position:absolute;right:-16px;top:50%;transform:translateY(-50%);
+      width:16px;height:16px;z-index:2;
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a29a' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") no-repeat center/contain;
+    }
+  }
+
+  /* ===== Compare table ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .tbl th,.tbl td{padding:14px 18px;font-size:14px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:13px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;white-space:nowrap;color:var(--ink)}
+  .tbl td.old{color:var(--muted)}
+  .tbl td.new{color:var(--ink-soft);background:#fbfaff}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;
+    scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:640px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:30px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:11px 12px;font-size:13px}
+    .tbl td:first-child{white-space:normal;font-size:13px}
+    .tbl .col-key{width:auto}
+    .legend{margin-left:0;width:100%;justify-content:center;padding-top:6px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">AI-Native 研发模式 · 实践分享</div>
+    <h1>AI 迭代代理工作台<br>让业务直面迭代，让产研释放生产力</h1>
+    <p class="sub">一套把"流程标准、环境、权限、工具链、AI 约束"全部封装好的代理工作台（<span class="nb">ai-dev-proxy</span>）：业务与产品只需表达需求，其余的一切由工作台和 AI 完成。</p>
+    <div class="hero-meta">
+      <span>实践项目：mall 电商商城（Spring Boot 3 + Vue3 + uni-app）</span>
+      <span>2026-10</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#why">为什么需要</a>
+    <a href="#what">解决什么问题</a>
+    <a href="#arch">整体架构</a>
+    <a href="#pipeline">十阶段流水线</a>
+    <a href="#drift">驯服 AI 漂移</a>
+    <a href="#case">真实迭代案例</a>
+    <a href="#compare">模式对比</a>
+    <a href="#roadmap">演进路线</a>
+    <a href="#ending">结语</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 WHY ============ -->
+<section id="why">
+  <div class="sec-head">
+    <span class="sec-no">01 · 问题背景</span>
+    <h2>AI 时代的研发瓶颈，不在"写代码"</h2>
+    <p>当 AI 已经能写出大部分业务代码，真正拖慢迭代的，是代码之外的一切：环境、权限、流程、协作与失控的 AI 本身。</p>
+  </div>
+  <div class="pains">
+    <div class="pain">
+      <h3>环境是隐形的生产力黑洞</h3>
+      <p>JDK 版本、Maven 镜像、容器、端口、前端依赖……一个新成员（或一次新会话）开工前，动辄半天到数天消耗在"让项目跑起来"上。</p>
+    </div>
+    <div class="pain">
+      <h3>权限与平台是业务无法跨越的墙</h3>
+      <p>Git、发布平台、日志平台、菜单配置、数据库账号……业务方想推进一个小改动，却被一串需要登录、申请、配置的门槛挡在门外，事事依赖产研。</p>
+    </div>
+    <div class="pain">
+      <h3>流程靠口头约定，迭代靠个人习惯</h3>
+      <p>需求—设计—开发—测试—发布，每个环节的产物和确认点因人而异、因项目而异。迭代一多，谁也不知道当前进行到哪一步、上次改了什么。</p>
+    </div>
+    <div class="pain">
+      <h3>AI 会"漂移"，产出不可预期</h3>
+      <p>没有约束的 AI：改错仓库、静默跳过阻塞、编造完成状态、越权提交发布。能力越强，偏离轨道的代价越大。</p>
+    </div>
+    <div class="pain">
+      <h3>产研的时间被大量"非研发"事务消耗</h3>
+      <p>配环境、拉服务、发预览链接、写进度同步、查日志……真正创造价值的架构与编码时间被严重挤占。</p>
+    </div>
+    <div class="pain">
+      <h3>经验在人脑里，人走经验走</h3>
+      <p>业务域知识、排坑记录、发布注意事项散落在聊天记录与个人记忆中，无法沉淀为组织资产。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 WHAT ============ -->
+<section id="what">
+  <div class="sec-head">
+    <span class="sec-no">02 · 解决什么问题</span>
+    <h2>工作台：把迭代所需的一切，封装成一个"代理"</h2>
+    <p>工作台是一个独立于业务仓的目录：制度（AGENTS.md）、声明配置（automation.config.json）、自动化引擎、领域知识文档、迭代记录，全部就位。AI 在此开工，业务在此对话。</p>
+  </div>
+  <div class="values">
+    <div class="value">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <h3>流程标准化，迭代可控</h3>
+      <p>内置 10 个固定阶段（检查 → 产品设计 → 交互设计 → 技术方案 → 用例 → 开发 → 预览 → 测试 → 提交 → 发布），每个阶段有明确产物与放行条件。任何一次迭代都走同一条路，进度与状态一目了然。</p>
+    </div>
+    <div class="value">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <h3>环境与权限对业务彻底隐身</h3>
+      <p>环境搭建、容器编排、JDK/Maven 工具链，以及 Git、发布平台、日志平台、菜单配置、数据库账号等所有需要登录的权限，全部封在工作台内部。业务与产品无需感知。</p>
+    </div>
+    <div class="value">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.4-1.2 4.5-3 5.7V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.3C6.2 13.5 5 11.4 5 9a7 7 0 0 1 7-7z"/><path d="M9 22h6"/></svg></div>
+      <h3>IDE 的 MCP / Skills 预装预配</h3>
+      <p>前端的蓝湖 MCP、各类物料库 Skill，后端的二方 SDK 物料……这些 AI 干活所需的"扳手与零件"，由工作台统一配置，业务不需要知道它们的存在，AI 却每次都能直接用。</p>
+    </div>
+    <div class="value">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <h3>业务直面迭代，释放产研生产力</h3>
+      <p>不懂产研流程的业务方，可以用自然语言直接发起、跟进、验收一次迭代。产研从"环境工、传话筒、进度同步员"回归为"审核者与决策者"。</p>
+    </div>
+    <div class="value">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+      <h3>显著降低 AI 漂移风险</h3>
+      <p>强制开工顺序、声明式单一事实源、三处人工确认卡点、铁律约束——AI 的行为被制度与配置双重锚定，产出从"看运气"变成"可预期"。（详见第 05 节）</p>
+    </div>
+    <div class="value">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div>
+      <h3>迭代全程留痕，永不混乱</h3>
+      <p>每个迭代有独立目录与活动日志（activity.md），每个阶段前后强制记录。任何时刻都能回答："这个迭代做了什么、为什么这么做、卡在哪。"</p>
+    </div>
+    <div class="value">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <h3>知识资产化，经验不随人流失</h3>
+      <p>业务域总览、仓库档案、外部阻塞清单以文档形式持续累积。任何新成员、新会话读完即满血开工——组织不再依赖"某个熟悉项目的人"。</p>
+    </div>
+    <div class="value">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4"/><path d="M15.4 6.5l-6.8 4"/></svg></div>
+      <h3>可复制到任意业务线</h3>
+      <p>工作台与业务代码完全解耦：换一套业务仓，改一份配置与文档，同一套迭代范式即刻生效。一次建设，多处复用。</p>
+    </div>
+  </div>
+
+  <div class="core">
+    <div class="tag">最核心的一点</div>
+    <h3>生产资料的所有权，就是 AI 时代的不可替代性</h3>
+    <p>在 AI 时代，"写代码"本身正在快速商品化。而业务的生产资料——流程标准、环境配置、权限通道、领域知识、AI 约束——也就是这套工作台本身，目前由"我"掌控并持续迭代。谁掌握并进化生产资料，谁就掌握生产力分配的入口。这才是真正的护城河。</p>
+  </div>
+</section>
+
+<!-- ============ 03 ARCH ============ -->
+<section id="arch">
+  <div class="sec-head">
+    <span class="sec-no">03 · 整体架构</span>
+    <h2>四层结构：越往上，需要懂的越少</h2>
+    <p>工作台横在"人"与"工程复杂性"之间。使用者只面对最上层，下面三层全部由工作台和 AI 消化。</p>
+  </div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head">
+        <h3>使用者层</h3>
+        <span class="need free">零技术门槛</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>业务方</b><small>自然语言提需求、看预览、验收</small></div>
+        <div class="box"><b>产品经理</b><small>确认 PRD / 交互稿</small></div>
+        <div class="box"><b>远程评审</b><small>cc-connect 场景，局域网地址直达</small></div>
+        <div class="box"><b>工作台 owner</b><small>制定制度、迭代工作台本身</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg>
+    </div>
+    <div class="layer workbench">
+      <div class="layer-head">
+        <h3>工作台层（ai-dev-proxy）—— 本方案的全部所在</h3>
+        <span class="need own">owner 掌控 · 持续迭代</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>AGENTS.md</b><small>制度：开工顺序 · 铁律 · 预览规则</small></div>
+        <div class="box"><b>automation.config.json</b><small>声明：阶段 · 端口 · 检查 · 测试</small></div>
+        <div class="box"><b>automation 引擎</b><small>check / dev / preview / test 命令</small></div>
+        <div class="box"><b>docs/ 领域知识</b><small>业务域总览 · 仓库档案 · 外部阻塞</small></div>
+        <div class="box"><b>iterations/ 迭代记录</b><small>阶段产物 · 活动日志 · 测试报告</small></div>
+        <div class="box"><b>MCP / Skills</b><small>蓝湖 MCP · 物料库 · 二方 SDK</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg>
+    </div>
+    <div class="layer">
+      <div class="layer-head">
+        <h3>业务仓层</h3>
+        <span class="need auto">AI 读写 · 人无需感知</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>mall</b><small>后端 · Spring Boot 3（8180 / 8185）</small></div>
+        <div class="box"><b>mall-admin-web</b><small>后台前端 · Vue3（5173）</small></div>
+        <div class="box"><b>mall-app-web</b><small>H5 商城 · uni-app（5174）</small></div>
+        <div class="box"><b>deploy</b><small>基础设施编排</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg>
+    </div>
+    <div class="layer">
+      <div class="layer-head">
+        <h3>基础设施层</h3>
+        <span class="need auto">一键拉起 · 完全封装</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>Docker</b><small>MySQL · Redis · MongoDB · RabbitMQ · ES</small></div>
+        <div class="box"><b>JDK 17 / Maven 3.9</b><small>固定工具链路径与版本</small></div>
+        <div class="box"><b>Node ≥ 18</b><small>前端构建与 dev server</small></div>
+        <div class="box"><b>各类平台账号</b><small>Git · 发布 · 日志 · 数据库权限</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 PIPELINE ============ -->
+<section id="pipeline">
+  <div class="sec-head">
+    <span class="sec-no">04 · 迭代流水线</span>
+    <h2>十个阶段，每个节点都为"防呆"而定制</h2>
+    <p>流水线的价值不在"有流程"，而在每个节点的定制化处理都精确命中一个真实痛点。三处琥珀色节点为<strong>人工确认卡点</strong>——AI 无权自动越过。</p>
+  </div>
+
+  <div class="pipeline">
+    <span class="stage-chip">① 开工检查</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">② 产品设计<span class="g">人审</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">③ 交互设计<span class="g">人审</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">④ 技术方案</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">⑤ 测试用例</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">⑥ 开发</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">⑦ 预览</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">⑧ 测试</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">⑨ 提交</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">⑩ 发布<span class="g">人审</span></span>
+    <span class="legend"><i class="lg lg-auto"></i>AI 自动执行<i class="lg lg-gate"></i>人工确认卡点</span>
+  </div>
+
+  <div class="stages">
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">1</span><h3>check · 开工检查</h3>
+        <span class="badge auto">全自动</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>一条命令扫描全部前置条件：Docker 容器、JDK/Maven 版本、端口占用、服务健康、文档完整性</li>
+            <li>critical 失败直接阻断；可修复项由 <code>init</code> 自动修复（起容器、装依赖）</li>
+            <li>后端挂起不阻塞纯前端迭代（frontend-only 降级策略）</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>把"环境不一致"这个最大的时间黑洞消灭在开工前。任何人、任何一次 AI 会话，拿到的都是同一个可工作的起点——没有"在我机器上是好的"。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage gate-stage">
+      <div class="stage-top">
+        <span class="stage-num">2</span><h3>product-design · 产品设计</h3>
+        <span class="badge gate">人工确认</span><span class="badge art">产物 product-design.md</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>AI 起草结构化 PRD：需求背景、用户故事、验收标准、边界 case</li>
+            <li>铁律：必须人工确认后才放行下一阶段，AI 不得自动跳过</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>需求共识前置，返工成本最小化；验收标准同时成为后续测试阶段的判定基准。AI 做执行，人做产品决策——权责各归其位。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage gate-stage">
+      <div class="stage-top">
+        <span class="stage-num">3</span><h3>ux-design · 交互设计</h3>
+        <span class="badge gate">人工确认</span><span class="badge art">产物 ux-design.md</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>通过蓝湖 MCP 直接读取设计稿，物料库 Skill 匹配可用组件</li>
+            <li>页面结构与交互说明落成文档，人工确认后放行</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>设计还原零口头传递：AI 拿到的是设计稿本身而非转述，前端有现成物料可直接拼装，还原度与速度兼得。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">4</span><h3>technical-design · 技术方案</h3>
+        <span class="badge auto">AI 主导</span><span class="badge art">产物 technical-design.md</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>动笔前必读 <code>docs/business-repositories/</code> 仓库档案：表结构、关键流程、端口约定、已知坑</li>
+            <li>方案必须锚定到具体仓库与文件，改动范围明确</li>
+            <li>涉及新知识时同步更新档案文档</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>方案不悬空——直接建立在真实代码与领域知识之上；知识文档随每次迭代增值，形成复利，越做越准。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">5</span><h3>test-cases · 测试用例</h3>
+        <span class="badge auto">AI 主导</span><span class="badge art">产物 api-test-cases.md</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>先于开发产出 API / 场景用例，覆盖正常流与边界流</li>
+            <li>用例直接引用第 2 阶段的验收标准</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>TDD 式约束：先立靶子再放箭。防止 AI"自说自话式完成"——完成与否由事先写下的用例裁决，而非 AI 自己宣布。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">6</span><h3>dev · 开发</h3>
+        <span class="badge auto">AI 主导</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>一键拉起 infra 容器 + 前后端服务，端口、工具链全部固定（勿改）</li>
+            <li>代码只落在业务仓；工作台仓不提交业务代码（铁律）</li>
+            <li>阶段前后强制写入活动日志（requireActivity 开启）</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>本地复现与联调零配置；改动边界清晰——工作台管流程，业务仓管代码，互不污染，历史干净可追溯。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">7</span><h3>preview · 预览</h3>
+        <span class="badge auto">全自动</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>自动生成预览地址：localhost + 局域网 IP 双地址</li>
+            <li>远程协作（cc-connect）场景下主动推送局域网地址 + 同网段提醒</li>
+            <li>前端 <code>--host</code> 监听 0.0.0.0，API 自动指向页面所在主机，CORS 已放开</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>业务方"点链接就能看"，评审不等部署、不等发版。远程场景下 AI 不会犯"把 localhost 发给远程用户"的低级错误——规则已写进制度。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">8</span><h3>test · 测试</h3>
+        <span class="badge auto">全自动</span><span class="badge art">产物 test-report.md</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>按声明的测试清单执行健康检查（HTTP 状态 + 用例）</li>
+            <li>报告落盘留档，纳入迭代记录</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>质量门禁自动化：每次迭代都有一份可信的、可回溯的测试报告，而不是"我本地试过没问题"。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">9</span><h3>commit · 提交</h3>
+        <span class="badge auto">规则约束</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>提交动作在各业务仓内完成，工作台仓不混入业务代码</li>
+            <li>不输出、不提交任何密钥与敏感配置（铁律）</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>每个业务仓的 git 历史独立、干净、可审计；安全边界以制度形式固化，不依赖 AI 的"自觉"。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage gate-stage">
+      <div class="stage-top">
+        <span class="stage-num">10</span><h3>publish · 发布</h3>
+        <span class="badge gate">人工确认</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>定制化处理</h4>
+          <ul>
+            <li>发布策略显式声明（当前为 local-only：仅本地提交，不推远端）</li>
+            <li>发布前必须人工确认；外部阻塞（插件缺失、SMTP 未配等）必须显式登记，不得静默跳过</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>发布权永远在人手里，对外可见的动作零意外；阻塞透明化——问题被看见才可能被解决，不会被 AI 悄悄绕开。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 DRIFT ============ -->
+<section id="drift">
+  <div class="sec-head">
+    <span class="sec-no">05 · 驯服 AI 漂移</span>
+    <h2>六重约束：把 AI 从"不可预测"变成"可托付"</h2>
+    <p>漂移不是靠更强的模型解决的，而是靠工程化的约束解决的。工作台用六层机制把 AI 锚在轨道上。</p>
+  </div>
+  <div class="rails">
+    <div class="rail">
+      <div class="no">1</div>
+      <h3>强制开工顺序</h3>
+      <p>AGENTS.md 规定：先跑环境检查、再读制度与知识、确认当前迭代，然后才允许动手。顺序即纪律。</p>
+    </div>
+    <div class="rail">
+      <div class="no">2</div>
+      <h3>声明式单一事实源</h3>
+      <p>端口、命令、阶段、测试清单全部集中在一份配置。AI 查配置而非靠记忆，杜绝"凭印象写端口"这类漂移。</p>
+    </div>
+    <div class="rail">
+      <div class="no">3</div>
+      <h3>人工确认卡点 ×3</h3>
+      <p>产品设计、交互设计、发布三处必须人审。AI 的自由度被精确限定在执行层，决策层永远有人。</p>
+    </div>
+    <div class="rail">
+      <div class="no">4</div>
+      <h3>阶段前后强制留痕</h3>
+      <p>每个阶段开始与结束都必须写活动日志。AI 无法"悄悄做完"，所有动作在时间上连续可查。</p>
+    </div>
+    <div class="rail">
+      <div class="no">5</div>
+      <h3>外部阻塞显式登记</h3>
+      <p>缺插件、缺权限、缺账号——一律写入阻塞清单并告知，严禁静默跳过。AI 最常见的"报喜不报忧"被制度禁止。</p>
+    </div>
+    <div class="rail">
+      <div class="no">6</div>
+      <h3>先立靶子再放箭</h3>
+      <p>验收标准与测试用例先于代码产生，完成与否由事先的契约裁决，而非 AI 自评。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 CASE ============ -->
+<section id="case">
+  <div class="sec-head">
+    <span class="sec-no">06 · 真实迭代案例</span>
+    <h2>一句话需求，如何走完全程</h2>
+    <p>来自工作台的一次真实迭代记录：<code>20261018-0439-工作台支持局域网预览地址（cc-connect 场景）</code></p>
+  </div>
+  <div class="case">
+    <div class="quote">"远程连接的用户看到的设备不是本机，localhost 地址对他无效。让工作台在 dev 阶段自动给出局域网预览地址。"</div>
+    <div class="tl">
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div>
+          <h4>新建迭代，生成骨架</h4>
+          <p>一条命令创建迭代目录与阶段产物文档，设为当前活跃迭代</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div>
+          <h4>开发：工作台与业务仓联动修改</h4>
+          <p>自动化引擎新增局域网 IP 解析；启动配置中前端加 --host；两个业务仓的 http 层新增 API 地址自动解析；制度文档新增远程预览规则</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div>
+          <h4>验证：真实链路打通</h4>
+          <p>确认端口监听 0.0.0.0；局域网地址访问前后端全部 200；浏览器实测 H5 首页真实业务数据渲染正常</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div>
+          <h4>留痕与交接</h4>
+          <p>活动日志记录实现细节与验证结论；遗留事项显式登记（骨架文档待人工确认、业务仓改动待提交）；开工检查通过</p>
+        </div>
+      </div>
+    </div>
+    <div class="result">结果：远程用户此后每次进入 dev 阶段，都会自动收到可直达的局域网预览地址与同网段提醒——一次迭代，永久生效。这正是"工作台本身持续进化"的缩影。</div>
+  </div>
+</section>
+
+<!-- ============ 07 COMPARE ============ -->
+<section id="compare">
+  <div class="sec-head">
+    <span class="sec-no">07 · 模式对比</span>
+    <h2>同一次迭代，两种世界</h2>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr><th class="col-key" style="width:130px">环节</th><th>传统模式（AI 裸奔版）</th><th>工作台模式</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>发起需求</td>
+        <td class="old">业务找产研排队，口头描述，信息层层衰减</td>
+        <td class="new">业务直接对 AI 说需求，结构化 PRD 自动生成、人审确认</td>
+      </tr>
+      <tr>
+        <td>环境准备</td>
+        <td class="old">半天起步，版本、端口、依赖挨个踩坑</td>
+        <td class="new">一条命令检查 + 自动修复，分钟级就绪</td>
+      </tr>
+      <tr>
+        <td>权限账号</td>
+        <td class="old">Git / 发布 / 日志 / 数据库，业务样样要找人</td>
+        <td class="new">全部封在工作台内，业务零感知</td>
+      </tr>
+      <tr>
+        <td>开发过程</td>
+        <td class="old">AI 自由发挥，改错仓、跳阻塞、自报完成</td>
+        <td class="new">制度 + 配置 + 卡点 + 用例四重锚定，行为可预期</td>
+      </tr>
+      <tr>
+        <td>验收评审</td>
+        <td class="old">等部署、等发版，或对着截图想象</td>
+        <td class="new">预览链接即点即看，远程评审自动给局域网地址</td>
+      </tr>
+      <tr>
+        <td>质量判定</td>
+        <td class="old">"我试过没问题"</td>
+        <td class="new">用例先于代码，报告落盘留档</td>
+      </tr>
+      <tr>
+        <td>过程追溯</td>
+        <td class="old">翻聊天记录，靠记忆拼图</td>
+        <td class="new">迭代目录 + 活动日志，全程连续可查</td>
+      </tr>
+      <tr>
+        <td>经验沉淀</td>
+        <td class="old">在人脑里，人走即失</td>
+        <td class="new">领域文档随迭代复利累积，新人新会话即读即会</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 08 ROADMAP ============ -->
+<section id="roadmap">
+  <div class="sec-head">
+    <span class="sec-no">08 · 演进路线</span>
+    <h2>从"迭代工作台"到"业务项目 Agent"</h2>
+    <p>工作台不是终点。当流程与知识沉淀到位，它可以生长为直接参与业务运转的智能体。</p>
+  </div>
+  <div class="road">
+    <div class="phase now">
+      <span class="state on">当前</span>
+      <div class="ph">PHASE 1</div>
+      <h3>迭代工作台</h3>
+      <p>流程标准化 + 环境与权限封装，业务可直面迭代：</p>
+      <ul>
+        <li>十阶段流水线与人工卡点</li>
+        <li>一键环境与健康检查</li>
+        <li>领域知识与迭代记录沉淀</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <span class="state next">进行中</span>
+      <div class="ph">PHASE 2</div>
+      <h3>能力扩展</h3>
+      <p>在迭代之外，增添运维与排查能力：</p>
+      <ul>
+        <li>日志链路查询 MCP</li>
+        <li>告警排查与纠错 Skill</li>
+        <li>业务数据查询与巡检</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <span class="state future">规划</span>
+      <div class="ph">PHASE 3</div>
+      <h3>业务项目 Agent</h3>
+      <p>业务接口封装为 MCP / Skill 后，Agent 直接执行业务工作：</p>
+      <ul>
+        <li>上架商品、配置营销活动等操作直达</li>
+        <li>人只做确认与监督</li>
+        <li>工作台 owner 持续掌控生产资料</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ending" id="ending">
+    <h2>写在最后</h2>
+    <p>AI 让"执行"趋近免费，但执行什么、按什么标准、在什么约束下执行——这些定义权，比以往任何时候都值钱。</p>
+    <p class="big">工作台即生产资料。掌控并持续迭代它的人，就是 AI 时代最难被替代的人。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    AI 迭代代理工作台（ai-dev-proxy）实践分享 · 基于 mall 电商商城项目 · 2026-10<br>
+    本页为脱敏后的方法论分享，不包含任何账号、密钥与内部配置
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 的长期主义：记忆、经验与上下文压缩 · 音巢设计分享 08</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 08/12 · 记忆与经验</div>
+    <h1>Agent 的长期主义<br>记忆、经验与上下文压缩</h1>
+    <p class="sub">让一个 Agent 跨过会话边界仍然「记得你」：音巢用四层记忆体系作答——soul.md 定人格、memory.md 记长期、经验库做组织级沉淀、会话上下文在超窗时自动压缩续跑。文件即记忆，审核保质量，压缩不失忆。</p>
+    <div class="hero-meta">
+      <span>记忆分层 <b>4 层</b></span>
+      <span>经验内置工具 <b>3 个</b></span>
+      <span>经验数据表 <b>experience_entries / experience_references</b></span>
+      <span>压缩阈值 <b>AGENT_RUNTIME_SUMMARY_THRESHOLD_RATIO</b></span>
+      <span>压缩状态表 <b>session_context_states</b></span>
+      <span>基于上游 <b>main · v1.11.5</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">01 场景与定位</a>
+    <a href="#design">02 功能设计</a>
+    <span class="sep">·</span>
+    <a href="#impl">03 实现方案</a>
+    <a href="#fig-arch">图 1 · 记忆分层</a>
+    <a href="#fig-exp">图 2 · 经验闭环</a>
+    <a href="#fig-compact">图 3 · 上下文压缩</a>
+    <a href="#codemap">代码依据</a>
+    <span class="sep">·</span>
+    <a href="#pseudocode">04 伪代码</a>
+    <a href="#qa">05 面试 QA</a>
+    <a href="#ending">06 结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-07-org-okr.html">上一篇</a>
+    <a href="yinchao-09-workspace-sandbox.html">下一篇</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>没有记忆的 Agent，每天都是新员工</h2>
+    <p>单次对话里的 Agent 可以很聪明，但会话一关，一切归零：偏好要重讲、坑要重踩、长任务做到一半被上下文窗口「截断」。音巢的记忆与经验体系，解决的就是「跨时间的连续性」——让 Agent 的工作经验随时间增值，而不是随会话蒸发。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">4</div><div class="l">记忆分层：soul / memory / 经验库 / session</div></div>
+    <div class="stat"><div class="n teal">3</div><div class="l">经验内置工具：search / read / propose_draft</div></div>
+    <div class="stat"><div class="n amber">2</div><div class="l">经验数据表：entries + references</div></div>
+    <div class="stat"><div class="n green">1×</div><div class="l">压缩时 LLM 恰好提交一次摘要（commit_session_context）</div></div>
+  </div>
+
+  <h3 class="sub">四类业务场景</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">场景</th><th>没有记忆体系时</th><th>音巢的解法</th><th>依托机制</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>跨会话记住偏好与历史决策</td>
+        <td class="mut">用户每周一都要重新交代「报告用中文、周五前给我、别抄送全组」</td>
+        <td>Agent 把偏好与关键决策写进自己的长期记忆文件，下次会话注入 prompt，开口就是「熟人口吻」</td>
+        <td class="mono">agent_data/&lt;agent_id&gt;/memory/memory.md</td>
+      </tr>
+      <tr>
+        <td>踩过的坑沉淀为组织经验</td>
+        <td class="mut">A Agent 上周踩过的部署坑，B Agent 这周原样再踩一遍</td>
+        <td>经验以条目形式入库，按可见范围共享；后续任务由 Agent 主动检索复用，引用行为留痕</td>
+        <td class="mono">experience_entries / experience_references</td>
+      </tr>
+      <tr>
+        <td>长对话超出上下文窗口</td>
+        <td class="mut">对话一截断，前半段的结论与约束全部丢失，任务跑偏</td>
+        <td>token 占用超阈值比率即触发压缩：老消息由模型自己浓缩成摘要，保留近期消息续跑</td>
+        <td class="mono">session_context_compactor + session_context_states</td>
+      </tr>
+      <tr>
+        <td>每日自我复盘</td>
+        <td class="mut">Agent 干了一天活，没有任何沉淀，第二天从零开始</td>
+        <td>按心跳节奏复盘当日工作，把成果、遗留问题写入每日报告，反哺长期记忆</td>
+        <td class="mono">HEARTBEAT.md + daily_reports/</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>记忆不是外挂的向量库，而是 Agent 工作区里「可读、可改、可版本化」的一等公民。</h3>
+    <p>音巢的选择是：人格与长期记忆用文件（soul.md / memory.md），组织经验用受审核的数据库条目（experience_entries），会话热数据用可压缩的上下文状态（session_context_states）——三种介质对应三种变化频率，各归其位。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>按「变化频率」分层，按「信任级别」管控</h2>
+    <p>设计记忆体系首先要回答两个问题：什么东西多久变一次（决定存哪、怎么注入）；谁能写、写什么（决定质量与安全边界）。音巢的答案浓缩在下面两个决策块里。</p>
+  </div>
+
+  <h3 class="sub">四层记忆：从「永不变」到「随时被压缩」</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">层次</th><th>内容</th><th>变化频率</th><th>写入者</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="kid">soul.md</td>
+        <td>人格、职责边界、行为准则——「我是谁」</td>
+        <td>几乎不变 <span class="badge gray">人格层</span></td>
+        <td>模板播种 + 管理员维护</td>
+      </tr>
+      <tr>
+        <td class="kid">memory/memory.md</td>
+        <td>用户偏好、历史决策、项目背景——「我记得什么」</td>
+        <td>慢变（天/周级） <span class="badge rd">长期记忆</span></td>
+        <td>Agent 自己在工作区里读写</td>
+      </tr>
+      <tr>
+        <td class="kid">experience_entries</td>
+        <td>踩坑记录、可复用做法——「组织学会了什么」</td>
+        <td>中变，需人工审核后才生效 <span class="badge brand">组织级</span></td>
+        <td>Agent 提案草稿 → 人审核发布</td>
+      </tr>
+      <tr>
+        <td class="kid">session 上下文</td>
+        <td>当前会话的消息与中间结论——「我们正在干什么」</td>
+        <td>快变，超阈值即被压缩 <span class="badge wr">易失</span></td>
+        <td>运行时自动管理</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="decision">
+    <h3>记忆介质：文件式记忆 vs 向量库记忆 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 向量库路线：记忆切片向量化，语义召回注入 prompt<br>② 文件式路线：记忆就是 Agent 工作区里的 Markdown 文件，Agent 用文件工具自己读写，注入时按层拼接</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>长期记忆走文件式（soul.md / memory.md / MEMORY_INDEX.md / curiosity_journal.md），组织经验走数据库条目 + 关键词检索（experience_retrieval）</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>文件可读、可编辑、可 diff、可随工作区版本化与备份——记忆对人和 Agent 都是透明的；Agent 平台本来就有成熟的文件工具链，写入零额外基础设施。经验库则因「多 Agent 共享 + 审核 + 引用统计」的诉求，天然该进数据库。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>文件式没有语义召回能力，记忆规模大了以后靠 Agent 自觉维护索引（MEMORY_INDEX.md）与目录结构，检索精度让位于可解释性；数据库经验条目的召回是关键词 + 可见性过滤，不依赖向量模型。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>经验入库：直接写 vs 提案审核管线 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① Agent 任务完成后直接写经验条目，立即可被检索<br>② Agent 只能提交「草稿提案」，人工审核发布后才进入可检索目录</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>提案审核管线：propose_experience_draft 产生 draft，reviewed_by 人工把关后转为 published；已发布条目的修订走 draft_of_id 影子草稿，发布后合并回源条目</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>经验会被注入所有有可见权限的 Agent 的上下文——一条错误的经验是组织级的「投毒」。draft 状态明确标注「AI 生成或人撰写、尚不可检索」，published 才进 Agent 上下文目录，把质量闸门卡在进入信任域之前。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>沉淀有时延：从踩坑到全员可用隔着一次人工审核；审核队列需要运营。影子草稿机制（draft_of_id）也让引用计数与采纳统计始终挂在稳定的源条目上，模型与流程都更绕一层。</p></div>
+    </div>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">上下文注入的分层组装</div>
+    <p>每次会话构造 prompt 时，音巢按层注入：<strong>soul.md（人格）</strong> + <strong>memory（长期记忆）</strong> + <strong>enterprise_info（企业知识）</strong> + <strong>经验提示（build_experience_hint）</strong> + <strong>群聊共享上下文（GroupContextBuilder 抓取的近期消息与参与者）</strong>。各层来源不同、信任级别不同，但在模型眼里是同一份「我是谁、我记得什么、我在哪」的开场白。</p>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>三张图看懂：分层、闭环、压缩</h2>
+    <p>记忆体系按变化频率分层；经验按「提案→审核→召回→引用」闭环流动；会话上下文在 token 超阈值时由模型自我浓缩。以下三张图 + 一张代码依据表，是本篇的重头。</p>
+  </div>
+
+  <div class="fig-t" id="fig-arch"><span class="fno">图 1</span><h3>记忆体系分层架构：不变的人格 → 慢变的记忆 → 组织级经验 → 快变的会话</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>人格层 · soul.md</h3><span class="need free">不变 · 模板播种</span></div>
+      <div class="boxes">
+        <div class="box"><b>backend/agent_template/soul.md</b><small>实例化时复制到 agent_data/&lt;agent_id&gt;/</small></div>
+        <div class="box"><b>人格与边界</b><small>角色定位、行为准则、禁区</small></div>
+        <div class="box"><b>每轮注入</b><small>system prompt 的最顶层</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">实例化复制 + 每轮读取注入 ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>长期记忆层 · memory/（文件即记忆）</h3><span class="need own">慢变 · Agent 自维护</span></div>
+      <div class="boxes">
+        <div class="box"><b>memory/memory.md</b><small>主记忆文件；agent_manager / agent_seeder 负责实例化时确保存在</small></div>
+        <div class="box"><b>memory/MEMORY_INDEX.md</b><small>记忆索引，模板自带</small></div>
+        <div class="box"><b>memory/curiosity_journal.md</b><small>好奇心日志，模板自带</small></div>
+        <div class="box"><b>daily_reports/</b><small>每日复盘报告，反哺长期记忆</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">检索召回 + 提示注入 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>组织经验层 · experience_entries</h3><span class="need auto">中变 · 审核后生效</span></div>
+      <div class="boxes">
+        <div class="box"><b>experience_retrieval.py</b><small>search_experience / build_experience_hint：按可见性 + 关键词相关性召回</small></div>
+        <div class="box"><b>内置工具 ×3</b><small>search_experience · read_experience · propose_experience_draft</small></div>
+        <div class="box"><b>experience_references</b><small>引用留痕：谁、在哪个任务、引用了哪条经验</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">运行时累积 + 超阈值压缩 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>会话上下文层 · session_context_states</h3><span class="need warn">快变 · 会被压缩</span></div>
+      <div class="boxes">
+        <div class="box"><b>session_context_service.py</b><small>Snapshot / Candidate / Delta 三态模型</small></div>
+        <div class="box"><b>session_context_compactor.py</b><small>阈值比率触发，LLM 调 commit_session_context 提交摘要</small></div>
+        <div class="box"><b>group_context_builder.py</b><small>群聊共享上下文：近期消息 + 参与者</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">四个层次对应四种介质与四种治理强度：文件（人格/记忆）随工作区版本化；数据库条目（经验）受审核与可见性管控；会话状态表（session_context_states）只做运行态持久化。注入顺序即信任顺序——越靠上的层越稳定，越不该被运行时污染。</p>
+
+  <div class="fig-t" id="fig-exp"><span class="fno">图 2</span><h3>经验沉淀闭环：从一次踩坑到全员复用</h3></div>
+  <div class="flow">
+    <span class="chip dark">任务完成<br>踩坑 / 获得可复用做法</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">Agent 提案<br>propose_experience_draft</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">草稿 status=draft<br>尚不可检索</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">人工审核<br>reviewed_by 把关</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">发布 status=published<br>进入 Agent 上下文目录</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">后续任务召回<br>search_experience / build_experience_hint</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">引用留痕<br>experience_references</span>
+  </div>
+  <p class="fig-note">闭环的两个关键设计：① <strong>入口即闸门</strong>——Agent 没有「直接发布」的工具，只有提案权；② <strong>修订不炸引用</strong>——编辑已发布条目时先建 draft_of_id 影子草稿，发布后内容合并回源条目，experience_references 里的引用计数与采纳统计始终挂在稳定 ID 上。召回侧，检索结果只展示 title + applicability 两行预览，Agent 判断相关后才 read_experience 读全文——预览即成本控制。</p>
+
+  <div class="fig-t" id="fig-compact"><span class="fno">图 3</span><h3>上下文压缩：模型自我浓缩，状态落库续跑</h3></div>
+  <div class="flow">
+    <span class="chip dark">会话进行中<br>消息持续累积</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">估算 token 占用<br>vs 上下文预算 × 阈值比率</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">触发压缩<br>session_context_compactor</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">LLM 生成紧凑摘要<br>调 commit_session_context（恰好一次）</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">新上下文 = 摘要 + 近期消息<br>Snapshot / Delta 更新</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">session_context_states 落库<br>会话续跑不断片</span>
+  </div>
+  <p class="fig-note">阈值来自配置 <code>AGENT_RUNTIME_SUMMARY_THRESHOLD_RATIO</code>（见 backend/app/config.py）：token 估算超过「预算 × 比率」即触发，留出比率之外的余量给模型生成摘要。摘要不是服务端机械截断，而是<strong>由模型自己调用 commit_session_context 工具提交</strong>——它最清楚哪些结论不能丢；状态以 Snapshot / Candidate / Delta 三态在 session_context_states 表演进，冲突由 SessionContextConflict 显式抛出，不静默覆盖。</p>
+
+  <h3 class="sub" id="codemap">代码依据（路径均已在上游仓库核实）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:170px">功能点</th><th>关键文件 / 位置</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>记忆与人格模板</td>
+        <td class="mono">backend/agent_template/（soul.md、memory/MEMORY_INDEX.md、memory/curiosity_journal.md、HEARTBEAT.md、daily_reports/）</td>
+        <td>Agent 实例化的原型：人格文件、记忆索引、心跳节奏与复盘目录的初始形态</td>
+      </tr>
+      <tr>
+        <td>记忆文件实例化</td>
+        <td class="mono">backend/app/services/agent_manager.py<br>backend/app/services/agent_seeder.py</td>
+        <td>创建 Agent 时按模板播种工作区，并确保 <code>memory/memory.md</code> 存在（agent_manager.py:202-203）</td>
+      </tr>
+      <tr>
+        <td>经验库接口</td>
+        <td class="mono">backend/app/api/experience.py</td>
+        <td>经验条目的管理 API：草稿提交、审核发布、检索入口</td>
+      </tr>
+      <tr>
+        <td>经验数据模型</td>
+        <td class="mono">backend/app/models/experience.py<br>backend/app/models/experience_reference.py</td>
+        <td><code>experience_entries</code>（status: draft→published、draft_of_id 影子草稿、reviewed_by）与 <code>experience_references</code>（引用留痕）两张表</td>
+      </tr>
+      <tr>
+        <td>经验检索与注入</td>
+        <td class="mono">backend/app/services/experience_retrieval.py</td>
+        <td><code>search_experience</code> 关键词召回（含查询扩展）、<code>build_experience_hint</code> 构造注入提示、<code>_visibility_condition</code> 按部门过滤可见性</td>
+      </tr>
+      <tr>
+        <td>经验内置工具</td>
+        <td class="mono">backend/app/services/builtin_tool_definitions.py</td>
+        <td>注册 <code>search_experience</code> / <code>read_experience</code> / <code>propose_experience_draft</code> 三个 Agent 内置工具（约 L945 / L966 / L986）</td>
+      </tr>
+      <tr>
+        <td>会话上下文压缩</td>
+        <td class="mono">backend/app/services/agent_runtime/session_context_compactor.py</td>
+        <td>阈值触发（读 AGENT_RUNTIME_SUMMARY_THRESHOLD_RATIO）、token 估算、驱动 LLM 调 <code>commit_session_context</code> 恰好一次提交摘要</td>
+      </tr>
+      <tr>
+        <td>压缩状态持久化</td>
+        <td class="mono">backend/app/services/agent_runtime/session_context_service.py<br>backend/app/models/session_context_state.py</td>
+        <td>SessionContextSnapshot / Candidate / Delta 三态模型；<code>session_context_states</code> 表；并发冲突抛 SessionContextConflict</td>
+      </tr>
+      <tr>
+        <td>压缩周边运行时</td>
+        <td class="mono">backend/app/services/agent_runtime/session_context_background.py<br>backend/app/services/agent_runtime/session_context_completion.py</td>
+        <td>后台压缩调度与压缩后的会话补全衔接</td>
+      </tr>
+      <tr>
+        <td>群聊共享上下文</td>
+        <td class="mono">backend/app/services/agent_runtime/group_context_builder.py</td>
+        <td>GroupContextBuilder 抓取群聊近期消息与参与者，组装共享上下文注入</td>
+      </tr>
+      <tr>
+        <td>阈值配置</td>
+        <td class="mono">backend/app/config.py</td>
+        <td><code>AGENT_RUNTIME_SUMMARY_THRESHOLD_RATIO</code> 等 AGENT_RUNTIME_* 运行时配置项定义</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 伪代码 ============ -->
+<section id="pseudocode">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：压缩与召回</h2>
+    <p>伪代码略去鉴权、日志与重试，只保留机制骨架：压缩闭环回答「上下文怎么不失忆地瘦身」，召回闭环回答「经验怎么在对的时刻出现在 prompt 里」。</p>
+  </div>
+
+  <h3 class="sub">闭环一：会话上下文压缩（对应 session_context_compactor）</h3>
+  <div class="cb"><span class="tk-c"># 每轮会话构造上下文前执行；阈值比率来自 AGENT_RUNTIME_SUMMARY_THRESHOLD_RATIO</span>
+<span class="tk-k">async def</span> <span class="tk-f">maybe_compact_session</span>(db, session, settings):
+    budget  = <span class="tk-f">context_budget</span>(session.model)                     <span class="tk-c"># 模型上下文窗口</span>
+    limit   = budget * settings.AGENT_RUNTIME_SUMMARY_THRESHOLD_RATIO  <span class="tk-c"># 触发线</span>
+    payload = <span class="tk-f">build_context_payload</span>(session)                  <span class="tk-c"># 历史消息 + 已有摘要</span>
+
+    <span class="tk-k">if</span> <span class="tk-f">estimate_tokens</span>(payload) &lt;= limit:
+        <span class="tk-k">return</span> payload                                     <span class="tk-c"># 未超阈值，原样使用</span>
+
+    <span class="tk-c"># 超阈值：让模型自我浓缩——它最清楚哪些结论不能丢</span>
+    <span class="tk-t">candidate</span> = <span class="tk-k">await</span> <span class="tk-f">llm_call_with_tool</span>(
+        messages = COMPACT_INSTRUCTION + payload,        <span class="tk-c"># 指令：生成可续跑的紧凑摘要</span>
+        tools    = [commit_session_context],             <span class="tk-c"># 唯一可用工具</span>
+        require  = <span class="tk-s">"call commit_session_context exactly once"</span>,
+    )
+    summary = candidate.arguments[<span class="tk-s">"summary"</span>]
+    <span class="tk-k">if</span> <span class="tk-k">not</span> summary.strip():
+        <span class="tk-k">raise</span> <span class="tk-e">SessionContextError</span>(<span class="tk-s">"empty_summary"</span>)      <span class="tk-c"># 拒绝空摘要</span>
+
+    <span class="tk-k">try</span>:
+        state = <span class="tk-k">await</span> <span class="tk-f">load_state</span>(db, session.id)          <span class="tk-c"># session_context_states 行</span>
+        <span class="tk-k">await</span> state.<span class="tk-f">apply_candidate</span>(summary,
+                keep_recent=<span class="tk-n">N</span>)                          <span class="tk-c"># Snapshot → Candidate → Delta</span>
+        <span class="tk-k">await</span> db.<span class="tk-f">commit</span>()
+    <span class="tk-k">except</span> <span class="tk-e">SessionContextConflict</span>:
+        <span class="tk-c"># 并发压缩：显式冲突，让一方重试，绝不静默覆盖</span>
+        <span class="tk-k">raise</span>
+
+    <span class="tk-k">return</span> <span class="tk-f">build_context_payload</span>(session)                  <span class="tk-c"># = 摘要 + 最近 N 条消息，续跑</span></div>
+
+  <h3 class="sub">闭环二：经验检索与注入（对应 experience_retrieval）</h3>
+  <div class="cb"><span class="tk-c"># Agent 发起 search_experience 时的最小链路</span>
+<span class="tk-k">async def</span> <span class="tk-f">search_experience</span>(db, agent_id, query, top_n=<span class="tk-n">5</span>):
+    agent   = <span class="tk-k">await</span> <span class="tk-f">resolve_agent</span>(db, agent_id)
+    depts   = <span class="tk-k">await</span> <span class="tk-f">agent_department_ids</span>(agent)           <span class="tk-c"># 可见性边界</span>
+    needles = <span class="tk-f">expand_query</span>(query)                        <span class="tk-c"># 可选的查询扩展</span>
+
+    rows = <span class="tk-k">await</span> db.<span class="tk-f">query</span>(ExperienceEntry) \
+        .<span class="tk-f">filter</span>(status == <span class="tk-s">"published"</span>)                  <span class="tk-c"># 草稿永不被检索</span> \
+        .<span class="tk-f">filter</span>(<span class="tk-f">visibility_condition</span>(depts))            <span class="tk-c"># 按部门/范围过滤</span> \
+        .<span class="tk-f">filter</span>(title.<span class="tk-f">ilike_any</span>(needles)
+               | applicability.<span class="tk-f">ilike_any</span>(needles))     <span class="tk-c"># 关键词相关性</span> \
+        .<span class="tk-f">limit</span>(top_n)
+
+    <span class="tk-c"># 只回预览两行：title + applicability，Agent 判断相关后再 read_experience 读全文</span>
+    <span class="tk-k">return</span> [{<span class="tk-s">"entry_id"</span>: r.id, <span class="tk-s">"title"</span>: r.title,
+             <span class="tk-s">"applicability"</span>: r.applicability,          <span class="tk-c"># 适用条件与失效信号</span>
+             <span class="tk-s">"freshness"</span>: <span class="tk-f">freshness_marker</span>(r)}
+            <span class="tk-k">for</span> r <span class="tk-k">in</span> rows]
+
+<span class="tk-c"># 注入侧：会话开始时把高频可用经验拼进上下文目录</span>
+<span class="tk-k">async def</span> <span class="tk-f">build_experience_hint</span>(db, agent_id):
+    entries = <span class="tk-k">await</span> <span class="tk-f">published_entries_for</span>(db, agent_id)   <span class="tk-c"># 同套可见性过滤</span>
+    <span class="tk-k">return</span> <span class="tk-s">"\n"</span>.<span class="tk-f">join</span>(<span class="tk-s">f"- [</span>{e.id}<span class="tk-s">] </span>{e.title}<span class="tk-s"> — </span>{e.applicability}"
+                      <span class="tk-k">for</span> e <span class="tk-k">in</span> entries)
+<span class="tk-c"># 引用留痕：Agent 采纳某条经验后写 experience_references（谁 / 哪个任务 / 哪条）</span></div>
+</section>
+
+<!-- ============ 05 面试 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六问六答：从取舍到落地细节</h2>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 长期记忆为什么用文件而不是向量库？这个取舍的代价是什么？</div>
+    <p>音巢选文件式的核心理由是<strong>透明性与零新增基础设施</strong>：memory.md 是 Agent 工作区里的普通 Markdown，人可直接审阅修改、随工作区版本化备份，Agent 读写它复用既有文件工具链，不需要引入 embedding 模型与向量库运维。代价是<strong>没有语义召回</strong>——「用券失败」匹配不到「核销门槛」这类问题在文件式里靠 Agent 自觉维护索引（模板自带的 MEMORY_INDEX.md）与目录约定来缓解。本质是把「检索精度」换成了「可解释、可干预」：记忆出错时你能打开文件指到那一行，而不是对着一堆向量猜。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · 上下文压缩必然丢信息，音巢怎么控制损失？</div>
+    <p>三层控制：<strong>① 摘要者是模型自己</strong>——压缩不是机械截断，而是驱动 LLM 调用 commit_session_context 工具提交一份「可供后续模型续跑」的紧凑摘要，由最理解对话的一方决定保留什么，且该工具要求恰好调用一次、空摘要直接拒绝；<strong>② 保留近期原文</strong>——压缩后上下文 = 摘要 + 最近 N 条消息原文，正在进行的子任务细节不经过摘要这一道有损环节；<strong>③ 阈值留余量</strong>——触发线是「预算 × AGENT_RUNTIME_SUMMARY_THRESHOLD_RATIO」而非顶格，比率之外的余量正是留给生成摘要的。状态侧用 Snapshot / Candidate / Delta 三态演进，并发压缩抛 SessionContextConflict 而非静默覆盖。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 经验库怎么冷启动？怎么防止 Agent 把错误经验「投毒」给全组织？</div>
+    <p>防投毒靠<strong>权限不对称</strong>：Agent 只有提案权（propose_experience_draft），没有发布权；草稿 status=draft 时检索层（experience_retrieval 只查 published）根本看不到它，必须 reviewed_by 人工审核转 published 后才进 Agent 上下文目录。修订已发布条目也走 draft_of_id 影子草稿，发布后合并回源条目，引用与采纳统计不断链。冷启动的实务做法：先由人把历史排障文档、运维手册整理成首批种子条目直接发布，让检索「有米下锅」；Agent 提案早期可以设定「高价值任务完成后必须复盘提案」的节奏约束，用流程密度换积累速度。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · 记忆应该在什么时候写入——每轮对话结束，还是定期复盘？</div>
+    <p>音巢是<strong>两者结合</strong>，且刻意偏后者。每轮结束就写的问题在于：对话中间态噪声大，Agent 容易把试探性结论当成事实固化；而且写文件本身是工具调用，每轮都写增加时延与 token 成本。音巢的模板里带 HEARTBEAT.md 与 daily_reports/ 目录，节奏是「按心跳复盘」——Agent 周期性地回顾一段时间的工作，把验证过的结论、遗留问题写成每日报告，再把真正长期有效的部分沉淀进 memory.md。即时写入只留给「用户明确纠正偏好」这类高置信信号。这个设计的判断标准是：<strong>写入的记忆会被未来的自己无条件信任，所以写入门槛要高于读取门槛</strong>。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · 多 Agent 共享记忆时，一致性问题怎么处理？</div>
+    <p>音巢把「共享」拆成两类，分别治理：<strong>① 文件层不做运行时共享</strong>——memory.md 是每个 Agent 的私有财产（agent_data/&lt;agent_id&gt;/memory/），群聊里通过 group_file_service 提供受控的读写视图（如 agents/&lt;agent_id&gt;/memory/memory.md 路径映射），写冲突靠文件层的版本与工作区治理兜底，而不是运行时锁；<strong>② 组织级共享走数据库</strong>——经验库是共享的那一层，一致性由 DB 事务与状态机保证：draft/published 状态迁移、draft_of_id 影子草稿、reviewed_by 审核人都是行级事实；可见性用 _visibility_condition 按 Agent 所属部门过滤，避免「全公司可见」成为唯一选项。会话层的一致性则由 session_context_states 的冲突显式化（SessionContextConflict）兜底。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · 「RAG 外挂知识库」与「Agent 自己管文件」两条路线，音巢各取了什么？</div>
+    <p>音巢是<strong>按内容性质分治</strong>的混合派：企业结构化知识（enterprise_info）与经验库走「检索注入」这一侧——经验库的 search_experience 就是一次受控的 RAG：按可见性过滤 + 关键词召回 top N，只返回 title/applicability 两行预览，Agent 确认相关后才 read_experience 读全文，注入位置、条数、预览粒度全部服务端可控；而人格与长期记忆走「Agent 自己管文件」这一侧——因为这部分内容要求的是高信任、高可解释、随工作区演进，而不是海量语料的语义召回。两条路线的分野标准可以总结为：<strong>读多写少、需要跨主体共享的，进检索管线；写读都频繁、属于个体连续性的，进文件</strong>。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>记忆，是 Agent 的时间维度</h2>
+    <p>工具给了 Agent 手的灵巧，编排给了它脑的条理，而记忆与经验给了它时间的厚度——昨天的教训成为今天的直觉，一个人的踩坑成为全组织的资产。</p>
+    <p>音巢的做法朴素但有效：人格与记忆写成文件，经验过审核入库，上下文超窗就自我浓缩。没有魔法，全是工程。</p>
+    <p class="big">衡量一个 Agent 平台是否成熟，不看它一次能跑多快，而看它一年后还记得什么。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · Agent 的长期主义：记忆、经验与上下文压缩 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a>
+  </div>
+</footer>
+
+</body>
+</html>

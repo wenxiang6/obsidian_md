@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mall-mcp — 给业务 Agent 装上业务能力出口</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Part divider ===== */
+  .part{
+    margin:72px 0 0;border-radius:var(--radius);padding:30px 34px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .part::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .part .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:8px}
+  .part h2{font-size:23px;font-weight:800;margin-bottom:8px}
+  .part p{color:#d5d9f5;font-size:14.5px;max-width:760px}
+
+  /* ===== Cards ===== */
+  .pains{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .pain{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 22px 20px;box-shadow:var(--shadow);position:relative;
+  }
+  .pain::before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:3px;border-radius:3px;background:#d97706}
+  .pain h3{font-size:16px;font-weight:700;margin-bottom:8px;padding-left:10px}
+  .pain p{font-size:14px;color:var(--ink-soft);padding-left:10px}
+
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Sequence diagram ===== */
+  .seq{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .seq-heads{display:grid;grid-template-columns:1fr 210px 1fr;gap:0;margin-bottom:6px}
+  .seq-heads span{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-align:center;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  .seq-row{display:grid;grid-template-columns:1fr 210px 1fr;align-items:center;padding:7px 0;border-bottom:1px dashed #f0eee7}
+  .seq-row:last-child{border-bottom:none}
+  .seq-row .l,.seq-row .r{font-size:12.5px;color:var(--ink-soft)}
+  .seq-row .l{text-align:right;padding-right:6px}
+  .seq-row .r{text-align:left;padding-left:6px}
+  .seq-row .m{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;white-space:nowrap}
+  .seq-row .m .ln{flex:1;height:2px;background:#c7d2fe;position:relative}
+  .seq-row .m .ln.arr-r::after{content:"";position:absolute;right:-1px;top:-3.5px;border:4.5px solid transparent;border-left-color:#818cf8}
+  .seq-row .m .ln.arr-l::after{content:"";position:absolute;left:-1px;top:-3.5px;border:4.5px solid transparent;border-right-color:#818cf8}
+  .seq-row .m .lbl{flex:none;background:var(--brand-bg);color:var(--brand);border-radius:6px;padding:1px 8px;font-size:10.5px;margin:0 4px}
+  .seq-row.warn .m .lbl{background:var(--amber-bg);color:var(--amber)}
+  .seq-row.warn .m .ln{background:#ecd3ab}
+  .seq-note{font-size:12px;color:var(--muted);margin-top:10px}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.opt h5{color:var(--muted)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Troubleshooting issues ===== */
+  .issue{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px 26px;margin:18px 0}
+  .issue .ih{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .issue .ino{
+    font-size:12px;font-weight:800;color:#fff;background:var(--amber);border-radius:8px;
+    min-width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px;
+  }
+  .issue .ih h3{font-size:17px;font-weight:800}
+  .issue .ih .dur{margin-left:auto;font-size:11.5px;color:var(--muted);background:#f1efe9;border-radius:999px;padding:3px 10px}
+  .iseg{margin-bottom:12px}
+  .iseg h4{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+  .iseg.sym h4{color:var(--red)}
+  .iseg.hunt h4{color:var(--brand)}
+  .iseg.root h4{color:var(--teal)}
+  .iseg.fix h4{color:var(--green)}
+  .iseg p,.iseg li{font-size:14px;color:var(--ink-soft)}
+  .iseg ul{padding-left:20px}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+    .seq-row,.seq-heads{grid-template-columns:1fr 150px 1fr}
+    .issue .ih .dur{display:none}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.part,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+
+  /* ===== 面试问答体系 ===== */
+  .qa-term{color:var(--brand);border-bottom:1.5px dotted #a5b4fc;text-decoration:none;font-weight:600;padding:0 1px}
+  .qa-term:hover{color:var(--brand-2);background:var(--brand-bg);border-radius:4px}
+  .qa-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 26px;margin:16px 0;scroll-margin-top:64px}
+  .qa-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .qa-no{font-size:12px;font-weight:800;color:#fff;background:var(--navy);border-radius:8px;padding:3px 10px}
+  .qa-cat{font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .qa-cat.gov{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .qa-cat.proto{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .qa-cat.stab{background:var(--red-bg,#fdecec);color:var(--red);border-color:#f3c5c5}
+  .qa-cat.data{background:var(--green-bg);color:var(--green);border-color:#bbe5c8}
+  .qa-cat.evo{background:#f1efe9;color:var(--muted);border-color:var(--line)}
+  .qa-diff{margin-left:auto;font-size:11.5px;color:var(--amber);letter-spacing:2px}
+  .qa-q{font-size:16.5px;font-weight:800;margin-bottom:10px;line-height:1.5}
+  .qa-card p{font-size:14px;color:var(--ink-soft);margin-bottom:8px}
+  .qa-foot{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .qa-foot a{color:var(--brand);text-decoration:none}
+  .qa-foot a:hover{text-decoration:underline}
+  .qa-group{font-size:14px;font-weight:800;color:var(--muted);letter-spacing:.08em;margin:28px 0 4px;scroll-margin-top:64px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">真实迭代复盘 × 面试答辩材料 · 附 21 道模拟问答考点</div>
+    <h1>mall-mcp<br>给业务 Agent 装上业务能力出口</h1>
+    <p class="sub">这不是一篇概念文章，而是一次真实迭代的完整复盘：在 mall 电商后端（Spring Boot 3）上新增独立的 MCP Server 模块，把查询、办理、审批、指标四类业务能力以 MCP 协议暴露给业务 Agent——含数据基线工程、六个真实坑的排障实录、端到端验证结果，以及一套覆盖全文的面试问答集（正文术语可点击直达考点）。</p>
+    <div class="hero-meta">
+      <span>迭代 <b>20261019-2055</b></span>
+      <span><b>mall-mcp v0.1</b>（mall-mcp-1.0-SNAPSHOT.jar）</span>
+      <span>端口 <b>8186</b></span>
+      <span><b>18</b> 个 MCP 工具</span>
+      <span>Spring AI MCP Server <b>1.1.8</b></span>
+      <span>Boot <b>3.5.14</b> · JDK <b>17</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#background">背景与问题</a>
+    <a href="#mcp">为什么是 MCP</a>
+    <a href="#value">业务价值</a>
+    <a href="#solution">总体方案</a>
+    <span class="sep">·</span>
+    <a href="#baseline-why">数据基线</a>
+    <a href="#baseline-design">生成器设计</a>
+    <a href="#baseline-accept">规模与验收</a>
+    <span class="sep">·</span>
+    <a href="#module">模块定位</a>
+    <a href="#decisions">技术选型</a>
+    <a href="#tool-spec">工具规范</a>
+    <a href="#writeguard">WriteGuard</a>
+    <a href="#metrics">指标口径</a>
+    <span class="sep">·</span>
+    <a href="#troubleshooting">排障实录</a>
+    <a href="#verification">验证体系</a>
+    <a href="#tradeoffs">取舍总表</a>
+    <span class="sep">·</span>
+    <a href="#road-near">近期</a>
+    <a href="#road-mid">中期</a>
+    <a href="#road-long">长期</a>
+    <a href="#ending">结语</a>
+    <span class="sep">·</span>
+    <a href="#qa">面试问答</a>
+    <a href="#qa-proto">协议</a>
+    <a href="#qa-eng">工程</a>
+    <a href="#qa-gov">治理</a>
+    <a href="#qa-stab">排障</a>
+    <a href="#qa-data">数据</a>
+    <a href="#qa-evo">演进</a>
+    <span class="sep">·</span>
+    <a href="#appx-tools">附录</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<div class="part">
+  <div class="tag">Part 1</div>
+  <h2>项目全貌：为什么做、做成了什么</h2>
+  <p>business-agent 工作台的「业务助理」模块需要真实的能力出口。这次迭代把它接上：一个独立运行的 MCP Server，背后是真的 mall 业务库、真的幂等与审计护栏、真的 3000 单数据基线。</p>
+</div>
+
+<!-- ============ 01 背景 ============ -->
+<section id="background">
+  <div class="sec-head">
+    <span class="sec-no">01 · 背景与问题</span>
+    <h2>「业务助理」需要一个真实的能力出口</h2>
+    <p>此前业务能力的演示形态停留在前端交互脚本。要让 Agent 真正办成事，业务系统必须提供一组「为 Agent 设计」的调用面，而不是把给人用的东西直接递过去。</p>
+  </div>
+
+  <h3 class="sub">业务系统的 REST API，为什么不适合直接喂给 Agent</h3>
+  <div class="pains">
+    <div class="pain">
+      <h3>为页面设计，粒度太粗</h3>
+      <p>mall-admin 的接口按后台页面组织：一个订单列表接口返回的是页面所需的全部字段与嵌套结构。Agent 调用时上下文按 token 计费，一页 50 条「页面级」数据足以把上下文窗口烧掉大半，其中九成字段模型根本用不到。</p>
+    </div>
+    <div class="pain">
+      <h3>会话态权限模型，不是凭证态</h3>
+      <p>后台登录走 <code>POST /admin/login</code> 换 JWT，再带 <code>Authorization</code> 头。这套「人登录 → 会话 → 页面操作」的模型，与 Agent「常驻服务、按需调用、调用需留痕到具体操作者」的模型不匹配——Agent 不该去模拟一个管理员登录态。</p>
+    </div>
+    <div class="pain">
+      <h3>无幂等、无审计语义</h3>
+      <p>页面操作背后站着人：人不会在一秒内连点三次发货，人记得自己干过什么。Agent 会重试、会循环、会并行。REST 接口没有幂等键、没有回执、没有操作流水，直接暴露给 Agent 等于把护栏拆掉。</p>
+    </div>
+  </div>
+
+  <h3 class="sub">为什么不走另外两条捷径</h3>
+  <table class="tbl">
+    <thead>
+      <tr><th style="width:180px">捷径</th><th>为什么被否决</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Agent 直连数据库</td>
+        <td>等于把全部业务约束（状态机、金额口径、操作历史写入）交给模型即兴发挥。模型知道「发货是改 status=2」，但它不会每次都记得同时写 <code>oms_order_operate_history</code>；更无法解释「谁在什么时候改的」。数据库直连是演示期看起来最快、出事时最难收场的方式。</td>
+      </tr>
+      <tr>
+        <td>裸调现有 REST</td>
+        <td>粒度与鉴权问题如上；并且写接口（发货、关单、审批）在 mall-admin 里耦合着 Spring Security 的登录用户体系，Agent 调它们必须伪装成一个管理员账号，操作者身份在审计层面彻底丢失。</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="body">结论：<strong>需要一层独立的「协议出口」</strong>——为 Agent 的调用习惯重新设计粒度（摘要式返回、分页上限），自带凭证鉴权、幂等、审计、状态机守护。这层出口就是 mall-mcp。</p>
+</section>
+
+<!-- ============ 02 为什么是 MCP ============ -->
+<section id="mcp">
+  <div class="sec-head">
+    <span class="sec-no">02 · 为什么是 MCP</span>
+    <h2><a class="qa-term" href="#qa-01" id="term-mcp">MCP</a> 是什么，以及为什么是它</h2>
+    <p>Model Context Protocol 是 Anthropic 主导开放的模型上下文协议。一句话定位：把「工具 / 资源 / 提示词」的暴露方式标准化，让任何兼容客户端都能发现并使用服务能力。</p>
+  </div>
+
+  <h3 class="sub">协议骨架</h3>
+  <ul class="body">
+    <li><strong>传输层是 <a class="qa-term" href="#qa-04" id="term-jsonrpc">JSON-RPC 2.0</a></strong>：每个请求有 <code>jsonrpc:"2.0"</code>、<code>method</code>、<code>params</code>、<code>id</code>；通知（notification）不携带 <code>id</code>、不需要应答——这个区别在排障实录 D 里救过我们一命，也坑过我们一次。</li>
+    <li><strong>生命周期是显式的</strong>：<code>initialize</code> 握手协商协议版本与双方能力 → 客户端回 <code><a class="qa-term" href="#qa-04" id="term-initialized">notifications/initialized</a></code> → 之后才能 <code><a class="qa-term" href="#qa-05" id="term-toolslist">tools/list</a></code> 发现工具、<code><a class="qa-term" href="#qa-05" id="term-toolscall">tools/call</a></code> 调用工具。</li>
+    <li><strong>能力自描述</strong>：每个工具带名称、自然语言描述、入参 JSON Schema。客户端（模型）靠描述决定「什么时候用、怎么填参」，不需要人事先写提示词教它。</li>
+    <li><strong>两种传输</strong>：<a class="qa-term" href="#qa-02" id="term-stdio">stdio</a>（本地子进程，客户端拉起即用）与远程 HTTP（<a class="qa-term" href="#qa-03" id="term-sse">SSE</a> / <a class="qa-term" href="#qa-02" id="term-streamable">Streamable HTTP</a>）。mall-mcp 选的是后者——原因见技术选型一节。</li>
+  </ul>
+
+  <h3 class="sub">一次真实握手的时序（本次迭代实测）</h3>
+  <div class="seq">
+    <div class="seq-heads"><span>MCP 客户端（Kimi Code / 自写测试脚本）</span><span></span><span>mall-mcp :8186（Spring AI MCP Server）</span></div>
+    <div class="seq-row">
+      <div class="l">建立 SSE 长连接（带凭证头）</div>
+      <div class="m"><div class="ln arr-r"></div><span class="lbl">GET /sse</span><div class="ln arr-r"></div></div>
+      <div class="r">校验 X-MCP-Token，失败直接 401</div>
+    </div>
+    <div class="seq-row">
+      <div class="l">记下消息端点（含 sessionId）</div>
+      <div class="m"><div class="ln arr-l"></div><span class="lbl">event: endpoint</span><div class="ln arr-l"></div></div>
+      <div class="r">推送 <code>/mcp/message?sessionId=…</code></div>
+    </div>
+    <div class="seq-row">
+      <div class="l">协商协议版本与能力</div>
+      <div class="m"><div class="ln arr-r"></div><span class="lbl">initialize →</span><div class="ln arr-r"></div></div>
+      <div class="r">应答 serverInfo / capabilities</div>
+    </div>
+    <div class="seq-row warn">
+      <div class="l">宣告握手完成，<strong>不能带 id</strong></div>
+      <div class="m"><div class="ln arr-r"></div><span class="lbl">notifications/initialized</span><div class="ln arr-r"></div></div>
+      <div class="r">收到前，静默丢弃其他请求</div>
+    </div>
+    <div class="seq-row">
+      <div class="l">发现 18 个工具（名称/描述/Schema）</div>
+      <div class="m"><div class="ln arr-r"></div><span class="lbl">tools/list ⇄</span><div class="ln arr-r"></div></div>
+      <div class="r">返回工具清单</div>
+    </div>
+    <div class="seq-row">
+      <div class="l">业务调用（查询 / 办理 / 审批 / 指标）</div>
+      <div class="m"><div class="ln arr-r"></div><span class="lbl">tools/call ⇄</span><div class="ln arr-r"></div></div>
+      <div class="r">经 WriteGuard 后执行，结果回传</div>
+    </div>
+    <div class="seq-note">图中琥珀色一行是本次实测踩到的协议细节：initialized 是通知而非请求，带 id 会被当作未知方法返回 Method not found；且服务端状态机在收到它之前会静默吞掉 tools/list、tools/call——请求发出去既没有响应也没有报错。</div>
+  </div>
+
+  <h3 class="sub">三个候选方案的正面对比</h3>
+  <table class="tbl zebra">
+    <thead>
+      <tr><th style="width:150px">维度</th><th><a class="qa-term" href="#qa-01" id="term-function-calling">Function Calling</a> 手写 JSON Schema</th><th>REST 包装一层</th><th>MCP Server</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>标准化与生态</td>
+        <td>每家模型厂商的 schema 与调用协议都有出入，写一套绑一家</td>
+        <td>自定义协议，只有自己的客户端认识</td>
+        <td class="ok">开放协议，Kimi Code、Claude、各类 IDE 与 Agent 框架开箱兼容</td>
+      </tr>
+      <tr>
+        <td>工具生命周期</td>
+        <td>工具清单写死在每次请求的 payload 里，增删工具要改客户端代码</td>
+        <td>靠接口文档约定，靠人同步</td>
+        <td class="ok">tools/list 运行时自描述，服务端加工具客户端即见，免改客户端</td>
+      </tr>
+      <tr>
+        <td>多客户端复用</td>
+        <td>每个客户端各写一套适配</td>
+        <td>每个客户端各写一套鉴权与解析</td>
+        <td class="ok">一份服务端，N 个客户端共享；鉴权、审计、限流在服务端一处收口</td>
+      </tr>
+      <tr>
+        <td>代价</td>
+        <td>—</td>
+        <td>—</td>
+        <td class="mut">协议栈尚在早期（本次就踩了 1.0.2 的传输层缺陷，见排障实录 C）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="co teal">
+    <div class="co-t">关键决策</div>
+    <p>选 MCP 的本质不是「赶新协议」，而是<strong>把能力出口从「客户端职责」变成「服务端资产」</strong>：工具集合、鉴权、幂等、审计全部沉在 mall-mcp 里，未来换模型、换客户端、换前端工作台，这层资产原样保留。</p>
+  </div>
+</section>
+
+<!-- ============ 03 业务价值 ============ -->
+<section id="value">
+  <div class="sec-head">
+    <span class="sec-no">03 · 业务价值</span>
+    <h2>四类能力，覆盖「业务助理」的全部演示场景</h2>
+    <p>18 个工具按业务语义分四类。分类口径说明：迭代早期的技术方案按「17 个」登记，是把退货申请查询（return_apply_list）漏算进了查询类；实测 tools/list 注册 18 个，本文以实测为准。</p>
+  </div>
+
+  <div class="values">
+    <div class="value">
+      <div class="no">查</div>
+      <h3>查询 · 9 个</h3>
+      <p>商品、订单、会员、优惠券、退货申请五大域的搜索与详情。对应业务助理的「查一下订单 M2026… 到哪了」「这个会员累计消费多少」。全部只读、分页上限 50、状态码翻译成中文。</p>
+    </div>
+    <div class="value">
+      <div class="no">办</div>
+      <h3>办理 · 2 个</h3>
+      <p>订单发货（order_ship）、关闭待付款订单（order_close）。对应「帮我把这单发了」「这单超时没付，关掉」。写操作，强制幂等键 + 审计回执 + 状态机守护。</p>
+    </div>
+    <div class="value">
+      <div class="no">批</div>
+      <h3>审批 · 1 个</h3>
+      <p>退货申请审批（return_apply_handle）：通过流转为退货中，驳回为已拒绝，写处理人与备注。对应「售后单给我批一下」。审批是「办理」中责任最重的一类，单独成类。</p>
+    </div>
+    <div class="value">
+      <div class="no">指</div>
+      <h3>指标 · 6 个</h3>
+      <p>销售概览、销售趋势、销售额 Top 商品、会员增长、订单状态分布、券核销率。对应「本周卖得怎么样」——这是本次迭代新增的能力面，直接建立在 3000 单数据基线上才有说服力。</p>
+    </div>
+  </div>
+
+  <h3 class="sub">与 business-agent 理念的一一对应</h3>
+  <table class="tbl">
+    <thead>
+      <tr><th style="width:220px">business-agent 理念</th><th>在 mall-mcp 里的落法</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>人只在决策点出现</td><td>MCP 层不做「确认卡」交互，但写工具全部幂等 + 审计回执——上层 Agent 界面确认后下发的调用，可以安全重试；每一笔写操作都有 RCPT 回执可对人交差。</td></tr>
+      <tr><td>发布权在人</td><td>高危操作（改价、批量发券）根本不暴露为工具，只能走需求迭代任务通道。能力面的「不提供」本身就是一道闸门。</td></tr>
+      <tr><td>外部阻塞显式记录</td><td>状态守护的拒绝语义是显式的：「当前状态为『已发货』，不允许发货（仅待发货可发货）」——失败原因说人话，绝不静默跳过、绝不假装成功。</td></tr>
+      <tr><td>操作留痕、版本可审计</td><td>mcp_audit_log 记录工具名、参数摘要、操作者、回执号、成败；操作者来自请求头 X-MCP-Operator，穿透到审计流水。</td></tr>
+    </tbody>
+  </table>
+
+  <div class="core">
+    <div class="tag">一句话价值主张</div>
+    <h3>业务人员在 IM 或工作台里用自然语言，完成原本要登录后台、找菜单、点按钮的事</h3>
+    <p>「上周 GMV 多少」「把订单 20000017 发顺丰 SF1234」「这批退货申请帮我过一遍」——模型的表达力负责理解意图，mall-mcp 的纪律负责安全执行。前者可以换，后者不能缺。</p>
+  </div>
+</section>
+
+<!-- ============ 04 总体方案 ============ -->
+<section id="solution">
+  <div class="sec-head">
+    <span class="sec-no">04 · 总体方案与实施流程</span>
+    <h2>一个独立模块、两张治理表、一条实施流水线</h2>
+    <p>对 mall 后端做最小侵入迭代：不改 mall-admin / mall-portal 一行代码，新增独立模块 mall-mcp 直读直写业务库，治理逻辑全部收在模块内部。</p>
+  </div>
+
+  <h3 class="sub">架构图</h3>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>调用方</h3><span class="need free">任意 MCP 客户端</span></div>
+      <div class="boxes">
+        <div class="box"><b>Kimi Code</b><small>mcp.json 配置接入，本迭代的目标客户端</small></div>
+        <div class="box"><b>business-agent 工作台</b><small>「业务助理」模块的真实后端</small></div>
+        <div class="box"><b>自写测试脚本</b><small>mcp-test.mjs / mcp-write-test.mjs，契约验证基线</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">
+      MCP 协议 · SSE 传输 · 请求头 X-MCP-Token / X-MCP-Operator
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg>
+    </div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>mall-mcp :8186（本次迭代的全部所在）</h3><span class="need own">独立模块 · 独立端口</span></div>
+      <div class="boxes">
+        <div class="box"><b>McpAuthFilter</b><small>凭证校验，401 拦截；写入操作者上下文</small></div>
+        <div class="box"><b>18 个 @Tool 工具</b><small>6 个领域工具类，Spring AI 注解式注册</small></div>
+        <div class="box"><b>WriteGuard</b><small>写护栏：幂等 → 执行 → 审计 → 入库</small></div>
+        <div class="box"><b>mcp_audit_log</b><small>审计流水表（含回执号 RCPT-*）</small></div>
+        <div class="box"><b>mcp_idempotency</b><small>幂等表（主键 request_id + tool_name）</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">
+      JdbcTemplate 直读直写
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg>
+    </div>
+    <div class="layer">
+      <div class="layer-head"><h3>MySQL · mall 库（77 张业务表）</h3><span class="need auto">与 mall-admin 共用</span></div>
+      <div class="boxes">
+        <div class="box"><b>oms_*</b><small>订单 / 明细 / 操作历史 / 退货申请</small></div>
+        <div class="box"><b>pms_*</b><small>商品 / SKU 库存</small></div>
+        <div class="box"><b>ums_*</b><small>会员 / 收货地址</small></div>
+        <div class="box"><b>sms_*</b><small>优惠券 / 领取使用记录</small></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub">实施流水线（实际执行顺序）</h3>
+  <div class="flow">
+    <span class="chip">① 数据基线工程</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">② mall-mcp 模块开发</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">③ 联调排障（6 个坑）</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">④ 端到端验证</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">⑤ 配置 Kimi Code 接入</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">⑥ 回归（真实 API + npm run test）</span>
+  </div>
+  <p class="body">顺序里最重要的一条经验：<strong>数据基线排在模块开发之前</strong>。指标类工具如果对着 65 单的存量库验证，所有「趋势」「分布」「Top 榜」都形同虚设——先备好值得查询的数据，工具验证才有意义。详见第二部分。</p>
+
+  <h3 class="sub" id="term-toolcount">18 个工具总表</h3>
+  <table class="tbl zebra">
+    <thead><tr><th>工具</th><th>分类</th><th>一句话说明</th><th style="width:70px">读/写</th></tr></thead>
+    <tbody>
+      <tr><td class="kid">product_search</td><td>查询 · 商品</td><td>按名称/品牌/类目模糊搜索，返回分页摘要（价格、库存、销量、上架状态）</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">product_get</td><td>查询 · 商品</td><td>按商品 ID 查详情：基础信息 + SKU 库存列表</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">order_search</td><td>查询 · 订单</td><td>订单号/会员账号模糊 + 状态 + 时间范围多条件搜索，含状态中文名</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">order_get</td><td>查询 · 订单</td><td>订单全量：头信息 + 商品明细 + 操作历史三段</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">member_search</td><td>查询 · 会员</td><td>账号/昵称/手机号模糊匹配会员摘要</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">member_get</td><td>查询 · 会员</td><td>会员 360 视图：基础信息 + 收货地址 + 订单统计</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">coupon_list</td><td>查询 · 营销</td><td>券列表：券面信息 + 领取/使用统计 + 当前有效性</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">coupon_history</td><td>查询 · 营销</td><td>券领取/使用记录，可按券 ID 与使用状态过滤，追踪到订单</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">return_apply_list</td><td>查询 · 售后</td><td>退货申请列表，按处理状态过滤，最新在前</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">order_ship</td><td>办理 · 订单</td><td>订单发货：填物流公司与单号，待发货 → 已发货，写操作历史</td><td><span class="badge wr">写</span></td></tr>
+      <tr><td class="kid">order_close</td><td>办理 · 订单</td><td>关闭待付款订单，原因写入操作历史</td><td><span class="badge wr">写</span></td></tr>
+      <tr><td class="kid">return_apply_handle</td><td>审批 · 售后</td><td>退货审批：通过 → 退货中，驳回 → 已拒绝，写处理人与备注</td><td><span class="badge wr">写</span></td></tr>
+      <tr><td class="kid">metric_sales_overview</td><td>指标</td><td>近 N 天 GMV、订单数、支付转化率、客单价、新会员、退货申请数</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">metric_sales_trend</td><td>指标</td><td>近 N 天按天的订单数与 GMV 序列，可直接画图</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">metric_top_products</td><td>指标</td><td>近 N 天销售额 Top 商品榜（销量/销售额/品牌）</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">metric_member_growth</td><td>指标</td><td>近 N 天按天新增会员序列 + 期末总会员数</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">metric_order_status_distribution</td><td>指标</td><td>订单状态分布：各状态订单量与占比</td><td><span class="badge rd">读</span></td></tr>
+      <tr><td class="kid">metric_coupon_usage</td><td>指标</td><td>券核销指标：领取/使用/核销率，全券或指定券</td><td><span class="badge rd">读</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="part">
+  <div class="tag">Part 2</div>
+  <h2>数据基线工程：让任何环境开箱即有可信数据</h2>
+  <p>指标工具的可信度完全取决于数据底座。这部分记录一套数据基线（staging data baseline）初始化工具是如何设计与验收的：数据即代码、固定种子可复现、ID 段避开存量数据、幂等导入可重复执行。</p>
+</div>
+
+<!-- ============ 05 为什么先做数据基线 ============ -->
+<section id="baseline-why">
+  <div class="sec-head">
+    <span class="sec-no">05 · 为什么先做数据基线</span>
+    <h2>38 个商品、65 张订单的存量数据，撑不起指标联调</h2>
+  </div>
+  <p class="body">预发/演示环境的预置数据（mall.sql 初始数据）量级是：38 个商品、65 张订单。对着它调用 <code>metric_sales_trend</code>，近 30 天序列大面积为零；调用 <code>metric_order_status_distribution</code>，占比分布没有统计意义；「本周销售额」的答案在个位数订单上没有任何说服力，联调与压测更无从谈起。</p>
+  <p class="body">因此我们需要一套<strong>数据基线初始化工具</strong>：环境拉起后一键注入一批规模足够、分布合理、业务自洽的数据，让任何环境开箱即达到「可演示、可联调、可验收」的基线水位。两条硬约束：</p>
+  <ul class="body">
+    <li><strong>不能破坏存量数据</strong>——mall-admin 后台的原有功能（商品管理、订单列表分页）必须照常可用，基线数据只能增量叠加，不能改写或删除存量行；</li>
+    <li><strong>必须可复现、可重复导入</strong>——任何一台机器、任何一次环境重建，跑同一个脚本要得到同一份数据；导入失败重来不能留下半份脏数据。</li>
+  </ul>
+  <div class="co teal">
+    <div class="co-t">关键决策</div>
+    <p>不写一次性手工 SQL，而是写一个<strong>数据基线生成器</strong>：<code>document/sql/staging/gen-staging-data.js</code>（Node，无第三方依赖）。数据即代码——分布规则、ID 规划、业务联动全部可读可评审，重建环境时一键重放。</p>
+  </div>
+</section>
+
+<!-- ============ 06 生成器设计 ============ -->
+<section id="baseline-design">
+  <div class="sec-head">
+    <span class="sec-no">06 · 生成器设计</span>
+    <h2>可复现随机 + ID 段规划 + 业务联动</h2>
+    <p>生成器约 330 行，输出一份 4.5MB 的多行 INSERT SQL（staging-data.sql）。设计上有四个值得展开的点。</p>
+  </div>
+
+  <h3 class="sub">固定种子的可复现随机</h3>
+  <p class="body">用 mulberry32 伪随机算法，种子固定为 <code>20261019</code>。重复运行产出逐字节一致的 SQL——这意味着「数据问题」可以被当作代码问题来复现和评审，而不是「我这边随机出来的不一样」。</p>
+  <div class="cb"><span class="tk-k">let</span> _seed = <span class="tk-n">20261019</span>;
+<span class="tk-k">function</span> <span class="tk-f">rnd</span>() { <span class="tk-c">// mulberry32</span>
+  _seed |= <span class="tk-n">0</span>; _seed = (_seed + <span class="tk-n">0x6D2B79F5</span>) | <span class="tk-n">0</span>;
+  <span class="tk-k">let</span> t = Math.<span class="tk-f">imul</span>(_seed ^ (_seed >>> <span class="tk-n">15</span>), <span class="tk-n">1</span> | _seed);
+  t = (t + Math.<span class="tk-f">imul</span>(t ^ (t >>> <span class="tk-n">7</span>), <span class="tk-n">61</span> | t)) ^ t;
+  <span class="tk-k">return</span> ((t ^ (t >>> <span class="tk-n">14</span>)) >>> <span class="tk-n">0</span>) / <span class="tk-n">4294967296</span>;
+}</div>
+
+  <h3 class="sub">ID 段规划：与存量数据物理隔离</h3>
+  <table class="tbl zebra">
+    <thead><tr><th>数据域</th><th>表</th><th>基线 ID 段</th><th>存量数据占用</th></tr></thead>
+    <tbody>
+      <tr><td>商品 / SKU</td><td class="mono">pms_product / pms_sku_stock</td><td class="mono">1000001+</td><td class="mut">≤ 数百（mall.sql）</td></tr>
+      <tr><td>会员 / 收货地址</td><td class="mono">ums_member / ums_member_receive_address</td><td class="mono">1000001+</td><td class="mut">个位数</td></tr>
+      <tr><td>订单</td><td class="mono">oms_order</td><td class="mono">20000001+</td><td class="mut">65 张</td></tr>
+      <tr><td>订单明细</td><td class="mono">oms_order_item</td><td class="mono">30000001+</td><td class="mut">百余条</td></tr>
+      <tr><td>操作历史</td><td class="mono">oms_order_operate_history</td><td class="mono">40000001+</td><td class="mut">百余条</td></tr>
+      <tr><td>券领取/使用记录</td><td class="mono">sms_coupon_history</td><td class="mono">5000001+</td><td class="mut">—</td></tr>
+      <tr><td>优惠券</td><td class="mono">sms_coupon</td><td class="mono">1001 – 1006</td><td class="mut">存量券 ID ≤ 个位数段</td></tr>
+    </tbody>
+  </table>
+  <p class="body">ID 段隔离带来两个直接收益：肉眼即可分辨一行数据是存量还是基线；以及——幂等导入成为可能（见下）。</p>
+
+  <h3 class="sub">时间分布与状态演化：让数据「像真的发生过」</h3>
+  <ul class="body">
+    <li><strong>订单创建时间</strong>：近 180 天内按 <code>Math.pow(rnd(), 0.6)</code> 分布——指数小于 1 使密度近密远疏，模拟「最近单量多」的真实电商曲线，也让近 7 天 / 近 30 天指标都有料。</li>
+    <li><strong>订单状态按单龄演化</strong>：1 天内的单约 55% 还在待付款（真实场景新单来不及付）；1–3 天的单大部分已发货在途；3 天以上约 78% 已完成，残留少量已发货、已关闭、待发货的「长尾异常单」。这个演化规则直接决定了「待发货队列里永远有单可发」——写工具演示因此随时可行。</li>
+    <li><strong>时间字段联动</strong>：支付时间 = 创建时间 + 1~40 分钟；发货时间 = 支付 + 8~48 小时；收货时间 = 发货 + 24~96 小时；四成已完成订单带评价时间。整条生命周期的时间戳不出现因果倒置。</li>
+  </ul>
+
+  <h3 class="sub">真实感来源与业务联动</h3>
+  <div class="pains">
+    <div class="pain" style="--x:1">
+      <h3>人的真实感</h3>
+      <p>姓氏池（王李张刘…近百姓）× 名字池（伟/芳/梓涵/浩然…）拼中文名，英文昵称池（Momo/Leo/Kobe24…）兜底；手机号走真实号段（130-199 共 27 段）；地址用真实省市区 + 街道名 + 「楼栋/室」组合。65% 中文昵称、35% 英文昵称，接近真实会员构成。</p>
+    </div>
+    <div class="pain">
+      <h3>货的真实感</h3>
+      <p>59 个商品全部是有价格带认知的真实品名：华为 Mate 70 Pro 6499、小米手环10 279、美的酷省电空调 2399、优衣库 AIRism T恤 79……覆盖 12 个类目、9 个品牌，价格从 79 到 13999 拉开梯度，客单价分布才自然。</p>
+    </div>
+    <div class="pain">
+      <h3>钱的联动</h3>
+      <p>订单金额 = 明细合计 + 运费（满 99 包邮）− 券 − 促销；券核销时<strong>校验订单实付 ≥ 券门槛</strong>且一单只用一券（usedOrders 集合去重）；sms_coupon 的 use_count / receive_count 由记录表回算 UPDATE 对齐，核销率不是编造值而是真实统计值。</p>
+    </div>
+    <div class="pain">
+      <h3>痕迹的联动</h3>
+      <p>每张订单按状态补齐操作历史链：提交订单 → 订单支付成功 → 订单已发货 → 订单已收货 →（四成）评价；关闭单有「超时未支付，系统自动关闭 / 买家取消订单」两种原因。order_get 的「操作历史三段」因此永远有内容。</p>
+    </div>
+  </div>
+
+  <h3 class="sub">幂等导入：文件头先按 ID 段清场</h3>
+  <div class="cb"><span class="tk-c">-- 重复导入前清理本文件产生的数据段（幂等导入）</span>
+<span class="tk-k">DELETE FROM</span> oms_order_operate_history <span class="tk-k">WHERE</span> id &gt;= <span class="tk-n">40000001</span>;
+<span class="tk-k">DELETE FROM</span> oms_order_item <span class="tk-k">WHERE</span> id &gt;= <span class="tk-n">30000001</span>;
+<span class="tk-k">DELETE FROM</span> oms_order <span class="tk-k">WHERE</span> id &gt;= <span class="tk-n">20000001</span>;
+<span class="tk-k">DELETE FROM</span> sms_coupon_history <span class="tk-k">WHERE</span> id &gt;= <span class="tk-n">5000001</span>;
+<span class="tk-k">DELETE FROM</span> sms_coupon <span class="tk-k">WHERE</span> id &gt;= <span class="tk-n">1001</span> <span class="tk-k">AND</span> id &lt;= <span class="tk-n">1006</span>;
+<span class="tk-c">-- …会员、地址、SKU、商品同理</span></div>
+  <p class="body">删除顺序按外键依赖逆序（先历史、明细，后订单，再主数据）。导入脚本因此可以无脑重复执行——这在「容器假死 → 重启 → 重新导入」的排障过程中被实际用到过一次。</p>
+</section>
+
+<!-- ============ 07 规模与验收 ============ -->
+<section id="baseline-accept">
+  <div class="sec-head">
+    <span class="sec-no">07 · 规模与质量验收</span>
+    <h2>生成、入库、机器校验、真实 API 回归四道关</h2>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">59</div><div class="l">新增商品（12 类目）</div></div>
+    <div class="stat"><div class="n teal">800</div><div class="l">会员 + 1900 条地址</div></div>
+    <div class="stat"><div class="n amber">3000</div><div class="l">订单（近 180 天）</div></div>
+    <div class="stat"><div class="n">6006</div><div class="l">订单明细行</div></div>
+    <div class="stat"><div class="n green">8336</div><div class="l">券领取/使用记录</div></div>
+    <div class="stat"><div class="n teal">¥2012 万</div><div class="l">入库后 GMV 汇总</div></div>
+  </div>
+
+  <table class="tbl">
+    <thead><tr><th>域</th><th>生成量</th><th>入库后总量</th><th>构成</th></tr></thead>
+    <tbody>
+      <tr><td>商品</td><td class="mono">59</td><td class="mono">97</td><td class="mut">存量 38 + 基线 59</td></tr>
+      <tr><td>会员</td><td class="mono">800</td><td class="mono">810</td><td class="mut">存量 10 + 基线 800</td></tr>
+      <tr><td>订单</td><td class="mono">3000</td><td class="mono">3065</td><td class="mut">存量 65 + 基线 3000</td></tr>
+      <tr><td>订单明细</td><td class="mono">6006</td><td class="mono">6006</td><td class="mut">明细均为基线数据（每单 1–3 件）</td></tr>
+      <tr><td>券记录</td><td class="mono">8336</td><td class="mono">8336</td><td class="mut">6 张券（1001–1006，含 1 张已过期）</td></tr>
+    </tbody>
+  </table>
+
+  <ul class="body">
+    <li><strong>机器校验</strong>：对生成的 30983 行 INSERT 逐行做列数匹配校验，全部通过；扫描产物 <code>0</code> 处 NaN / undefined（JS 生成 SQL 最常见的两类暗伤）。</li>
+    <li><strong>真实 API 回归</strong>：导入后启动 mall-admin :8180，走真实接口 <code>/admin/login</code> 登录 + <code>/order/list</code> 分页——基线订单在后台订单列表正常分页渲染，证明数据不仅「能入库」，而且「业务系统认」。</li>
+  </ul>
+
+  <div class="co green">
+    <div class="co-t">验证通过</div>
+    <p>数据底座就绪后，指标工具首次联调即返回有说服力的结果：支付转化率 <strong>90.9%</strong>、券核销率 <strong>37.5%</strong>、近 30 天趋势序列逐日非零。这些数字全部来自生成规则的统计结果，没有任何一处是手工编造的。</p>
+  </div>
+</section>
+
+<div class="part">
+  <div class="tag">Part 3</div>
+  <h2>技术方案：模块、选型、规范与治理</h2>
+  <p>零侵入接入、JdbcTemplate 直连、SSE 远程传输、静态凭证、服务端写护栏——每个决定都有明确的理由和记录在案的代价。</p>
+</div>
+
+<!-- ============ 08 模块定位 ============ -->
+<section id="module">
+  <div class="sec-head">
+    <span class="sec-no">08 · 模块定位与依赖</span>
+    <h2>mall-mcp：父工程下的独立 Maven 模块</h2>
+    <p>登记进父 pom 的 module 列表，与 mall-admin、mall-portal 平级；对这两个模块<strong>零代码侵入</strong>——它们不知道 mall-mcp 的存在，也不需要知道。</p>
+  </div>
+
+  <table class="tbl zebra">
+    <thead><tr><th>依赖</th><th>版本</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">Spring Boot（父 pom）</td><td class="mono">3.5.14</td><td>基座；JDK 17</td></tr>
+      <tr><td class="mono">spring-ai-starter-mcp-server-webmvc</td><td class="mono">1.1.8（spring-ai-bom 管理）</td><td>MCP Server 能力：@Tool 注解注册、SSE 传输、JSON-RPC 会话</td></tr>
+      <tr><td class="mono">spring-boot-starter-web</td><td class="mono">随父 pom</td><td>HTTP 端点承载（/sse、/mcp/message）</td></tr>
+      <tr><td class="mono">spring-boot-starter-jdbc</td><td class="mono">随父 pom</td><td>JdbcTemplate 数据访问</td></tr>
+      <tr><td class="mono">mysql-connector-j</td><td class="mono">9.3.0</td><td>MySQL 驱动（9.x 的类型映射变化踩过坑，见排障实录 E）</td></tr>
+    </tbody>
+  </table>
+
+  <p class="body">刻意<strong>不</strong>引入的依赖同样重要：不引入 mall-mbg（MyBatis 体系与 152 个生成 model），不引入 mall-security（JWT/RBAC），不引入 mall-common 的 web 封装。模块编译产物 mall-mcp-1.0-SNAPSHOT.jar（44MB），<code>mvn -pl mall-mcp package</code> 独立构建。</p>
+
+  <div class="cb"><span class="tk-c"># application.yml（关键配置摘录）</span>
+<span class="tk-f">server</span>:
+  <span class="tk-f">port</span>: <span class="tk-n">8186</span>
+<span class="tk-f">spring</span>:
+  <span class="tk-f">datasource</span>:
+    <span class="tk-f">url</span>: jdbc:mysql://localhost:3306/mall?useUnicode=<span class="tk-k">true</span>&amp;characterEncoding=utf-8&amp;serverTimezone=Asia/Shanghai&amp;useSSL=<span class="tk-k">false</span>
+  <span class="tk-f">sql.init</span>:                 <span class="tk-c"># 启动时幂等建两张治理表</span>
+    <span class="tk-f">mode</span>: always
+    <span class="tk-f">schema-locations</span>: classpath:schema.sql
+    <span class="tk-f">continue-on-error</span>: <span class="tk-k">true</span>
+  <span class="tk-f">ai.mcp.server</span>:
+    <span class="tk-f">name</span>: mall-mcp
+    <span class="tk-f">version</span>: 0.1.0
+<span class="tk-f">mall.mcp</span>:
+  <span class="tk-f">token</span>: mall-mcp-demo-token   <span class="tk-c"># X-MCP-Token 必须一致</span></div>
+</section>
+
+<!-- ============ 09 技术选型 ============ -->
+<section id="decisions">
+  <div class="sec-head">
+    <span class="sec-no">09 · 技术选型与背后原因</span>
+    <h2>五个决定，每个都写清「选项 → 决定 → 原因 → 代价」</h2>
+    <p>选型不是列答案，是记录权衡。代价一栏与结论同等重要——它决定了未来什么时候应该推翻这个决定。</p>
+  </div>
+
+  <div class="decision">
+    <h3><a class="qa-term" href="#qa-11" id="term-module">独立模块</a> vs 嵌入 mall-admin <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 新建 mall-mcp 模块<br>② 在 mall-admin 里加 MCP 端点</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>独立模块，端口 8186</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>隔离爆炸半径：MCP 层出问题不影响后台服务；独立演进：协议栈升级、工具增删不必动业务模块；独立端口便于网关层单独限流与审计。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>多一个进程要维护；与 mall-admin 的口径一致性要靠约定（指标口径一节）而非编译期保证。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3><a class="qa-term" href="#qa-10" id="term-jdbc">JdbcTemplate</a> vs 引入 <a class="qa-term" href="#qa-10" id="term-mbg">mall-mbg</a> 的 <a class="qa-term" href="#qa-10" id="term-mybatis">MyBatis</a> <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 复用 mall-mbg 生成的 Mapper/Model<br>② 裸 JdbcTemplate 手写 SQL</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>JdbcTemplate</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>MCP 工具以聚合与关联查询为主（GMV、趋势、Top 榜、状态分布），生成式 Mapper 的 Example 查询模型表达这类 SQL 反而绕；引入 mall-mbg 等于拖入整个 MyBatis 体系和 152 个用不到的 model 类。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>手写 SQL 要自己保证字段名正确（没有编译期检查）；防注入靠参数绑定纪律，本次 coupon_list 的 keyword 过滤即手工剥除单引号——已知粗糙点，记录在案。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>SSE 远程服务 vs stdio <span class="badge brand">D3</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① stdio：客户端拉起本地子进程<br>② 远程 HTTP（SSE）：常驻服务</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>SSE 远程服务 :8186</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>常驻服务才能多客户端共享同一份工具与治理；HTTP 可审计可限流；与 business-agent「状态在常驻 Host」的理念一致——浏览器/客户端只是遥控器。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>SSE 是 MCP 早期传输形态，官方已标记 legacy（Streamable HTTP 是后继）；且 Spring AI 1.0.2 的 SSE 实现有传输层缺陷（排障实录 C）。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>静态 <a class="qa-term" href="#qa-12" id="term-token">X-MCP-Token</a> vs 接 mall-security JWT <span class="badge brand">D4</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 静态凭证头<br>② 对接 mall-security 的 JWT/RBAC</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>静态 token，过滤器一处收口</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>演示边界内不过度设计：JWT 体系依赖登录会话与用户表，与「常驻服务、机器调用」模型不匹配；鉴权逻辑集中在 McpAuthFilter 一个类里，生产化时在过滤器内换实现即可，调用链不动。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>静态 token 无法区分真实操作者（只能靠 X-MCP-Operator 自报家门，写入审计但不防伪）；token 泄露即全量能力泄露。演进路线里有 OAuth 与 RBAC 两节专门收口此事。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>服务端<a class="qa-term" href="#qa-07" id="term-idempotency">幂等</a>+审计 vs 只靠上层确认卡 <span class="badge brand">D5</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 信任上层 Agent 的确认卡交互<br>② MCP 服务端自建 WriteGuard</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>服务端护栏不可替代</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>确认卡防的是「未经人同意」，防不了「同意之后执行两次」：Agent 会重试（网络抖动）、会循环（自我修正）、会并行（多步任务）。幂等是执行层问题，必须在执行层解决。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>每个写工具都要经 WriteGuard 包一层；幂等表随时间膨胀，需要后续加归档策略（见演进路线）。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 工具设计规范 ============ -->
+<section id="tool-spec">
+  <div class="sec-head">
+    <span class="sec-no">10 · 工具设计规范</span>
+    <h2>写给模型看的接口，和写给人看的不是一回事</h2>
+  </div>
+  <ul class="body">
+    <li><strong>读写分级与命名</strong>：只读工具用 <code>search / get / list / history / metric_*</code> 命名，写工具用动词（<code>ship / close / handle</code>）并在描述首句标注「（写操作）」。模型选工具时第一眼就能看到副作用等级。</li>
+    <li><strong><a class="qa-term" href="#qa-06" id="term-tool-design">描述即提示词</a></strong>：每个 <code>@Tool</code> 的 description 写明「做什么 + 关键约束」，例如 order_ship 的描述直接写明「仅待发货（status=1）可发货，需幂等键」——模型的参数填充与前置判断高度依赖这段文字，写它是设计工作不是注释工作。</li>
+    <li><strong><a class="qa-term" href="#qa-15" id="term-pagination">分页上限 50</a>，防上下文爆炸</strong>：所有 list/search 工具 <code>pageSize</code> 默认 10、封顶 50（<code>Math.min(pageSize, 50)</code>）；指标类 <code>days</code> 封顶 365、榜单 <code>limit</code> 封顶 50。模型很容易「给我全部」——上限就是给这句话的护栏。</li>
+    <li><strong>状态码中文化</strong>：数据库里是 0/1/2/3/4，模型和业务看到的必须是「待付款/待发货/已发货」。Dicts 类集中维护订单、退货、支付方式、来源四个字典，与 mall 前端口径一致；查询结果统一补 <code>status_text</code> 等字段，不让模型去猜数字含义。</li>
+    <li><strong>返回结构约定</strong>：列表类工具直接返回 <code>List&lt;Map&gt;</code>（模型最易消费）；详情/写操作返回三段式 Map——如 order_get 返回 <code>{order, items, operate_history}</code>，写工具返回 <code>{success, summary, receipt_no, operator, data?}</code>。结构稳定，上层才好做展示映射。</li>
+  </ul>
+
+  <div class="cb"><span class="tk-c">// 写工具的标准形态（OrderTools.order_ship 摘录）</span>
+<span class="tk-k">@Tool</span>(name = <span class="tk-s">"order_ship"</span>, description = <span class="tk-s">"订单发货（写操作）：对待发货(status=1)订单填写物流公司与单号，状态流转为已发货(2)。需幂等键"</span>)
+<span class="tk-k">@Transactional</span>
+<span class="tk-k">public</span> Map&lt;String, Object&gt; <span class="tk-f">ship</span>(
+        <span class="tk-k">@ToolParam</span>(description = <span class="tk-s">"幂等键：同一发货操作重复提交时返回首次结果"</span>) String requestId,
+        <span class="tk-k">@ToolParam</span>(description = <span class="tk-s">"订单ID"</span>) Long orderId,
+        <span class="tk-k">@ToolParam</span>(description = <span class="tk-s">"物流公司名称，如 顺丰快递"</span>) String deliveryCompany,
+        <span class="tk-k">@ToolParam</span>(description = <span class="tk-s">"物流单号"</span>) String deliverySn) {
+    <span class="tk-k">return</span> guard.<span class="tk-f">execute</span>(<span class="tk-s">"order_ship"</span>, requestId, args, () -&gt; { <span class="tk-c">/* 状态校验 + 守护更新 + 写操作历史 */</span> });
+}</div>
+</section>
+
+<!-- ============ 11 WriteGuard ============ -->
+<section id="writeguard">
+  <div class="sec-head">
+    <span class="sec-no">11 · 治理设计：WriteGuard</span>
+    <h2>幂等、审计、状态机守护，收在一条执行链里</h2>
+    <p>所有写工具共用一个护栏：写操作的业务语义各有不同，但「重复安全、全程留痕、不产生脏流转」这三件事是统一的。</p>
+  </div>
+
+  <h3 class="sub">执行链</h3>
+  <div class="flow">
+    <span class="chip">requestId 为空？<br>拒绝执行</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">查 mcp_idempotency</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">命中 → 返回首次结果<br>标 duplicate:true</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">未命中 → 执行业务动作<br>（状态守护 UPDATE）</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">审计落库<br>生成 RCPT 回执</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">结果写入幂等表</span>
+  </div>
+
+  <ul class="body">
+    <li><strong>幂等键即主键</strong>：mcp_idempotency 主键为 <code>(request_id, tool_name)</code>，同一 <a class="qa-term" href="#qa-07" id="term-requestid">requestId</a> 重复 INSERT 抛 DuplicateKeyException 直接吞掉——并发下同 requestId 只保留第一条，数据库约束兜底，不依赖应用层判断的时序。</li>
+    <li><strong><a class="qa-term" href="#qa-09" id="term-audit">审计</a>先于返回</strong>：业务动作执行后立即落 mcp_audit_log 并生成回执号，回执号格式 <code>RCPT-yyyyMMddHHmmss + 4位随机</code>（如 RCPT-2026101914302207xx）。回执随结果返回给调用方，可对人口头交差，可在审计模块反查。</li>
+    <li><strong><a class="qa-term" href="#qa-08" id="term-state-guard">状态机守护</a>在 SQL 层</strong>：发货的 UPDATE 写成 <code>UPDATE oms_order SET … status=2 WHERE id=? AND status=1</code>——前置状态条件嵌在 WHERE 里，并发下两个发货请求只会有一个影响行数为 1，另一个影响行数为 0 即判失败，不产生「已发货又被发一次」的脏流转。代码层的状态预检（SELECT status）只是为了给出「当前状态为『已发货』」的人话提示，真正的防线是 WHERE 条件。</li>
+    <li><strong>事务边界</strong>：写工具方法标 <code>@Transactional</code>，业务 UPDATE 与操作历史 INSERT 同生共死。</li>
+  </ul>
+
+  <h3 class="sub">两张治理表的 DDL（schema.sql 全文）</h3>
+  <div class="cb"><span class="tk-k">CREATE TABLE IF NOT EXISTS</span> <span class="tk-t">mcp_audit_log</span> (
+  id <span class="tk-t">BIGINT</span> AUTO_INCREMENT <span class="tk-k">PRIMARY KEY</span>,
+  request_id <span class="tk-t">VARCHAR</span>(<span class="tk-n">64</span>) <span class="tk-k">NULL</span>,
+  tool_name <span class="tk-t">VARCHAR</span>(<span class="tk-n">64</span>) <span class="tk-k">NOT NULL</span>,
+  operator <span class="tk-t">VARCHAR</span>(<span class="tk-n">64</span>) <span class="tk-k">NOT NULL</span>,
+  args_json <span class="tk-t">TEXT</span>,
+  result_summary <span class="tk-t">VARCHAR</span>(<span class="tk-n">500</span>),
+  receipt_no <span class="tk-t">VARCHAR</span>(<span class="tk-n">32</span>),
+  success <span class="tk-t">TINYINT</span> <span class="tk-k">DEFAULT</span> <span class="tk-n">1</span>,
+  create_time <span class="tk-t">DATETIME</span>
+) <span class="tk-k">ENGINE</span>=InnoDB <span class="tk-k">DEFAULT CHARSET</span>=utf8mb4;
+
+<span class="tk-k">CREATE TABLE IF NOT EXISTS</span> <span class="tk-t">mcp_idempotency</span> (
+  request_id <span class="tk-t">VARCHAR</span>(<span class="tk-n">64</span>) <span class="tk-k">NOT NULL</span>,
+  tool_name <span class="tk-t">VARCHAR</span>(<span class="tk-n">64</span>) <span class="tk-k">NOT NULL</span>,
+  result_json <span class="tk-t">TEXT</span>,
+  create_time <span class="tk-t">DATETIME</span>,
+  <span class="tk-k">PRIMARY KEY</span> (request_id, tool_name)
+) <span class="tk-k">ENGINE</span>=InnoDB <span class="tk-k">DEFAULT CHARSET</span>=utf8mb4;</div>
+
+  <div class="co teal">
+    <div class="co-t">关键决策：为什么审计表和幂等表是两张表</div>
+    <p>职责不同、生命周期不同、查询模式不同。审计表是<strong>追加写的流水</strong>：成功失败都记、永远只增、按时间检索、未来要归档；幂等表是<strong>去重字典</strong>：只记成功执行的最终结果、以主键命中为唯一访问方式、记录可以随业务窗口期清理。合成一张表，两个职责会互相绑架索引设计与清理策略。分开之后，审计可以大胆记全量，幂等可以放心存完整结果 JSON。</p>
+  </div>
+</section>
+
+<!-- ============ 12 指标口径 ============ -->
+<section id="metrics">
+  <div class="sec-head">
+    <span class="sec-no">12 · 指标口径定义</span>
+    <h2>口径先于 SQL：六个指标工具的计算规则</h2>
+    <p>指标最大的风险不是算错，是「和后台看到的对不上」。本节把所有口径写明，与 mall-admin 的统计语义保持一致。</p>
+  </div>
+  <table class="tbl zebra">
+    <thead><tr><th>工具</th><th>口径定义</th><th>SQL 要点</th></tr></thead>
+    <tbody>
+      <tr><td class="kid">metric_sales_overview</td><td><a class="qa-term" href="#qa-14" id="term-gmv">GMV</a> = 近 N 天已支付订单（status ∈ 1,2,3，即待发货/已发货/已完成）的 pay_amount 汇总；<a class="qa-term" href="#qa-14" id="term-conversion">支付转化率</a> = 已支付单 / 创建单（保留 1 位小数）；客单价 = GMV / 已支付单数</td><td class="mono">SUM(CASE WHEN status IN (1,2,3) THEN pay_amount END)；转化率用 Math.round(paid*1000/total)/10</td></tr>
+      <tr><td class="kid">metric_sales_trend</td><td>近 N 天按创建日期的订单数与 GMV 双序列，GMV 口径同上</td><td class="mono">GROUP BY DATE(create_time) ORDER BY stat_date</td></tr>
+      <tr><td class="kid">metric_top_products</td><td>近 N 天已支付订单的明细按商品聚合，销售额降序</td><td class="mono">oms_order_item JOIN oms_order，o.status IN (1,2,3)，ORDER BY sale_amount DESC</td></tr>
+      <tr><td class="kid">metric_member_growth</td><td>近 N 天按注册日期的新增会员序列 + 期末总会员数</td><td class="mono">ums_member GROUP BY DATE(create_time)；total 另查全表 COUNT</td></tr>
+      <tr><td class="kid">metric_order_status_distribution</td><td>全量订单按状态分组计数与占比（占比和 ≈ 100%）</td><td class="mono">GROUP BY status，ratio 保留 1 位小数，附 status_text</td></tr>
+      <tr><td class="kid">metric_coupon_usage</td><td>核销率 = use_count / receive_count × 100（1 位小数），全券或指定券</td><td class="mono">ROUND(c.use_count*100.0/NULLIF(c.receive_count,0),1)，NULLIF 防除零</td></tr>
+    </tbody>
+  </table>
+  <p class="body">「已支付」取 status ∈ (1,2,3) 而非仅看 pay_type：待付款（0）与已关闭（4）不产生 GMV；无效订单（5）同样排除。这个口径与 mall-admin 订单统计的语义一致，业务在后台看到的数字和 Agent 报出的数字可以对账。</p>
+  <div class="co green">
+    <div class="co-t">验证通过</div>
+    <p>对数据基线的实测值：全库 GMV 汇总 <strong>¥2012 万</strong>；近 30 天支付转化率 <strong>90.9%</strong>；新人立减券（1001）核销率 <strong>37.5%</strong>。三个数字均与直查 SQL 的手工核算一致。</p>
+  </div>
+</section>
+
+<div class="part">
+  <div class="tag">Part 4 · 本文重头戏</div>
+  <h2>MCP 制作总结：六个真实的坑，与一套验证体系</h2>
+  <p>这一部分是本次迭代最有复用价值的产出。排障按「现象 → 定位过程 → 根因 → 解法 → 教训」五段式写透；验证体系给出完整矩阵，所有结果均可复现。</p>
+</div>
+
+<!-- ============ 13 排障实录 ============ -->
+<section id="troubleshooting">
+  <div class="sec-head">
+    <span class="sec-no">13 · 排障实录</span>
+    <h2>六个坑：从本机代理到协议栈缺陷</h2>
+    <p>按遇到的时间顺序排列。前两个是环境坑，中间两个是 MCP 协议栈坑，后两个是依赖与工程习惯坑。</p>
+  </div>
+
+  <!-- A -->
+  <div class="issue">
+    <div class="ih"><span class="ino">A</span><h3>本机 <a class="qa-term" href="#qa-13" id="term-jdkproxy">JDK 内置代理</a>未运行：Maven 报 SOCKS Connection refused</h3><span class="dur">环境层 · 耗时约 40 分钟</span></div>
+    <div class="iseg sym"><h4>现象</h4>
+      <p><code>mvn package</code> 下载依赖全部失败，错误是 <code>SOCKS: Connection refused</code>；同一时段 <code>docker compose pull</code> 拉取 quay.io 的 minio 镜像同样失败。两处错误表面无关。</p>
+    </div>
+    <div class="iseg hunt"><h4>定位过程</h4>
+      <ul>
+        <li>先查 Maven 的 <code>settings.xml</code>：只配置了阿里云镜像，<strong>没有任何 proxy 配置</strong>——排除「配置文件里写了代理」；</li>
+        <li>再查 shell 环境变量：<code>http_proxy / https_proxy / all_proxy</code> 全部为空——排除「环境变量注入」；</li>
+        <li>最终定位到 <strong>JDK 的 <code>net.properties</code></strong>：本机 JDK 的该文件里写死了 <code>socksProxyHost=127.0.0.1 / socksProxyPort=7890</code>（此前为别的事情配置后遗留在 JDK 安装目录里，属于 JDK 级默认值，任何 Java 进程都会继承）。本机 7890 端口的代理软件当时并未运行，于是所有 Java 网络出站都撞在 Connection refused 上。</li>
+      </ul>
+    </div>
+    <div class="iseg root"><h4>根因</h4>
+      <p>JDK 安装目录内的 <code>conf/net.properties</code> 是 JVM 网络默认值来源，优先级低于命令行 <code>-D</code> 参数但<strong>高于「什么都没配」的直觉</strong>。它是一个不会被 settings.xml、不会被环境变量、也不会被 IDE 设置覆盖的暗层。</p>
+    </div>
+    <div class="iseg fix"><h4>解法</h4>
+      <p>构建时显式清空代理属性：<code>MAVEN_OPTS="-Dhttp.proxyHost= -Dhttps.proxyHost= -DsocksProxyHost="</code>（置空字符串即禁用），不改 JDK 安装目录本身（它还被别的用途占用）。Docker 拉取失败同属代理缺失，按已知限制跳过 minio 并在文档显式登记。</p>
+    </div>
+    <div class="co amber" style="margin:10px 0 0">
+      <div class="co-t">坑与教训</div>
+      <ul>
+        <li>「网络不通」和「配置错误」要在报错层面区分开：Connection refused 指向的是<strong>有一个配置在引用一个不存在的服务</strong>，而不是外网不可达——排查方向完全不同。</li>
+        <li>CI 化/工作台化时，环境检查应<strong>探活代理端口</strong>（能连通 7890 才算代理可用），而不是检查「有没有配代理」。</li>
+        <li>JDK 安装目录是有状态的。换 JDK、重装 JDK 之后配置消失，问题会「自愈」并在半年后无人能解释。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="issue">
+    <div class="ih"><span class="ino">B</span><h3><a class="qa-term" href="#qa-13" id="term-docker">Docker Desktop</a> 容器 start 假死</h3><span class="dur">环境层 · 耗时约 30 分钟</span></div>
+    <div class="iseg sym"><h4>现象</h4>
+      <p><code>docker start mysql</code> 命令挂起无输出、无报错、无超时；<code>docker ps -a</code> 里容器停在 Created 态纹丝不动；Docker Desktop 的 UI 同样转圈。</p>
+    </div>
+    <div class="iseg hunt"><h4>定位过程</h4>
+      <p>先怀疑容器自身问题：<code>docker logs</code> 无输出（容器从未真正起来）；<code>docker inspect</code> 显示状态正常但 PID 为空。再怀疑镜像损坏，但 <code>docker images</code> 正常。最终确认是 <strong>Docker Desktop 的虚拟机层卡死</strong>：所有 daemon 级操作都无响应，与具体容器无关。</p>
+    </div>
+    <div class="iseg root"><h4>根因</h4>
+      <p>Docker Desktop（macOS）的 Linux VM 偶发状态不一致，容器操作被卡在 VM 层。属于桌面版 Docker 的已知不稳定类问题，与项目配置无关。</p>
+    </div>
+    <div class="iseg fix"><h4>解法</h4>
+      <p><code>killall Docker && open -a Docker</code> 重启 Docker Desktop。重启后所有容器正常启动，<strong>数据卷无损</strong>——基线数据随后重新导入（幂等导入的设计此时兑现了价值）。</p>
+    </div>
+    <div class="co amber" style="margin:10px 0 0">
+      <div class="co-t">坑与教训</div>
+      <ul>
+        <li>「命令挂起无输出」本身就是诊断信号：先区分是<strong>被操作对象的问题</strong>还是<strong>操作通道的问题</strong>。用另一个无关容器试一次 start，一分钟就能分清。</li>
+        <li>数据层的幂等可重放能力（基线数据的 DELETE+INSERT 导入）让环境故障的恢复成本趋近于零——重放设计在平时是洁癖，在故障时是保险。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="issue">
+    <div class="ih"><span class="ino">C</span><h3><a class="qa-term" href="#qa-13" id="term-springai">Spring AI 1.0.2</a> 的 SSE 传输缺陷：tools/list 永久挂起</h3><span class="dur">协议栈 · 耗时约 2 小时 · 本迭代最深的坑</span></div>
+    <div class="iseg sym"><h4>现象</h4>
+      <p>SSE 握手正常、<code>initialize</code> 正常应答，但 <code>tools/list</code> 与 <code>tools/call</code> 请求发出后<strong>永久无响应</strong>：SSE 流上没有结果事件、没有错误事件，客户端等到天荒地老。服务端 DEBUG 日志停在收到请求的一刻：</p>
+      <div class="cb"><span class="tk-c"># 服务端日志摘录（1.0.2）</span>
+DEBUG o.s.ai.mcp.server.transport.WebMvcSseServerTransportProvider - Message received
+DEBUG io.modelcontextprotocol.server.McpServerSession - <span class="tk-e">Received request: tools/call</span>
+<span class="tk-c"># —— 之后没有任何下文，没有异常，没有响应回写</span></div>
+    </div>
+    <div class="iseg hunt"><h4>定位过程</h4>
+      <ul>
+        <li><strong>先怀疑客户端</strong>：自写测试脚本是自己拼的 JSON-RPC，逐字节核对请求格式——无误；</li>
+        <li><strong>对比排除法</strong>：同样的会话链路、同样的 POST 通道，<code>initialize</code> 能拿到应答而 <code>tools/list</code> 不能——证明传输通道本身是通的，问题出在「请求被收下之后」的处理环节；</li>
+        <li><strong>换客户端验证</strong>：用官方 MCP 客户端连同一个服务，复现同样的挂起——确认是服务端问题而非自写脚本问题；</li>
+        <li>查 Spring AI 与 MCP Java SDK 的 issue/更新记录：1.0.x 的 SSE 传输层存在已知缺陷，在请求-响应关联（session 内 requestId 路由）上会丢请求。</li>
+      </ul>
+    </div>
+    <div class="iseg root"><h4>根因</h4>
+      <p>Spring AI MCP Server 1.0.2 所依赖的 MCP Java SDK 早期版本，SSE 传输实现在 session 内分发请求响应时存在缺陷：请求被 session 接收（日志可见）但响应未正确路由回 SSE 流。initialize 能应答是因为握手路径走了另一条初始化分支。</p>
+    </div>
+    <div class="iseg fix"><h4>解法</h4>
+      <p>升级 Spring AI 到 <strong>1.1.8</strong>（pom 中 <code>&lt;spring-ai.version&gt;1.1.8&lt;/spring-ai.version&gt;</code>），同一份业务代码零改动，tools/list 与 tools/call 立即正常。这正是 pom 里把版本抽成属性的意义——升级是一行的事。</p>
+    </div>
+    <div class="co amber" style="margin:10px 0 0">
+      <div class="co-t">坑与教训</div>
+      <ul>
+        <li>协议栈早期版本的传输层缺陷，症状是「静默吞请求」——没有异常栈可查。<strong>先建立基线再怀疑自己</strong>：用官方客户端验证服务端、用已知好使的服务端验证客户端，两端各有一个参照物，二分才有支点。</li>
+        <li>「initialize 正常」不代表「传输正常」。协议实现里握手路径和业务路径常常是两套代码，验证要覆盖到真正的业务调用。</li>
+        <li>依赖版本升级应作为首选解法之一纳入排查清单，而不是最后手段——早期协议栈的 bug 密度足以让「升级试试」成为高期望值动作。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- D -->
+  <div class="issue">
+    <div class="ih"><span class="ino">D</span><h3>MCP 会话状态机：notifications/initialized 的两个细节</h3><span class="dur">协议层 · 与 C 叠加出现</span></div>
+    <div class="iseg sym"><h4>现象</h4>
+      <p>两个问题先后出现：① 客户端把 <code>notifications/initialized</code> 当成普通请求<strong>带上了 id</strong>，服务端返回 <code><a class="qa-term" href="#qa-20" id="term-protocol">Method not found</a></code>；② 修正后漏发该通知直接调 tools/list，请求<strong>既无响应也无错误</strong>，像被黑洞吞掉。</p>
+    </div>
+    <div class="iseg hunt"><h4>定位过程</h4>
+      <p>对照 MCP 规范逐字核对握手流程：initialized 是 <strong>notification</strong>（通知），协议规定通知不携带 id、不期望应答；带了 id 它就被当作一个名为 initialized 的「方法调用」，而服务端没有这个方法，于是 Method not found。第二个现象对照服务端会话状态机：收到 initialized 之前，session 处于「初始化中」态，规范允许实现直接丢弃其他请求——Spring AI 的实现就是静默丢弃。</p>
+    </div>
+    <div class="iseg root"><h4>根因</h4>
+      <p>JSON-RPC 2.0 里 notification 与 request 的差别不只是「要不要等回包」，而是协议状态机的不同输入。自写客户端把两者混为一谈，就会在状态机边界上踩空。</p>
+    </div>
+    <div class="iseg fix"><h4>解法</h4>
+      <p>自写测试客户端严格区分：<code>initialize</code> 带 id 等应答 → 收到应答后立刻发 <code>{jsonrpc:"2.0", method:"notifications/initialized"}</code>（<strong>无 id 字段</strong>）→ 之后才进入 tools/list、tools/call 阶段。测试脚本里用注释把这半步标为「协议关键路径」。</p>
+    </div>
+    <div class="co amber" style="margin:10px 0 0">
+      <div class="co-t">坑与教训</div>
+      <ul>
+        <li>「没有响应」在协议层是合法的。排障时不要把无响应当成网络问题重试——它可能正是状态机给你的答案。</li>
+        <li>自写协议客户端时，把规范的「生命周期」章节当作代码来读，每个状态迁移都对应一行必须存在（或必须不存在）的字段。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- E -->
+  <div class="issue">
+    <div class="ih"><span class="ino">E</span><h3>mysql-connector 9.x 时间类型变化：coupon_list 抛 ClassCastException</h3><span class="dur">依赖层 · 耗时约 20 分钟</span></div>
+    <div class="iseg sym"><h4>现象</h4>
+      <p><code>coupon_list</code> 调用报错：<code>java.time.<a class="qa-term" href="#qa-19" id="term-localdatetime">LocalDateTime</a> cannot be cast to java.util.Date</code>。代码里对 start_time / end_time 做了 <code>(java.util.Date)</code> 强转以计算券的当前有效性。</p>
+    </div>
+    <div class="iseg hunt"><h4>定位过程</h4>
+      <p>异常栈直指强转行。核对驱动版本：父 pom 的 mysql-connector-j 为 <strong>9.3.0</strong>。8.x 时代 MySQL 的 DATETIME 列经 <code>queryForList</code> 取出默认映射为 <code>java.sql.Timestamp</code>（java.util.Date 的子类，强转成立）；9.x 起默认映射改为 <code>java.time.LocalDateTime</code>，强转链条断裂。</p>
+    </div>
+    <div class="iseg root"><h4>根因</h4>
+      <p>JDBC 4.2 之后驱动对时间类型的 Java 8 时间 API 映射是推荐路径，9.x 把它变成了默认行为。任何依赖「取出来强转 java.util.Date」老习惯的代码都会在驱动大版本升级后爆炸。</p>
+    </div>
+    <div class="iseg fix"><h4>解法</h4>
+      <p>不改全局映射（避免影响面扩大），在 CouponTools 内加类型兜底的 <code>toEpoch</code> 工具方法：</p>
+      <div class="cb"><span class="tk-k">private static</span> <span class="tk-t">long</span> <span class="tk-f">toEpoch</span>(Object time) {
+    <span class="tk-k">if</span> (time <span class="tk-k">instanceof</span> java.time.LocalDateTime ldt) {
+        <span class="tk-k">return</span> ldt.<span class="tk-f">atZone</span>(ZoneId.<span class="tk-f">systemDefault</span>()).<span class="tk-f">toInstant</span>().<span class="tk-f">toEpochMilli</span>();
+    }
+    <span class="tk-k">if</span> (time <span class="tk-k">instanceof</span> java.util.Date date) {
+        <span class="tk-k">return</span> date.<span class="tk-f">getTime</span>();
+    }
+    <span class="tk-k">return</span> <span class="tk-n">0</span>;
+}</div>
+    </div>
+    <div class="co amber" style="margin:10px 0 0">
+      <div class="co-t">坑与教训</div>
+      <ul>
+        <li>驱动主版本升级（8→9）必须重测类型映射，尤其是时间、布尔、无符号整数这三类「静默换型」高发区。</li>
+        <li>对 JDBC 取出的 Object 做类型假设是技术债；<code>instanceof</code> 兜底虽丑，但在「读别人库的表」这种没有实体类保护的场景里是诚实的写法。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- F -->
+  <div class="issue">
+    <div class="ih"><span class="ino">F</span><h3>依赖解析错误与编译错误叠加时的排查顺序</h3><span class="dur">工程习惯 · 贯穿全程</span></div>
+    <div class="iseg sym"><h4>现象</h4>
+      <p>升级 Spring AI 版本后首次构建，控制台同时滚动两类错误：上半屏是依赖解析失败（artifact not found），下半屏是编译错误（符号找不到）。先修编译错误的人会在错误的战场上浪费时间——符号找不到只是因为 jar 根本没下下来。</p>
+    </div>
+    <div class="iseg hunt"><h4>定位过程</h4>
+      <p>另一个干扰项是 <code>-q</code> 静默模式：它把「下载失败」的 WARN 也压掉了，只剩下最后的 BUILD FAILURE 和一堆编译报错，看起来像极了「代码写错了」。去掉 <code>-q</code> 重跑，依赖解析错误立刻显形。</p>
+    </div>
+    <div class="iseg root"><h4>根因</h4>
+      <p>Maven 构建的阶段顺序决定了错误有明确的因果链：<strong>依赖解析 → 编译 → 测试 → 打包</strong>。上游阶段的错误会以变形的方式在下游阶段重复出现（缺 jar 表现为缺符号）。</p>
+    </div>
+    <div class="iseg fix"><h4>解法</h4>
+      <p>固定排查顺序：先 <code>mvn dependency:resolve</code> 确认 POM 与仓库层面干净，再谈编译；构建失败时永远先去掉 <code>-q</code> 拿全量日志。</p>
+    </div>
+    <div class="co amber" style="margin:10px 0 0">
+      <div class="co-t">坑与教训</div>
+      <ul>
+        <li>下游错误是上游错误的影子，修影子于事无补。构建排障的第一原则是「沿阶段顺序从上游往下修」。</li>
+        <li>静默模式是为「已知健康的工程」准备的，排障时它制造的信息缺口比节省的滚动条贵得多。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 14 验证体系 ============ -->
+<section id="verification">
+  <div class="sec-head" id="term-testing">
+    <span class="sec-no">14 · 验证体系与结果</span>
+    <h2>先立靶子再放箭：23 条用例全部跑通</h2>
+    <p>验证产物：<code>api-test-cases.md</code>（用例契约）+ 两个自写 MCP 测试脚本（执行器）。验证在功能完成之前就被设计成「不依赖任何 GUI、可重复执行」。</p>
+  </div>
+
+  <h3 class="sub">自写 SSE 客户端测试脚本的思路</h3>
+  <p class="body">在排障实录 C/D 的背景下，我们索性自己实现了一个最小 MCP 客户端（<code>mcp-test.mjs</code> / <code>mcp-write-test.mjs</code>，Node fetch）：</p>
+  <ul class="body">
+    <li>用 <code>fetch</code> 发起 <code>GET /sse</code> 并持续消费响应流，按 SSE 的 <code>event:</code> / <code>data:</code> 分帧解析；</li>
+    <li>收到 <code>endpoint</code> 事件后，向 <code>/mcp/message?sessionId=…</code> POST JSON-RPC 请求；</li>
+    <li>每个带 id 的请求挂进一个 <strong>pending Map</strong>（id → resolve 函数），SSE 流上收到对应 id 的响应时 resolve——这就是「请求-响应异步关联」的最小实现；</li>
+    <li>严格按排障实录 D 的教训发 initialized 通知（无 id）。</li>
+  </ul>
+  <p class="body">这个脚本后来同时扮演两个角色：验证执行器，以及「官方客户端之外的第二个参照物」——再遇到「无响应」类问题时，可以立刻区分是服务端问题还是 Kimi Code 侧问题。</p>
+
+  <h3 class="sub">验证矩阵（实测结果）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:230px">验证项</th><th>方法</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td>工具注册完整性</td><td>tools/list</td><td class="ok">18 个工具全部注册 ✓</td></tr>
+      <tr><td>只读工具 12 个（含指标 6 个）</td><td>逐个 tools/call，真实参数</td><td class="ok">全部返回真实业务数据：GMV、支付转化率 90.9%、Top 榜、会员增长、状态分布、券核销率 37.5% ✓</td></tr>
+      <tr><td>写工具 · 正常发货</td><td>取 status=1 订单 → order_ship(requestId=R1)</td><td class="ok">success=true，状态流转已发货，操作历史新增「MCP 发货」，返回 RCPT 回执 ✓</td></tr>
+      <tr><td>写工具 · 幂等重发</td><td>同 requestId=R1 再发一次</td><td class="ok">返回首次结果且 duplicate=true，无重复发货记录 ✓</td></tr>
+      <tr><td>写工具 · 状态守护</td><td>对已发货单再 ship（requestId=R2）</td><td class="ok">success=false，提示「当前状态为『已发货』」，无脏流转 ✓</td></tr>
+      <tr><td>写工具 · 缺幂等键</td><td>ship 不带 requestId</td><td class="ok">拒绝执行：「缺少幂等键 requestId，写操作拒绝执行」 ✓</td></tr>
+      <tr><td>写工具 · 关单</td><td>order_close(requestId=R3)</td><td class="ok">success=true，状态流转已关闭 ✓</td></tr>
+      <tr><td>审计流水</td><td>查 mcp_audit_log</td><td class="ok">3 条流水（工具名/操作者/回执号/成败齐全）✓</td></tr>
+      <tr><td>幂等记录</td><td>查 mcp_idempotency</td><td class="ok">3 条（R1/R2/R3 各一，重发未新增）✓</td></tr>
+      <tr><td>鉴权拦截</td><td>不带 X-MCP-Token 请求 /sse</td><td class="ok">401（已纳入 npm run test 固定用例）✓</td></tr>
+      <tr><td>退货审批</td><td>return_apply_handle</td><td class="mut">数据基线暂未覆盖退货申请场景（业务占比低），以空表验证通过；补齐已列入演进路线（用例 21 已留备注）</td></tr>
+      <tr><td>真实 API 回归</td><td>mall-admin /admin/login + /order/list</td><td class="ok">登录正常、基线订单分页渲染正常 ✓</td></tr>
+      <tr><td>npm run test（工作台健康检查）</td><td>5 条检查项</td><td class="mut">mall-mcp 鉴权拦截 PASS；其余 4 条 FAIL 仅因对应四服务本期未启动，与本次改动无关（显式记录，非静默跳过）</td></tr>
+    </tbody>
+  </table>
+
+  <div class="co green">
+    <div class="co-t">验证通过</div>
+    <p>端到端链路（Kimi Code → SSE 握手 → tools/list → tools/call → WriteGuard → MySQL → 审计/幂等落库）全程实测打通。配置侧同步收口：端口 8186 登记进 AGENTS.md 端口表，automation.config.json 的 checks / dev / tests 三处均已包含 mall-mcp。</p>
+  </div>
+</section>
+
+<!-- ============ 15 取舍总表 ============ -->
+<section id="tradeoffs">
+  <div class="sec-head">
+    <span class="sec-no">15 · 环节取舍记录总表</span>
+    <h2>十四行决策记录：当时为什么这么定</h2>
+    <p>取舍表的价值在半年后：当有人（或某个 Agent）想推翻某个决定时，先读「关键原因」一栏，确认当时的约束是否仍然成立。</p>
+  </div>
+  <table class="tbl zebra">
+    <thead><tr><th>环节</th><th>候选方案</th><th>最终决定</th><th>关键原因</th></tr></thead>
+    <tbody>
+      <tr><td>数据生成方式</td><td>手工 SQL / 在线造数平台 / 代码生成器</td><td class="kid">Node 脚本生成器</td><td>可复现（固定种子）、可评审（规则即代码）、可重放（环境重建一键再跑）</td></tr>
+      <tr><td>随机种子</td><td>每次随机 / 固定种子</td><td class="kid">mulberry32, seed=20261019</td><td>数据问题可复现；多人生成结果逐字节一致，验收可对账</td></tr>
+      <tr><td>ID 规划</td><td>自增乱序 / 固定 ID 段</td><td class="kid">分段隔离（订单 20000001+ 等）</td><td>与存量数据物理隔离；肉眼可分辨；支撑幂等导入</td></tr>
+      <tr><td>导入方式</td><td>纯 INSERT / 先 DELETE 再 INSERT</td><td class="kid">文件头按 ID 段 DELETE</td><td>可重复导入；容器故障恢复后重放零成本（排障 B 中实际兑现）</td></tr>
+      <tr><td>模块归属</td><td>嵌入 mall-admin / 独立模块</td><td class="kid">独立 mall-mcp :8186</td><td>隔离爆炸半径；独立演进与独立端口治理；对业务模块零侵入</td></tr>
+      <tr><td>数据访问</td><td>mall-mbg MyBatis / JdbcTemplate</td><td class="kid">JdbcTemplate</td><td>聚合查询为主；避免拖入 MyBatis 体系与 152 个生成 model</td></tr>
+      <tr><td>传输协议</td><td>stdio / SSE / Streamable HTTP</td><td class="kid">SSE（远程常驻）</td><td>多客户端共享、HTTP 可审计可限流；Streamable HTTP 列入近期升级</td></tr>
+      <tr><td>Spring AI 版本</td><td>1.0.2 / 1.1.8</td><td class="kid">1.1.8</td><td>1.0.2 SSE 传输层缺陷（tools/list 挂起），升级解决（排障 C）</td></tr>
+      <tr><td>鉴权方式</td><td>静态 token / mall-security JWT</td><td class="kid">静态 X-MCP-Token</td><td>演示边界内不过度设计；过滤器单点收口，生产化路径留好（排障 D4）</td></tr>
+      <tr><td>幂等方案</td><td>上层确认卡 / 服务端 requestId 幂等</td><td class="kid">服务端幂等表（主键去重）</td><td>Agent 会重试/循环/并行，执行层问题必须在执行层解决（排障 D5）</td></tr>
+      <tr><td>审计设计</td><td>日志文件 / 审计表 / 审计+幂等合表</td><td class="kid">独立 mcp_audit_log + RCPT 回执</td><td>流水与去重职责分离；回执号可对人口头交差、可反查</td></tr>
+      <tr><td>状态守护实现</td><td>代码预检 / SQL 前置条件 / 分布式锁</td><td class="kid">UPDATE 带 WHERE status=? + 影响行数校验</td><td>并发安全由数据库保证；预检仅用于给出人话提示</td></tr>
+      <tr><td>指标口径</td><td>自定义 / 对齐 mall-admin</td><td class="kid">GMV=支付单(status∈1,2,3) pay_amount 汇总</td><td>Agent 报出的数字必须与后台页面能对账，否则信任一次就破产</td></tr>
+      <tr><td>分页策略</td><td>不限 / 上限 50</td><td class="kid">默认 10、封顶 50</td><td>防「给我全部」式调用烧穿模型上下文窗口</td></tr>
+      <tr><td>配置登记</td><td>口头同步 / 文档+配置双登记</td><td class="kid">AGENTS.md 端口表 + automation.config.json</td><td>声明式单一事实源；checks/dev/tests 三处一致，杜绝凭印象写端口</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="part">
+  <div class="tag">Part 5</div>
+  <h2>演进与优化路线</h2>
+  <p>按「风险与前置条件」分三档：近期项已完成技术验证、随时可做；中期项需要设计评审；长期项关乎边界与纪律，宜早规划、慎动手。</p>
+</div>
+
+<!-- ============ 16 近期 ============ -->
+<section id="road-near">
+  <div class="sec-head">
+    <span class="sec-no">16 · 近期（已验证，低风险）</span>
+    <h2>不需要设计评审，排期即可做</h2>
+  </div>
+  <table class="tbl">
+    <thead><tr><th style="width:220px">事项</th><th>内容与依据</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>升级到 Streamable HTTP 传输</td>
+        <td>Spring AI 1.1.x 已支持 Streamable HTTP，且与 SSE 双端点并存（SSE 标记 legacy）。升级路径已验证过版本兼容性（1.0.2 → 1.1.8 零业务改动），迁移风险低。SSE 端点保留一个版本周期供旧客户端过渡。</td>
+      </tr>
+      <tr>
+        <td>Kimi Code deferred 工具按需加载</td>
+        <td>18 个工具的描述与 Schema 常驻会占用模型上下文。Kimi Code 的实验特性 tool-select 支持工具按需加载：平时只挂元信息，命中意图时再载入完整 Schema。对本项目这种工具数量将持续增长的场景，这是上下文成本的关键解法。</td>
+      </tr>
+      <tr>
+        <td>补齐退货场景基线数据</td>
+        <td>数据基线暂未覆盖退货申请，return_apply_handle 只能空表验证。在 gen-staging-data.js 中增加「已完成/已发货订单按 3~5% 概率生成退货申请」的规则，审批链路即可完整演示（用例 21 已为此留好备注）。</td>
+      </tr>
+      <tr>
+        <td>契约会话级测试固化</td>
+        <td>把 api-test-cases.md 的 23 条用例从「脚本手工跑」固化为自动化：mcp-test.mjs 已具备全部能力，只需包一层断言与报告输出，纳入 npm run test。排障 C/D 证明协议层回归必须自动化，人跑会漏。</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 17 中期 ============ -->
+<section id="road-mid">
+  <div class="sec-head">
+    <span class="sec-no">17 · 中期（需要设计评审）</span>
+    <h2>方向明确，但每一步都动架构</h2>
+  </div>
+  <div class="values">
+    <div class="value">
+      <div class="no">1</div>
+      <h3>OAuth 替代静态 token</h3>
+      <p>Kimi Code 的 MCP 配置已支持 <code>/mcp-config login</code> 的 OAuth 流程。mall-mcp 侧的改造点集中在 McpAuthFilter 一处：校验逻辑从「比对静态字符串」换成「验签 + 解析主体」，调用链与审计字段不变。这正是当初把鉴权收进单个过滤器的回报。</p>
+    </div>
+    <div class="value">
+      <div class="no">2</div>
+      <h3>RBAC 对接 mall-security</h3>
+      <p>按工具声明所需角色（如 order_ship 需「仓储运营」、return_apply_handle 需「售后主管」），token 解析出主体后在工具分发层做角色检查。先评审「角色-工具」映射矩阵，再动代码。</p>
+    </div>
+    <div class="value">
+      <div class="no">3</div>
+      <h3>新业务域扩展</h3>
+      <p>购物车操作、portal 代客下单、ES 商品搜索（依赖外部阻塞「ES IK 插件」解除）、Mongo 浏览记录查询、营销配置、库存预警接入巡检模块。每接一个域，先补该域的数据基线规则，再开工具——本迭代确立的顺序不变。</p>
+    </div>
+    <div class="value">
+      <div class="no">4</div>
+      <h3>只读缓存与指标<a class="qa-term" href="#qa-16" id="term-preagg">预聚合</a></h3>
+      <p>当前指标实时算在 oms_order 上，3000 单无压力，大促量级需要预聚合表（按天滚动的 sales_daily）+ 只读缓存。评审点：口径从「实时 SQL」迁到「预聚合表」后的一致性校验方案。</p>
+    </div>
+    <div class="value">
+      <div class="no">5</div>
+      <h3>限流熔断与慢查询保护</h3>
+      <p>Agent 的调用模式可能产生突发（循环修正、并行探索）。在过滤器层加令牌桶限流；JdbcTemplate 层加语句超时与慢查询日志，慢查询反哺巡检模块。</p>
+    </div>
+    <div class="value">
+      <div class="no">6</div>
+      <h3>可观测与分发</h3>
+      <p>Prometheus 指标（工具调用量、成功率、耗时分位）；mall-mcp Docker 化并入 ../deploy 的 compose 编排；Kimi Code 插件化分发——用 plugin manifest 声明 MCP 服务，让接入从「手写 mcp.json」变成「装插件」。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 18 长期 ============ -->
+<section id="road-long">
+  <div class="sec-head">
+    <span class="sec-no">18 · 长期与边界</span>
+    <h2>纪律先于能力：哪些事永远不该让工具做</h2>
+  </div>
+  <ul class="body">
+    <li><strong>高危操作通道化，而非工具化</strong>：改价、批量发券这类影响面大的操作，设计上就不进入 MCP 工具面。它们应该走 business-agent 的需求迭代任务通道——有确认卡、有版本指纹、有验收与回滚方案。「工具能做」和「应该能随手做」是两回事，能力面的克制本身就是安全设计。</li>
+    <li><strong>写操作双人复核</strong>：涉及资金与库存的写工具，中期 RBAC 之上还应引入四人眼原则——同一操作需两个不同 operator 的回执才生效。这在 MCP 层可以实现为「待复核状态 + 第二人确认工具」，评审后再定。</li>
+    <li><strong>幂等表外部化</strong>：当前幂等记录存在业务库 MySQL 里，单实例够用。多实例部署时幂等键的判定要搬到共享存储（Redis 或独立库），且要定义记录保留窗口——幂等承诺不应该是永久的。</li>
+    <li><strong>schema 变更的契约测试与版本指纹</strong>：呼应 business-agent 的版本失效理念——工具的入参 Schema 与返回结构应计算版本指纹，指纹变化时下游（工作台展示映射、测试断言）的授权自动失效，强制重新确认。工具契约的静默漂移，是这个架构里最需要防的慢性病。</li>
+    <li><strong>工具语义版本管理</strong>：工具改名、改语义、改口径都必须升版本（如 metric_sales_overview v2），旧版本保留一个周期。模型按描述行事，描述变了而名字没变，是最危险的变更形态。</li>
+  </ul>
+</section>
+
+<!-- ============ 19 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>写在最后：从「给模型一个接口」到「给业务一条纪律」</h2>
+    <p>把 REST 接口直接扔给 Agent，技术上半天就能跑通；这次迭代真正花时间的，是幂等键、审计回执、状态机守护、指标口径、ID 段隔离、幂等导入——全是「纪律」。</p>
+    <p>MCP 层做的事，是把业务系统多年沉淀的规矩（谁能调、调了算谁的、重复调怎么办、状态不对怎么拒）固化在协议出口上。</p>
+    <p class="big">模型可以换，客户端可以换，协议可以再演进——但纪律不变。纪律才是那层真正属于业务的资产。</p>
+  </div>
+</section>
+
+<!-- ============ 面试问答集 ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">QA · 面试问答集（模拟答辩）</span>
+    <h2>21 道题，把这次迭代讲成一场答辩</h2>
+    <p>本章节有两种用法：① <strong>分享动线</strong>——正文中带紫色点状下划线的术语都是考点，被追问时点击直达对应卡片，答完点「« 返回正文」回到现场；② <strong>面试官模式</strong>——从 Q1 顺序往下问，协议 → 工程 → 治理 → 排障 → 数据 → 演进，由浅入深。所有答案均与正文实测细节一一对应，可按附录 D 的路径复核。</p>
+  </div>
+
+  <h3 class="qa-group" id="qa-proto">协议与选型 · Q1 – Q5</h3>
+
+  <div class="qa-card" id="qa-01">
+    <div class="qa-head"><span class="qa-no">Q1</span><span class="qa-cat proto">协议</span><span class="qa-diff">★☆☆</span></div>
+    <div class="qa-q">MCP 解决什么问题？与 function calling 直接写 JSON Schema 相比，优劣各是什么？</div>
+    <p>MCP（Model Context Protocol）把「工具 / 资源 / 提示词」的暴露方式<strong>标准化</strong>：服务端按协议自描述能力，任何兼容客户端都能发现并使用。它解决的不是「模型能不能调工具」——function calling 也能——而是「每接一个客户端就要重新对接一遍」的 N×M 问题。</p>
+    <p>对比手写 JSON Schema 的 function calling：后者工具定义<strong>硬编码在客户端</strong>，服务端加一个工具，所有客户端都要改；MCP 靠 tools/list 运行时自描述，<strong>服务端加工具客户端即见</strong>。对比 REST 包装一层：REST 没有为模型设计的发现与协商机制，鉴权、分页、错误格式各家自定。</p>
+    <p>代价也真实存在：引入了一整套协议栈（握手、会话状态机、传输层），调试成本显著上升——本文排障实录 C/D 两个坑都出在协议层而非业务层。<strong>结论：能力面会持续增长、调用方不止一个时，MCP 的标准化收益大于协议成本；一次性集成则不必。</strong></p>
+    <div class="qa-foot"><a href="#term-mcp">« 返回正文</a><span>相关考点：<a href="#qa-05">Q5</a> · <a href="#qa-21">Q21</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-02">
+    <div class="qa-head"><span class="qa-no">Q2</span><span class="qa-cat proto">协议</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">MCP 的传输方式有哪几种？stdio、SSE、Streamable HTTP 的区别与适用场景？</div>
+    <p><strong>stdio</strong>：客户端拉起本地子进程，走标准输入输出。零网络配置、拉起即用，适合本地工具与单用户场景；但进程随客户端生灭，无法多客户端共享，也没有 HTTP 层的鉴权、审计、限流可挂。</p>
+    <p><strong>SSE（远程 HTTP）</strong>：常驻服务，客户端 GET /sse 建立事件流，服务端通过 endpoint 事件下发一个带 sessionId 的 POST 地址，请求与响应走「POST 发、SSE 收」双通道。有状态会话、可多客户端共享、HTTP 语义对防火墙与代理友好。mall-mcp 选它正是因为<strong>演示环境需要多客户端共享一个常驻服务，且 HTTP 层可挂过滤器做鉴权审计</strong>。</p>
+    <p><strong>Streamable HTTP</strong>：官方钦定的 SSE 后继，把双通道收敛为单端点并支持可恢复流。本项目演进路线已列入升级——Spring AI 1.1.x 已支持且与 SSE 双端点并存，SSE 端点保留一个版本周期供旧客户端过渡。</p>
+    <div class="qa-foot"><a href="#term-stdio">« 返回正文</a><span>相关考点：<a href="#qa-03">Q3</a> · <a href="#qa-12">Q12</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-03">
+    <div class="qa-head"><span class="qa-no">Q3</span><span class="qa-cat proto">协议</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">SSE 的原理？与 WebSocket 的本质区别？为什么 MCP 早期选 SSE、后来演进为 Streamable HTTP？</div>
+    <p>SSE 本质是<strong>一条永不结束的 HTTP 响应</strong>：Content-Type 为 text/event-stream，服务端按 `event:` / `data:` 帧格式持续推送。它是单向的（server→client）、纯 HTTP 语义、浏览器 EventSource 自带自动重连（Last-Event-ID），对代理与防火墙天然友好。</p>
+    <p>WebSocket 则是通过 Upgrade 握手把 HTTP 连接<strong>切换为独立的双向帧协议</strong>：双向、低延迟，但脱离了 HTTP 语义——代理需要单独支持、鉴权/限流/审计这些 HTTP 层设施都要重做。MCP 的请求-响应模型本就是「客户端发请求、服务端回事件」，双向帧并非刚需。</p>
+    <p>MCP 早期选 SSE，是因为在「单向推送 + 独立 POST 请求通道」的组合下，<strong>整个会话都留在 HTTP 语义内</strong>，网关、过滤器、日志全部复用。但双通道（一个 SSE 流 + 一个 POST 端点）带来了会话管理复杂度，Streamable HTTP 把两者收敛进单端点、并支持断线恢复，因此成为后继。本文的取舍表里 SSE 已被官方标记 legacy。</p>
+    <div class="qa-foot"><a href="#term-sse">« 返回正文</a><span>相关考点：<a href="#qa-02">Q2</a> · <a href="#qa-13">Q13</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-04">
+    <div class="qa-head"><span class="qa-no">Q4</span><span class="qa-cat proto">协议</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">完整描述 MCP 一次会话的握手流程：initialize 协商了什么？notifications/initialized 的作用？为什么它必须不带 id？</div>
+    <p>三步：① 客户端发 <code>initialize</code> 请求，双方协商 <strong>protocolVersion（协议版本）、capabilities（双方能力集）、serverInfo/clientInfo（实现标识）</strong>；② 客户端回 <code>notifications/initialized</code> 通知，宣告「握手完成」；③ 之后才进入 tools/list 发现工具、tools/call 调用工具的正常阶段。</p>
+    <p>initialized 的作用是<strong>显式推进服务端会话状态机</strong>：收到它之前，session 处于「初始化中」态，规范允许实现直接丢弃其他请求——Spring AI 的实现就是静默丢弃。本文踩坑实录：漏发该通知直接调 tools/list，请求既无响应也无错误，像被黑洞吞掉。</p>
+    <p>必须不带 id，因为 JSON-RPC 2.0 里<strong>通知（notification）与请求（request）是状态机的两种不同输入</strong>：通知不携带 id、不期望应答。带了 id，它就被当作一个名为 initialized 的方法调用，而服务端没有这个方法，于是返回 Method not found——这是本文排障实录 D 的第一个现象。</p>
+    <div class="qa-foot"><a href="#term-initialized">« 返回正文</a><span>相关考点：<a href="#qa-20">Q20</a> · <a href="#qa-18">Q18</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-05">
+    <div class="qa-head"><span class="qa-no">Q5</span><span class="qa-cat proto">协议</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">tools/list 动态发现工具 vs 客户端硬编码工具定义，工程上优劣？工具描述为什么直接影响 LLM 调用质量？</div>
+    <p>动态发现的优势是<strong>能力面演进零客户端成本</strong>：服务端注册新工具，客户端下次 tools/list 即见，不用发版；工具的入参 Schema 也随之下发，参数校验规则单点维护。硬编码则胜在确定性——客户端可以做静态检查与定制 UI，但每次能力变更都要同步发布。</p>
+    <p>代价是<strong>描述与 Schema 成为常驻上下文</strong>：本项目 18 个工具的描述 + JSON Schema 全部注入会占用模型上下文，工具数量持续增长时这是关键成本——演进路线里 Kimi Code 的 deferred 工具按需加载就是针对性的解法。</p>
+    <p>描述直接影响调用质量，因为<strong>模型是靠自然语言描述决定「什么时候用、怎么填参」的</strong>。本文的原则是「描述即提示词」：order_ship 的描述直接写明「仅待发货（status=1）可发货，需幂等键」——写描述是设计工作，不是注释工作。</p>
+    <div class="qa-foot"><a href="#term-toolslist">« 返回正文</a><span>相关考点：<a href="#qa-06">Q6</a> · <a href="#qa-21">Q21</a></span></div>
+  </div>
+  <h3 class="qa-group" id="qa-eng">工程实现 · Q6 / Q10 / Q11 / Q15 / Q19</h3>
+
+  <div class="qa-card" id="qa-06">
+    <div class="qa-head"><span class="qa-no">Q6</span><span class="qa-cat">工程</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">面向 LLM 的工具设计有哪些原则？</div>
+    <p>本项目沉淀了五条。<strong>① 参数可枚举可校验</strong>：入参用 JSON Schema 圈定取值域，模型填参不超出合法空间。<strong>② 返回有界</strong>：list/search 分页默认 10、封顶 50，指标 days 封顶 365、榜单 limit 封顶 50——模型很容易说「给我全部」，上限就是给这句话的护栏。</p>
+    <p><strong>③ 错误信息对模型可读</strong>：状态码翻译成中文人话（如「当前状态为『已发货』，无法重复发货」），模型拿到错误能自我修正，而不是只看到一串栈。<strong>④ 读写分离命名</strong>：query/order 类与 ship/close/handle 类从命名上就可分辨，18 个工具按查询、办理、审批、指标四类组织。</p>
+    <p><strong>⑤ 摘要不倾倒</strong>：工具返回面向决策的摘要结构，不把整表 dump 给模型。底层逻辑是一致的：<strong>工具的每一面（描述、参数、返回、错误）都是给模型读的接口文档</strong>，设计标准应该按「模型能否一次调对」来验收。</p>
+    <div class="qa-foot"><a href="#term-tool-design">« 返回正文</a><span>相关考点：<a href="#qa-15">Q15</a> · <a href="#qa-05">Q5</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-10">
+    <div class="qa-head"><span class="qa-no">Q10</span><span class="qa-cat">工程</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">为什么用 JdbcTemplate 而不是 MyBatis / mall-mbg？什么情况下你会改回 MyBatis？</div>
+    <p>mall-mcp 的 SQL 以<strong>聚合与关联查询为主</strong>——GMV 汇总、按天趋势、Top 榜、状态分布，这类 SQL 用 MyBatis 生成式 Mapper 的 Example 查询模型来表达反而绕，最后还是要手写，体系却整个背上了。</p>
+    <p>引入 mall-mbg 的实际成本是<strong>拖入整个 MyBatis 体系和 152 个用不到的生成 model 类</strong>，依赖、配置、心智负担同步膨胀。裸 JdbcTemplate 手写 SQL：SQL 即文档、无映射魔法、依赖只有 spring-boot-starter-jdbc。</p>
+    <p>会改回 MyBatis 的情况：写操作显著增多、对象关系映射与复杂事务成为主体；或团队统一数据访问规范、要求与 mall-admin 同构。<strong>选型标准不是哪个框架好，而是查询形态与团队约定</strong>——本项目两个条件都不满足。</p>
+    <div class="qa-foot"><a href="#term-jdbc">« 返回正文</a><span>相关考点：<a href="#qa-11">Q11</a> · <a href="#qa-19">Q19</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-11">
+    <div class="qa-head"><span class="qa-no">Q11</span><span class="qa-cat">工程</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">为什么做成独立模块 mall-mcp，而不是嵌进 mall-admin？</div>
+    <p>核心理由是<strong>爆炸半径隔离</strong>：MCP 出口是新增的调用面，鉴权、限流、审计策略都会独立快速迭代；嵌进 mall-admin 意味着每次协议层调整都要动后台服务的发布节奏，故障也互相牵连。独立模块 + 独立端口 8186，治理策略（过滤器、限流、超时）可以单独收口。</p>
+    <p>第二是<strong>零侵入</strong>：不改 mall-admin / mall-portal 一行代码，直读直写业务库。对一个迭代型项目，这决定了老系统的回归成本为零。</p>
+    <p>反而应该合并的情形：工具面稳定为产品的长期能力、与后台共享大量业务服务代码、且团队希望统一发布与运维单元。<strong>拆分的收益在变化期最大，在稳定期递减</strong>——届时合并是合理的再决策，不是推翻。</p>
+    <div class="qa-foot"><a href="#term-module">« 返回正文</a><span>相关考点：<a href="#qa-10">Q10</a> · <a href="#qa-12">Q12</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-15">
+    <div class="qa-head"><span class="qa-no">Q15</span><span class="qa-cat">工程</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">工具返回为什么要分页且上限 50？从 LLM 上下文成本视角怎么算这笔账？大结果集的正确做法？</div>
+    <p>LLM 的上下文是<strong>按 token 计费且有硬上限</strong>的稀缺资源。一页 50 条订单摘要约数千 token，「给我全部」在 3000 单基线下就是几十万 token——直接撑爆上下文，还会稀释模型对关键信息的注意力。上限 50（Math.min(pageSize, 50)）就是把这句口头要求变成代码护栏。</p>
+    <p>同理，指标类 days 封顶 365、榜单 limit 封顶 50：<strong>所有可能无界增长的入参都必须有服务端封顶</strong>，不能信任调用方自觉。</p>
+    <p>大结果集的正确做法不是放开上限，而是换通道：① 先返回聚合摘要让模型判断是否需要明细；② 明细走游标分页逐页取；③ 真正的大批量导出应该走文件/报表通道，根本不经过模型上下文。<strong>上下文里只放「决策需要的信息」</strong>。</p>
+    <div class="qa-foot"><a href="#term-pagination">« 返回正文</a><span>相关考点：<a href="#qa-06">Q6</a> · <a href="#qa-16">Q16</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-19">
+    <div class="qa-head"><span class="qa-no">Q19</span><span class="qa-cat">工程</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">mysql-connector 9.x 时间类型变化（LocalDateTime 强转崩溃）体现了什么工程原则？</div>
+    <p>现象：coupon_list 报 <code>java.time.LocalDateTime cannot be cast to java.util.Date</code>。根因是驱动行为变更：8.x 时代 DATETIME 列经 queryForList 取出默认映射为 java.sql.Timestamp（java.util.Date 的子类，强转成立）；<strong>9.x 起默认映射改为 java.time.LocalDateTime</strong>，隐式的类型假设随依赖主版本升级而断裂。</p>
+    <p>修复不是换一种强转，而是<strong>用 instanceof 做类型分派兜底</strong>：LocalDateTime 走 toEpoch，Timestamp/Date 走原路径——代码对驱动行为差异保持防御姿态，而不是假设。</p>
+    <p>体现的原则有三：① <strong>依赖主版本升级必须带重测清单</strong>，行为兼容性不在编译期体现；② 类型假设要显式化，隐式继承链（Timestamp extends Date）是最脆的依赖；③ 升级前读驱动的 release notes / 迁移指南，成本远低于线上踩坑。</p>
+    <div class="qa-foot"><a href="#term-localdatetime">« 返回正文</a><span>相关考点：<a href="#qa-13">Q13</a> · <a href="#qa-18">Q18</a></span></div>
+  </div>
+
+  <h3 class="qa-group" id="qa-gov">治理设计 · Q7 / Q8 / Q9 / Q12 / Q17</h3>
+
+  <div class="qa-card" id="qa-07">
+    <div class="qa-head"><span class="qa-no">Q7</span><span class="qa-cat gov">治理</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">写操作幂等怎么设计？本文 requestId 方案与 MQ at-least-once + 幂等消费是什么关系？为什么不允许没有幂等键的写调用？</div>
+    <p>本文 WriteGuard 的链路：<strong>requestId 为空直接拒绝</strong> → 查 mcp_idempotency 表，命中则返回 <code>duplicate:true</code> + 首次执行结果 → 未命中则执行业务动作 → 审计落库生成回执 → 结果写入幂等表。幂等表主键为 <code>(request_id, tool_name)</code>，重复 INSERT 抛 DuplicateKeyException 直接吞掉——<strong>并发下同 requestId 只保留第一条，数据库唯一约束兜底</strong>，不依赖应用层「先查后写」的时序运气。</p>
+    <p>这与消息队列 at-least-once + 幂等消费是<strong>同构问题</strong>：投递侧（MQ / Agent）都可能重复，去重责任必须落在执行侧。差别只在触发源——MQ 重投是基础设施行为，Agent 重复调用是模型行为（网络重试、自我修正循环、多步任务并行）。</p>
+    <p>不允许无幂等键的写调用，是因为<strong>「同意之后执行两次」在 Agent 场景是常态而非异常</strong>：确认卡防的是「未经人同意」，防不了重复执行。没有键就没有判重锚点，幂等无从谈起——所以它不是可选项，是写工具的调用契约。</p>
+    <div class="qa-foot"><a href="#term-idempotency">« 返回正文</a><span>相关考点：<a href="#qa-08">Q8</a> · <a href="#qa-17">Q17</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-08">
+    <div class="qa-head"><span class="qa-no">Q8</span><span class="qa-cat gov">治理</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">并发下如何保证状态机不脏流转？对比悲观锁 / 乐观锁 / 条件更新 / 分布式锁，本文为什么选条件更新？</div>
+    <p>四种方案：悲观锁（SELECT … FOR UPDATE）正确但持有行锁、拉长事务；乐观锁（version 列）需要改表结构且要处理重试；分布式锁引入额外组件与超时语义；<strong>条件更新把前置状态嵌进 SQL 的 WHERE 子句</strong>：<code>UPDATE oms_order SET … status=2 WHERE id=? AND status=1</code>。</p>
+    <p>并发下两个发货请求只有一个影响行数为 1，另一个影响行数为 0 即判失败——<strong>状态检查与状态变更在同一条 SQL 里原子完成</strong>，不存在检查与变更之间的竞态窗口，也不产生「已发货又被发一次」的脏流转。</p>
+    <p>选它的原因：单行状态流转的场景下，条件更新是<strong>零额外组件、零表结构侵入、零锁持有</strong>的最简正确解。代码层的 SELECT 状态预检只保留一个用途——给出「当前状态为『已发货』」的人话提示给模型；真正的防线永远在那条 WHERE 上。</p>
+    <div class="qa-foot"><a href="#term-state-guard">« 返回正文</a><span>相关考点：<a href="#qa-07">Q7</a> · <a href="#qa-06">Q6</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-09">
+    <div class="qa-head"><span class="qa-no">Q9</span><span class="qa-cat gov">治理</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">审计日志怎么设计才有用？为什么每次写操作都返回回执号 RCPT-xxx？审计表与幂等表为什么分表？</div>
+    <p>有用的审计要满足三点：<strong>先于返回落库</strong>（业务动作执行后立即写 mcp_audit_log，再生成回执返回，不存在「干了没记」的窗口）；<strong>内容可溯源</strong>（工具名、操作者、参数摘要、结果、耗时齐全）；<strong>回执可引用</strong>——回执号格式 RCPT-yyyyMMddHHmmss + 4 位随机，随结果返回调用方，客服可对人口头交差，审计模块可反查。</p>
+    <p>回执号的价值在于把「执行过」变成<strong>一个可传递、可核验的凭据</strong>：Agent 对人说「已发货，回执 RCPT-2026101914302207xx」，人拿号就能反查——这与 business-agent 工作台的回执理念同源。</p>
+    <p>审计表与幂等表分表，因为两者<strong>生命周期与语义不同</strong>：幂等表是去重状态，记录可归档可过期（幂等承诺不应永久）；审计表是事实流水，只增不删、长期保留。混在一起，归档策略必然打架。</p>
+    <div class="qa-foot"><a href="#term-audit">« 返回正文</a><span>相关考点：<a href="#qa-07">Q7</a> · <a href="#qa-12">Q12</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-12">
+    <div class="qa-head"><span class="qa-no">Q12</span><span class="qa-cat gov">治理</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">生产上如何做鉴权？本文演示期为什么用静态 X-MCP-Token？生产化路径是什么？</div>
+    <p>本文方案：McpAuthFilter 单点收口，保护 /sse 与 /mcp/* 全部入口，校验 X-MCP-Token，失败返回 401（JSON-RPC 错误码 -32001），未带凭证的健康检查探测也一律 401——该拦截已纳入固定测试用例。</p>
+    <p>选静态 token 的理由是<strong>演示边界内不过度设计</strong>：mall-security 的 JWT 体系依赖登录会话与用户表，与「常驻服务、机器调用」的模型不匹配。已知代价记录在案：token 无法区分真实操作者（X-MCP-Operator 只是自报家门，写入审计但不防伪）、泄露即全量能力泄露。</p>
+    <p>生产化路径清晰分层：① token → OAuth2 client credentials，机器身份可独立吊销；② 按工具声明角色，对接 RBAC，读工具与写工具分权；③ 高危写操作再叠加四人眼复核。<strong>关键是鉴权集中在过滤器一个类里，换实现不动调用链</strong>——这是当初单点收口设计真正在还的技术债利息。</p>
+    <div class="qa-foot"><a href="#term-token">« 返回正文</a><span>相关考点：<a href="#qa-09">Q9</a> · <a href="#qa-17">Q17</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-17">
+    <div class="qa-head"><span class="qa-no">Q17</span><span class="qa-cat gov">治理</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">怎么防止 LLM / Agent 滥用写工具？护栏分哪几层？为什么服务端护栏不可替代？</div>
+    <p>护栏分三层。<strong>协议层</strong>：McpAuthFilter 鉴权，无凭证 401。<strong>客户端层</strong>：Agent 平台的确认卡，防「未经人同意」。<strong>服务端层</strong>：WriteGuard 的幂等键判重 + SQL 层状态机守护 + 审计回执，防「同意之后执行两次」与「状态不对硬执行」。</p>
+    <p>服务端护栏不可替代的原因：<strong>客户端不可信</strong>。Agent 会重试（网络抖动）、会循环（自我修正）、会并行（多步任务），确认卡只约束「人点没点同意」，约束不了执行次数与状态合法性。幂等是执行层问题，必须在执行层解决。</p>
+    <p>护栏之外还有一道「不建护栏」的边界设计：<strong>高危操作通道化而非工具化</strong>——改价、批量发券这类影响面大的操作，设计上就不进入 MCP 工具面，走有确认卡、版本指纹、验收与回滚方案的需求迭代通道。「工具能做」和「应该能随手做」是两回事，能力面的克制本身就是安全设计。</p>
+    <div class="qa-foot"><a href="#term-idempotency">« 返回正文</a><span>相关考点：<a href="#qa-07">Q7</a> · <a href="#qa-08">Q8</a> · <a href="#qa-12">Q12</a></span></div>
+  </div>
+  <h3 class="qa-group" id="qa-stab">稳定性与排障 · Q13 / Q18 / Q20</h3>
+
+  <div class="qa-card" id="qa-13">
+    <div class="qa-head"><span class="qa-no">Q13</span><span class="qa-cat stab">稳定性</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">遇到开源库 bug（Spring AI 1.0.2 SSE 挂起），你的定位方法论是什么？这个故事面试时怎么讲？</div>
+    <p>现象：SSE 握手正常、initialize 正常应答，但 tools/list 与 tools/call 发出后<strong>永久无响应</strong>——流上既没有结果事件也没有错误事件。定位走了四步：<strong>① 先怀疑自己</strong>——自写测试脚本是手拼的 JSON-RPC，逐字节核对请求格式，无误；<strong>② 对比排除</strong>——同一条会话链路、同一个 POST 通道，initialize 能拿到应答而 tools/list 不能，证明传输通道是通的，问题出在「请求被收下之后」的处理环节；<strong>③ DEBUG 日志</strong>——服务端日志停在 <code>Received request: tools/call</code> 一刻，请求进了 session 再无下文；<strong>④ 定性为库缺陷</strong>，升级 Spring AI 1.0.2 → 1.1.8，业务代码零改动立即恢复。</p>
+    <p>收尾动作同样重要：把版本抽成 pom 属性（升级是一行的事）、把契约级回归固化进测试脚本（排障 C/D 证明协议层回归必须自动化，人跑会漏）。</p>
+    <p>面试讲法按「现象 → 假设树 → 每步用什么证据剪枝 → 修复与沉淀」组织，<strong>重点不在「我升了个版本」，而在「我怎么把嫌疑从自己的代码收敛到库的传输层」</strong>。同一次迭代里还有两个环境层对照案例可讲：JDK net.properties 残留 socksProxyHost=127.0.0.1:7890 导致 Maven SOCKS 拒连（MAVEN_OPTS 清空解决）；Docker Desktop VM 层假死导致容器 start 挂起（重启 Desktop，数据卷无损，靠幂等导入重放基线数据）。</p>
+    <div class="qa-foot"><a href="#term-springai">« 返回正文</a><span>相关考点：<a href="#qa-19">Q19</a> · <a href="#qa-20">Q20</a> · <a href="#qa-18">Q18</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-18">
+    <div class="qa-head"><span class="qa-no">Q18</span><span class="qa-cat stab">稳定性</span><span class="qa-diff">★★☆</span></div>
+    <div class="qa-q">MCP Server 怎么做测试？本文的验证矩阵怎么设计的？为什么健康检查用「未授权 401」反而合理？</div>
+    <p>验证在功能完成之前就被设计成<strong>不依赖任何 GUI、可重复执行</strong>：api-test-cases.md 23 条用例做契约，自写 SSE 客户端脚本做执行器——严格按协议关键路径走 initialize（带 id 等应答）→ notifications/initialized（无 id）→ tools/list → tools/call。</p>
+    <p>验证矩阵覆盖五类：<strong>注册完整性</strong>（tools/list 应见 18 个工具）、<strong>只读工具逐个真实参数调用</strong>（GMV、转化率 90.9%、券核销率 37.5% 等结果与直查 SQL 对账）、<strong>写工具幂等重放</strong>（同 requestId 第二次返回 duplicate:true 且业务无副作用）、<strong>状态机拒绝</strong>（非待发货订单发货被拒）、<strong>真实 API 回归</strong>（基线数据导入后 mall-admin 后台登录与订单分页正常）。</p>
+    <p>健康检查用未授权 401 合理，因为它<strong>一次探测同时证明两件事：服务活着、鉴权在工作</strong>；且探测脚本不需要持有任何有效凭证，凭证不会因此扩散进 CI 与监控配置。一个返回 200 的免鉴权健康口，反而是鉴权面的洞。</p>
+    <div class="qa-foot"><a href="#term-testing">« 返回正文</a><span>相关考点：<a href="#qa-12">Q12</a> · <a href="#qa-04">Q4</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-20">
+    <div class="qa-head"><span class="qa-no">Q20</span><span class="qa-cat proto">协议</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">protocolVersion 协商与协议向后兼容怎么理解？服务端该如何对待未知方法？</div>
+    <p>initialize 握手时客户端上报自己支持的 protocolVersion，服务端在响应中选定版本——<strong>版本协商让协议能力可以演进而不掐断旧客户端</strong>，这是所有长生命周期协议的共同设计（HTTP、TLS 同理）。能力集 capabilities 同理：双方都只承诺自己声明过的能力。</p>
+    <p>对未知方法，JSON-RPC 2.0 的纪律是<strong>返回 Method not found（-32601）错误</strong>，而不是静默吞掉或崩掉连接——本文排障 D 的第一个现象正是这条纪律的实证：把通知误带 id，它就成了一个不存在的方法调用，服务端按规范报错。</p>
+    <p>而通知（无 id）天然不应答，叠加会话状态机「initialized 之前可丢弃请求」的规范许可，就产生了「请求被黑洞吞掉」的体感。<strong>设计含义：协议使用者必须区分 request 与 notification 两种输入；协议实现者对非法时序的输入，报错永远优于静默</strong>——静默把协议问题伪装成网络问题，是排障成本最高的形态。</p>
+    <div class="qa-foot"><a href="#term-protocol">« 返回正文</a><span>相关考点：<a href="#qa-04">Q4</a> · <a href="#qa-13">Q13</a></span></div>
+  </div>
+
+  <h3 class="qa-group" id="qa-data">数据与指标 · Q14</h3>
+
+  <div class="qa-card" id="qa-14">
+    <div class="qa-head"><span class="qa-no">Q14</span><span class="qa-cat data">数据</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">指标口径怎么定？GMV 的三种常见口径分歧在哪？本文选了哪种，为什么？口径不一致会导致什么后果？</div>
+    <p>GMV 常见三种口径：<strong>下单口径</strong>（创建即计，含未付款）、<strong>支付口径</strong>（已支付才计）、<strong>结算口径</strong>（完成无售后才计）。三者数值依次收紧，分别服务运营热度、收入现实、财务确认三种视角——没有绝对正确，只有与用途匹配。</p>
+    <p>本文选<strong>支付口径</strong>：GMV = SUM(pay_amount)，status ∈ (1,2,3)（待发货/已发货/已完成），排除待付款（0）、已关闭（4）、无效单（5）。选择理由不是「它最准」，而是<strong>与 mall-admin 后台订单统计的语义一致</strong>——Agent 报出的数字必须能和业务在后台看到的数字对账。支付转化率 = 已支付单 / 创建单，Math.round(paid*1000/total)/10 保留 1 位小数。</p>
+    <p>口径不一致的后果是信任崩塌：Agent 说 GMV 两千万、后台显示另一套数，业务无法判断谁错——<strong>对不上账的指标，报得越快信任破产得越快</strong>。实测值：全库 GMV ¥2012 万、近 30 天转化率 90.9%、券核销率 37.5%，三个数均与直查 SQL 手工核算一致。</p>
+    <div class="qa-foot"><a href="#term-gmv">« 返回正文</a><span>相关考点：<a href="#qa-16">Q16</a> · <a href="#qa-15">Q15</a></span></div>
+  </div>
+
+  <h3 class="qa-group" id="qa-evo">演进与边界 · Q16 / Q21</h3>
+
+  <div class="qa-card" id="qa-16">
+    <div class="qa-head"><span class="qa-no">Q16</span><span class="qa-cat evo">演进</span><span class="qa-diff">★★★</span></div>
+    <div class="qa-q">调用量涨 10 倍怎么扩展？</div>
+    <p>分层作答。<strong>读路径</strong>：指标目前实时算在 oms_order 上，3000 单无压力；量级上来后走「预聚合表（按天滚动的 sales_daily）+ 只读缓存」——评审点是口径从实时 SQL 迁到预聚合表之后的一致性校验方案。查询类工具加结果缓存，列表页数据读从库，读写分离。</p>
+    <p><strong>写路径</strong>：写工具量小但纪律重，重点是保护而不是提速——过滤器层加令牌桶限流（Agent 的循环修正与并行探索会产生突发），JdbcTemplate 层加语句超时与慢查询日志，慢查询反哺巡检模块。</p>
+    <p><strong>治理面同步扩容</strong>：幂等表随时间膨胀需要归档策略；多实例部署时幂等键判定要搬到共享存储（Redis 或独立库），并定义记录保留窗口——<strong>幂等承诺不应该是永久的</strong>。扩展的答案从来不只是「加机器」，而是每一层治理设施都要回答一遍「10 倍之后你还成立吗」。</p>
+    <div class="qa-foot"><a href="#term-preagg">« 返回正文</a><span>相关考点：<a href="#qa-07">Q7</a> · <a href="#qa-15">Q15</a></span></div>
+  </div>
+
+  <div class="qa-card" id="qa-21">
+    <div class="qa-head"><span class="qa-no">Q21</span><span class="qa-cat evo">演进</span><span class="qa-diff">★★★ · 加分题</span></div>
+    <div class="qa-q">如果你来设计 v2，工具粒度怎么收敛？18 个工具是不是太多？按什么维度合并 / 拆分？</div>
+    <p>先回答「多不多」：18 个工具按查询、办理、审批、指标四类分域平铺，<strong>数量本身不是问题的核心，描述与 Schema 常驻上下文的成本才是</strong>——Kimi Code 的 deferred 工具按需加载（平时只挂元信息、命中意图再载入完整 Schema）说明生态已经在解这个成本，v2 设计应该假设这个能力存在。</p>
+    <p>收敛维度看<strong>调用意图与参数面的重合度，而不是表归属</strong>。查询类可以合并：多域 search 收敛为统一入口（domain + query + filters 参数化），模型学习一次参数模式即可查五域。指标类 6 个可收敛为带 metric 与维度参数的少量入口。拆分维度则看<strong>治理等级</strong>：写工具必须保持单一职责、细粒度——order_ship 与 order_close 各自携带独立的幂等、状态机与审计约束，合并只会让 Schema 里的条件分支爆炸、描述里的约束互相稀释。</p>
+    <p>另一条纪律来自长期路线：<strong>工具语义版本化</strong>——改名、改语义、改口径都必须升版本（metric_sales_overview v2），旧版本保留一个周期。模型按描述行事，描述变了而名字没变，是最危险的变更形态。v2 的粒度答案因此是：读收敛、写守恒、变更必升版。</p>
+    <div class="qa-foot"><a href="#term-toolcount">« 返回正文</a><span>相关考点：<a href="#qa-05">Q5</a> · <a href="#qa-06">Q6</a> · <a href="#qa-17">Q17</a></span></div>
+  </div>
+</section>
+
+<div class="part" style="margin-top:72px">
+  <div class="tag">附录</div>
+  <h2>工具参考 · 调用示例 · 接入配置 · 文件索引</h2>
+  <p>动手复现或二次开发时需要的全部速查材料。</p>
+</div>
+
+<!-- ============ 附录 A ============ -->
+<section id="appx-tools">
+  <div class="sec-head">
+    <span class="sec-no">附录 A · 18 工具全参考</span>
+    <h2>入参与返回要点速查</h2>
+  </div>
+  <table class="tbl zebra">
+    <thead><tr><th>工具</th><th>分类</th><th>入参</th><th>返回要点</th></tr></thead>
+    <tbody>
+      <tr><td class="kid">product_search</td><td>查询</td><td class="mono">keyword（可空）、pageNum、pageSize≤50</td><td>分页商品摘要：价格/库存/销量/上架状态</td></tr>
+      <tr><td class="kid">product_get</td><td>查询</td><td class="mono">productId</td><td>商品基础信息 + SKU 库存列表</td></tr>
+      <tr><td class="kid">order_search</td><td>查询</td><td class="mono">keyword、status、startDate、endDate、pageNum、pageSize</td><td>分页订单摘要 + status_text / pay_type_text / source_type_text</td></tr>
+      <tr><td class="kid">order_get</td><td>查询</td><td class="mono">orderId</td><td>三段式 {order, items, operate_history}</td></tr>
+      <tr><td class="kid">member_search</td><td>查询</td><td class="mono">keyword、pageNum、pageSize</td><td>会员摘要列表</td></tr>
+      <tr><td class="kid">member_get</td><td>查询</td><td class="mono">memberId</td><td>基础信息 + 收货地址 + order_stats（下单数/累计消费/最近一单）</td></tr>
+      <tr><td class="kid">coupon_list</td><td>查询</td><td class="mono">keyword（可空）</td><td>券面信息 + 领取/使用统计 + active_now + usage_rate</td></tr>
+      <tr><td class="kid">coupon_history</td><td>查询</td><td class="mono">couponId、useStatus、pageNum、pageSize</td><td>领取/使用记录，含 order_sn 溯源</td></tr>
+      <tr><td class="kid">return_apply_list</td><td>查询</td><td class="mono">status（可空）、pageNum、pageSize</td><td>退货申请列表 + status_text</td></tr>
+      <tr><td class="kid">order_ship</td><td>办理</td><td class="mono">requestId*、orderId、deliveryCompany、deliverySn</td><td>{success, summary, receipt_no, operator, data.new_status}</td></tr>
+      <tr><td class="kid">order_close</td><td>办理</td><td class="mono">requestId*、orderId、note（可空）</td><td>同上；关闭原因写操作历史</td></tr>
+      <tr><td class="kid">return_apply_handle</td><td>审批</td><td class="mono">requestId*、applyId、approve、handleNote</td><td>同上；approve=true → 退货中(1)，false → 已拒绝(3)</td></tr>
+      <tr><td class="kid">metric_sales_overview</td><td>指标</td><td class="mono">days≤365，默认 7</td><td>gmv、total_orders、pay_conversion_rate、avg_order_value、new_members、return_applies</td></tr>
+      <tr><td class="kid">metric_sales_trend</td><td>指标</td><td class="mono">days≤365，默认 30</td><td>按日序列 {stat_date, order_count, gmv}</td></tr>
+      <tr><td class="kid">metric_top_products</td><td>指标</td><td class="mono">days、limit≤50，默认 10</td><td>{product_id, product_name, product_brand, sale_quantity, sale_amount} 降序</td></tr>
+      <tr><td class="kid">metric_member_growth</td><td>指标</td><td class="mono">days≤365，默认 30</td><td>{trend[], total_members, days}</td></tr>
+      <tr><td class="kid">metric_order_status_distribution</td><td>指标</td><td class="mono">无</td><td>各状态 {status, status_text, count, ratio}</td></tr>
+      <tr><td class="kid">metric_coupon_usage</td><td>指标</td><td class="mono">couponId（可空）</td><td>{id, name, publish_count, receive_count, use_count, usage_rate}</td></tr>
+    </tbody>
+  </table>
+  <p class="body" style="margin-top:8px">注：标 <code>*</code> 的 requestId 为写工具强制幂等键，缺省即拒绝执行；所有写工具重复提交同 requestId 返回首次结果并标 <code>duplicate:true</code>。</p>
+</section>
+
+<!-- ============ 附录 B ============ -->
+<section id="appx-prompts">
+  <div class="sec-head">
+    <span class="sec-no">附录 B · 典型调用示例</span>
+    <h2>12 条自然语言指令，覆盖全部四类能力</h2>
+  </div>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:60px">#</th><th>提示词</th><th style="width:250px">命中的工具</th></tr></thead>
+    <tbody>
+      <tr><td class="mut">1</td><td>帮我看看华为的手机现在还有哪些有货，价格多少</td><td class="mono">product_search</td></tr>
+      <tr><td class="mut">2</td><td>商品 1000001 的库存和 SKU 情况怎么样</td><td class="mono">product_get</td></tr>
+      <tr><td class="mut">3</td><td>查一下最近三天待发货的订单，按时间倒序给我前 10 条</td><td class="mono">order_search</td></tr>
+      <tr><td class="mut">4</td><td>订单 20000017 的完整情况，包括买了什么和物流信息</td><td class="mono">order_get</td></tr>
+      <tr><td class="mut">5</td><td>把订单 20000017 发货，顺丰，单号 SF1389220412</td><td class="mono">order_ship（写）</td></tr>
+      <tr><td class="mut">6</td><td>刚才那条发货指令我好像点了两次，帮我确认下有没有重复发货</td><td class="mono">order_ship 幂等复现（duplicate:true）</td></tr>
+      <tr><td class="mut">7</td><td>那笔超时没付款的订单 20000088 关掉吧，备注写买家超时未付</td><td class="mono">order_close（写）</td></tr>
+      <tr><td class="mut">8</td><td>有没有待处理的退货申请？有的话帮我看看详情</td><td class="mono">return_apply_list</td></tr>
+      <tr><td class="mut">9</td><td>手机号 138 开头的会员里，谁是最近注册的</td><td class="mono">member_search</td></tr>
+      <tr><td class="mut">10</td><td>会员 1000001 的累计消费和收货地址给我看全</td><td class="mono">member_get</td></tr>
+      <tr><td class="mut">11</td><td>这周的 GMV、订单量、支付转化率和客单价分别是多少？再给我画个近 14 天趋势</td><td class="mono">metric_sales_overview + metric_sales_trend</td></tr>
+      <tr><td class="mut">12</td><td>现在哪几张券在有效期内？新人券的核销率是多少</td><td class="mono">coupon_list + metric_coupon_usage</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 附录 C ============ -->
+<section id="appx-config">
+  <div class="sec-head">
+    <span class="sec-no">附录 C · Kimi Code 接入配置</span>
+    <h2>mcp.json 配置示例</h2>
+  </div>
+  <div class="cb">{
+  <span class="tk-s">"mcpServers"</span>: {
+    <span class="tk-s">"mall"</span>: {
+      <span class="tk-s">"type"</span>: <span class="tk-s">"sse"</span>,
+      <span class="tk-s">"url"</span>: <span class="tk-s">"http://localhost:8186/sse"</span>,
+      <span class="tk-s">"headers"</span>: {
+        <span class="tk-s">"X-MCP-Token"</span>: <span class="tk-s">"mall-mcp-demo-token"</span>,
+        <span class="tk-s">"X-MCP-Operator"</span>: <span class="tk-s">"kimi-demo"</span>
+      }
+    }
+  }
+}</div>
+  <ul class="body">
+    <li><code>X-MCP-Token</code> 必须与服务端 <code>mall.mcp.token</code> 配置一致，否则 401（该拦截已纳入工作台固定测试用例）。</li>
+    <li><code>X-MCP-Operator</code> 声明操作者身份，会穿透写入 mcp_audit_log 的 operator 列与订单操作历史的 operate_man——审计层面「谁干的」就靠它，多客户端接入时应按客户端区分取值。</li>
+    <li>健康检查无需凭证：<code>GET /</code> 即可探活；MCP 端点（/sse、/mcp/*）全部在过滤器保护之下。</li>
+  </ul>
+</section>
+
+<!-- ============ 附录 D ============ -->
+<section id="appx-files">
+  <div class="sec-head">
+    <span class="sec-no">附录 D · 相关文件路径索引</span>
+    <h2>本文所有事实的出处</h2>
+  </div>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:200px">类别</th><th>路径</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td>MCP 模块源码</td><td class="mono">../mall/mall-mcp/</td><td>pom.xml、application.yml、schema.sql；config / service / tools 三个包共 13 个 Java 文件</td></tr>
+      <tr><td>工具实现</td><td class="mono">…/mall-mcp/src/main/java/com/macro/mall/mcp/tools/*.java</td><td>ProductTools / OrderTools / MemberTools / CouponTools / ReturnApplyTools / MetricTools（18 个 @Tool）</td></tr>
+      <tr><td>治理实现</td><td class="mono">…/mcp/service/WriteGuard.java 等</td><td>WriteGuard / IdempotencyService / AuditService / Dicts；config/McpAuthFilter、McpContext、ToolConfig</td></tr>
+      <tr><td>基线数据生成器</td><td class="mono">../mall/document/sql/staging/gen-staging-data.js</td><td>种子 20261019；产出 staging-data.sql（4.5MB，幂等导入）</td></tr>
+      <tr><td>迭代文档</td><td class="mono">iterations/20261019-2055-mall-提供-MCP-业务能力…/</td><td>activity.md（排障实录出处）、technical-design.md、api-test-cases.md、test-report.md</td></tr>
+      <tr><td>测试脚本</td><td class="mono">/tmp/mcp-test.mjs、/tmp/mcp-write-test.mjs</td><td>自写最小 MCP 客户端：fetch 消费 SSE 流 + pending Map 关联请求响应（近期将固化入仓）</td></tr>
+      <tr><td>配置登记</td><td class="mono">AGENTS.md、automation.config.json</td><td>端口表 8186；checks / dev / tests 均含 mall-mcp</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    mall-mcp 迭代复盘 · 基于 mall 电商商城（macrozheng/mall）真实迭代记录 · 2026-10<br>
+    本文所有版本号、数据规模、验证结果均可按附录 D 的路径逐一复核；演示凭证为环境默认值，不含任何真实密钥
+  </div>
+</footer>
+
+</body>
+</html>

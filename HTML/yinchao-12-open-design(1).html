@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打通 Agent 与设计稿平台间的协作体系 · OpenDesign 独立分享</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">OpenDesign 设计分享 · 独立篇</div>
+    <h1>打通 Agent 与设计稿平台<br>间的协作体系</h1>
+    <p class="sub">Agent 会写代码，但产不出「遵循品牌语言」的设计稿；主流设计工具又都不面向 Agent。OpenDesign 是一个 Apache 2.0 开源的本地设计工作台：它自己不带 Agent，而是把你本机已有的编码 Agent CLI 当作设计引擎，并通过 MCP 把完整的设计读写能力交给 Agent。本篇讲清它的三个组成部分、两条引擎链路，以及任意 Agent 平台接入它的完整配置实录。</p>
+    <div class="hero-meta">
+      <span>定位 <b>独立篇 · 平台分享</b></span>
+      <span>OpenDesign <b>v0.25.1</b></span>
+      <span>MCP 工具 <b>22 个</b>（实测 tools/list）</span>
+      <span>引擎 <b>26 种 CLI</b> + BYOK</span>
+      <span>传输 <b>stdio · SSE 桥</b></span>
+      <span>集成成本 <b>¥0</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">场景与定位</a>
+    <a href="#design">功能设计</a>
+    <a href="#impl">实现方案</a>
+    <span class="sep">·</span>
+    <a href="#fig-chain">图 1 · 调用链路</a>
+    <a href="#fig-workflow">图 2 · Agent 工作流</a>
+    <a href="#fig-engines">图 3 · 引擎链路</a>
+    <span class="sep">·</span>
+    <a href="#setup">配置实录</a>
+    <a href="#mcp-config">MCP 四种配置</a>
+    <a href="#ops">重启与安全</a>
+    <span class="sep">·</span>
+    <a href="#clawith">接入实例</a>
+    <a href="#qa">面试 QA</a>
+    <a href="#ending">结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-11-observability.html">上一篇 · 可观测性</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>OpenDesign 是什么：一间「不带 Agent」的 AI 设计工作室</h2>
+    <p>OpenDesign（GitHub: nexu-io/open-design，Apache 2.0）自称是「1st collaborative AI design agent workspace」——协作式 AI 设计工作台。它的核心理念很反常：<strong>自己不带 Agent</strong>，而是把你本机已有的编码 Agent CLI（Claude Code / Codex / Cursor / Kimi CLI 等 26 种）当作设计引擎；没有 CLI 时，走 BYOK API 代理。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">100+</div><div class="l">skills（SKILL.md 约定）</div></div>
+    <div class="stat"><div class="n teal">151</div><div class="l">套 design-systems 品牌包</div></div>
+    <div class="stat"><div class="n amber">277</div><div class="l">官方 + 社区 plugins</div></div>
+    <div class="stat"><div class="n green">22</div><div class="l">MCP 工具（实测 tools/list）</div></div>
+    <div class="stat"><div class="n">26</div><div class="l">种可接入的编码 Agent CLI</div></div>
+    <div class="stat"><div class="n green">¥0</div><div class="l">MCP / daemon / 预览的边际成本</div></div>
+  </div>
+
+  <h3 class="sub">四张可移植平面</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">平面</th><th style="width:130px">规模</th><th>契约</th><th>意义</th></tr></thead>
+    <tbody>
+      <tr><td>skills</td><td class="mono">100+</td><td>SKILL.md 约定</td><td>排版、配色、动效等设计技能资产，可被任何 Agent CLI 加载</td></tr>
+      <tr><td>design-systems</td><td class="mono">151 套</td><td>DESIGN.md 契约</td><td>品牌包——「品牌级一致性」的来源，产出不再千人千面</td></tr>
+      <tr><td>design-templates</td><td class="mono">原型 / deck / 图像 / 视频</td><td>模板渲染约定</td><td>原型、PPT、数据看板、海报、视频（HyperFrames → MP4）</td></tr>
+      <tr><td>plugins</td><td class="mono">277 个</td><td>插件 API</td><td>官方与社区能力扩展</td></tr>
+    </tbody>
+  </table>
+
+  <p class="body">架构上它是一个本地优先的双进程产品：<strong>Next.js 16 前端</strong>（人看的预览）+ <strong>本地 daemon</strong>（Express + better-sqlite3）。daemon 负责 spawn 编码 CLI 或转发 BYOK SSE 代理；<strong>项目 = 文件工作区</strong>，文件一变，预览实时更新——这正是「设计工作台」该有的样子。</p>
+
+  <div class="core">
+    <div class="tag">Agent 时代的设计痛点</div>
+    <h3>Agent 会写代码，但产不出「遵循品牌语言」的设计稿；设计工具，又都不面向 Agent。</h3>
+    <p>让 Claude Code 写一个活动页，你得到的是裸 HTML：每次从零配色、排版、选字体，品牌一致性无从谈起；Figma 这类工具是人手驱动的 GUI，没有给 Agent 的工具面，官方 API 昂贵且封闭；而 Agent 生成的文件要经浏览器或截图工具人工查看，迭代慢。OpenDesign 就是为填这个缝生的：本地优先、项目即文件、四张可移植平面提供品牌语言，MCP 工具面让 Agent 直接读写，预览实时跟随文件。</p>
+  </div>
+
+  <h3 class="sub">可用的业务场景</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">场景</th><th>怎么用</th><th>产出物</th></tr></thead>
+    <tbody>
+      <tr><td>Agent 开发者</td><td>编码 Agent 加载 design-system，产出的原型自带品牌语言，可预览可导出</td><td>品牌级原型 / 落地页</td></tr>
+      <tr><td>运营与市场</td><td>活动视觉需求直接派给 Agent：看板、海报、发布会 deck</td><td>PPTX / PDF、海报图、数据看板</td></tr>
+      <tr><td>产品评审</td><td>需求 → 快速原型 → 预览链接 → 人类在 Studio 里收反馈</td><td>交互评审稿</td></tr>
+      <tr><td>汇报与内容</td><td>数据 → 模板渲染 → 导出，或视频（HyperFrames → MP4）</td><td>PPT、汇报页、视频</td></tr>
+    </tbody>
+  </table>
+
+  <div class="co green">
+    <div class="co-t">费用确认 · 平台接入零成本</div>
+    <p>OpenDesign 本体 <strong>Apache 2.0 开源、全本地运行、无需账号无鉴权</strong>。唯一可能花钱的是「设计引擎」（CLI 订阅或 BYOK 模型 API）——而 MCP server、daemon、web 预览、文件读写链路，<strong>¥0</strong>。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>三个组成部分：一个大脑，两双眼睛和手</h2>
+    <p>看懂 OpenDesign 只需要分清三个进程：daemon 是大脑与仓库，web 是人的眼睛和手，MCP server 是 Agent 的眼睛和手——后两者是同一套 daemon API 的两个消费面，彼此不直接通信。</p>
+  </div>
+
+  <h3 class="sub">三个组成部分及其关系</h3>
+  <table class="tbl">
+    <thead><tr><th style="width:130px">组成部分</th><th>技术栈</th><th style="width:110px">面向谁</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>daemon（服务本身）</td><td class="mono">Express + better-sqlite3</td><td>人与 Agent 共用</td><td><strong>唯一事实源</strong>：项目 / 文件 / 技能 / 插件 / 设计系统；spawn 引擎；REST API + SSE 流</td></tr>
+      <tr><td>web（Studio）</td><td class="mono">Next.js 16 App Router</td><td>人</td><td>项目文件树、沙箱 iframe 预览、对话界面、导出（HTML / PDF / PPTX / MP4）</td></tr>
+      <tr><td>MCP server</td><td class="mono">od mcp（stdio）</td><td>Agent</td><td>22 个工具的瘦客户端，全部转发 daemon REST API——mcp.ts 头注释写明「every tool resolves to a fetch() against OD_DAEMON_URL」</td></tr>
+    </tbody>
+  </table>
+  <p class="body">这个划分带来的工程红利：<strong>web 与 MCP 永远不需要互相同步</strong>。Agent 通过 MCP 写入的文件，人打开 web 立刻可见；人在 Studio 里的操作，Agent 通过 MCP 读到的就是最新状态。状态的唯一性由 daemon 保证，消费面可以无限增加（CLI、桌面端、第三方集成都在这层之上）。</p>
+
+  <h3 class="sub">接入决策</h3>
+  <div class="decision">
+    <h3>决策 1 · 集成层级，选多深 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 只搬资产：把 skills / design-systems 拷进自己的 Agent 配置<br>② 平台级接入：daemon sidecar + MCP 打通，Agent 全权读写 OD 项目<br>③ 产品级集成：把 Studio 嵌入自己的产品与工作流</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>第 ② 层：平台级接入</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>② 拿到的是「活的设计工作台」而非静态文件：预览实时、可导 PPTX/PDF，22 个工具覆盖项目 / 文件 / artifact 全生命周期。① 丢掉了预览与渲染能力；③ 依赖 ② 先成立，一步到位风险大。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>多一个 Node 常驻进程（daemon + web）和一座可能的传输桥，需要维护端口规划与重启脚本——第 04 章一并交付。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>决策 2 · MCP vs 自定义 HTTP 工具 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 在 Agent 侧把 daemon REST API 包装成一组自定义工具<br>② 直接接入 OD 官方 MCP server（od mcp）</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>② 官方 MCP，读写全权交给 Agent</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>OD 官方 MCP 是瘦客户端——mcp.ts 头注释写明「every tool resolves to a fetch() against OD_DAEMON_URL」。22 个工具与 daemon API 同步演进，接入方零适配；自写 HTTP 层反而要把 22 个工具逐一翻译并长期跟进上游变更。让 Agent 当设计师，它的本职就是读写自己的设计稿。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>接受官方工具面的全部能力（含写文件）。治理不在协议层裁剪，而在客户端 / 平台的工具授权层——给谁用、何时用，是接入方的问题。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>决策 3 · stdio 直连 vs SSE 桥：按客户端能力选 <span class="badge brand">D3</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 客户端原生支持 stdio：直接 spawn od mcp 子进程<br>② 客户端只支持 HTTP/SSE：supergateway 做 stdio→SSE 桥接</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>本机客户端走 ①，平台型客户端走 ②，两者可共存</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>stdio 零配置、无端口、天然本机，Claude Desktop / Cursor 这类客户端直接支持；SSE 可跨主机——客户端跑在 Docker 容器、局域网另一台机器或云端时，桥接只需一条 npx 命令，客户端侧零改动。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>桥方案多一个常驻进程与一跳转发；supergateway 默认监听所有网卡且无鉴权，暴露面需要用 --host 参数或隧道主动收敛（见 04 章安全提示）。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>两个进程、两条引擎链路、五跳调用关系</h2>
+    <p>这一章把运行时的全貌讲清楚：进程怎么分工、生成任务走哪条链路、Agent 的调用逐跳经过谁。</p>
+  </div>
+
+  <div class="fig-t" id="fig-chain"><span class="fno">图 1</span><h3>调用链路：任意 Agent → 传输层 → OD MCP → daemon → web 预览</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>Agent 侧（任意 MCP 客户端）</h3><span class="need free">你自己选择</span></div>
+      <div class="boxes">
+        <div class="box"><b>Claude Code / Cursor / Kimi CLI</b><small>标准 mcpServers 配置</small></div>
+        <div class="box"><b>自研 Agent 平台</b><small>只要支持 MCP 即可</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">MCP 协议 · stdio 直连 或 SSE（按客户端能力）↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>传输层：本机 stdio 直连 / supergateway 桥</h3><span class="need warn">按客户端能力二选一</span></div>
+      <div class="boxes">
+        <div class="box"><b>本机 stdio：od mcp 直接 spawn</b><small>零配置 · 无端口</small></div>
+        <div class="box"><b>只支持 SSE 的平台：supergateway</b><small>--port 7459 · --host 0.0.0.0</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">od mcp 子进程（stdio）↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>OD MCP server（od mcp · 22 个工具）</h3><span class="need auto">OD 官方</span></div>
+      <div class="boxes">
+        <div class="box"><b>瘦客户端 · 无状态</b><small>不碰文件系统</small></div>
+        <div class="box"><b>每个工具 = 一次 fetch()</b><small>目标 OD_DAEMON_URL</small></div>
+        <div class="box"><b>write_file / create_project</b><small>写能力全量开放</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">HTTP fetch · OD_DAEMON_URL :7457 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>daemon :7457</h3><span class="need auto">OD 官方 · 唯一事实源</span></div>
+      <div class="boxes">
+        <div class="box"><b>Express /api/* + SSE</b><small>REST 与事件流</small></div>
+        <div class="box"><b>better-sqlite3</b><small>项目元数据</small></div>
+        <div class="box"><b>项目 = 文件工作区</b><small>读写都落在这里</small></div>
+        <div class="box"><b>spawn 引擎</b><small>本机 CLI / BYOK 代理</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">文件事件 · 预览推送 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>web Studio</h3><span class="need free">给人看</span></div>
+      <div class="boxes">
+        <div class="box"><b>Next.js 16 预览</b><small>dev :5175 · 生产由 daemon 伺服 :7456</small></div>
+        <div class="box"><b>导出 HTML / PDF / PPTX / MP4</b><small>最终交付物出口</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">传输层是唯一需要按客户端能力决策的一跳：原生 stdio 的客户端直接 od mcp；只支持 HTTP/SSE 的平台加 supergateway（见 04 章）。其余四跳对所有客户端完全一致——这也是「同一套 daemon API 的多个消费面」在部署上的含义。</p>
+
+  <div class="fig-t" id="fig-workflow"><span class="fno">图 2</span><h3>Agent 的端到端工作流</h3></div>
+  <div class="flow">
+    <span class="chip dark">接到需求<br>对话 / 任务单</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">create_project<br>建项目</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">write_file<br>写 index.html</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">文件事件<br>daemon 捕获</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">web 预览<br>实时更新</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">可选：commission<br>生成 / 导出 PPTX·PDF</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">链接分享<br>人类评审反馈</span>
+  </div>
+  <p class="fig-note">前半段（建项目 → 写文件 → 预览）全部经由 MCP 工具面，Agent 自己闭环；「可选」支路是 commission 类生成任务或导出，会动用设计引擎（这时才可能产生费用）；最后人类在 web Studio 里看预览、给反馈，下一轮迭代继续。</p>
+
+  <h3 class="sub">关键概念：两个进程与两条引擎链路</h3>
+  <table class="tbl">
+    <thead><tr><th style="width:120px">进程</th><th>技术栈</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>daemon</td><td class="mono">Node / Express（src/server.ts）</td><td>唯一事实源：项目 / 文件 / SQLite 元数据、spawn 引擎、REST API + SSE；<strong>生产模式下直接伺服 web 静态导出</strong>（:7456，无需反向代理）</td></tr>
+      <tr><td>web</td><td class="mono">Next.js 16 App Router</td><td>人用的 Studio。dev 模式 <strong>next.config.ts 把 /api/*、/artifacts/*、/frames/* rewrite 到 daemon</strong>，免 CORS；生产模式静态导出后交给 daemon 伺服</td></tr>
+    </tbody>
+  </table>
+
+  <div class="fig-t" id="fig-engines"><span class="fno">图 3</span><h3>两条引擎链路：Local CLI 与 BYOK API，汇入同一文件工作区</h3></div>
+  <div class="flow">
+    <span class="chip dark">对话界面<br>发需求</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">daemon 检测<br>本机 CLI？</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">链路 A：/api/chat<br>spawn(本机 CLI)</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">结构化工具 / 文件事件<br>over SSE 回流</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">链路 B：/api/proxy/{provider}/stream</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">厂商 SSE 归一化<br>delta / end / error</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">&lt;artifact&gt;<br>解析器</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">同一文件工作区<br>预览与 MCP 无感</span>
+  </div>
+  <p class="fig-note">链路 A（Local CLI，默认）：daemon 检测到本机 CLI 时走 /api/chat spawn，结构化事件直接落文件，纯文本流的 CLI 走 text-artifact 兜底路径；链路 B（BYOK/API，无 CLI 时降级）：厂商流归一化后由 &lt;artifact&gt; 解析器提取产物。两条链路汇入同一项目文件——预览、导出、MCP 工具面都不需要知道引擎是谁。出处：官方 QUICKSTART 的两种执行模式。</p>
+
+  <h3 class="sub">踩坑实录（2026-10 真实记录）</h3>
+  <div class="co amber">
+    <div class="co-t">坑 ① · 直连 GitHub 克隆极慢</div>
+    <p>git clone 直连 github.com，13 分钟只拉了 5MB。换 gh-proxy 镜像前缀后 <strong>7 分钟完成全量克隆</strong>——网络好时可以直连，网络一般时直接上镜像，别硬等。</p>
+  </div>
+  <div class="co amber">
+    <div class="co-t">坑 ② · pnpm install 死于 electron postinstall</div>
+    <p>仓库 postinstall 会下载 Electron 二进制，卡死或超时整个 install。<strong>ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install</strong> 跳过即可——只要 daemon + web，根本不打包桌面端。</p>
+  </div>
+  <div class="co amber">
+    <div class="co-t">坑 ③ · macOS 上 daemon 频繁 EMFILE，预览停止刷新</div>
+    <p>daemon 用 chokidar 给每个项目挂文件监听，而 <strong>macOS 默认 fd 上限只有 256</strong>（ulimit -n），项目一多描述符就被打满，watcher 接连报 EMFILE、预览不再更新。调大上限：<strong>ulimit -n 10240</strong>（当前 shell）或 <strong>launchctl limit maxfiles 10240 10240</strong>（持久）。源码 apps/daemon/src/project-watchers.ts 对 EMFILE/ENOSPC 做了轮询降级容错——但那是保命绳，不是常态。</p>
+  </div>
+  <div class="co amber">
+    <div class="co-t">坑 ④ · 对话面板模型报错，别在错误链路上排障</div>
+    <p>OD 对话面板的模型测试返回 400，第一反应是去查 MCP 桥接——<strong>与 MCP 链路无关</strong>，是 BYOK 引擎侧的问题。排障时先分清「文件工具链」（MCP / daemon / 文件）和「生成引擎链」（/api/chat 或 /api/proxy），别在错误的那条链上浪费时间。</p>
+  </div>
+
+  <h3 class="sub">代码依据</h3>
+  <table class="tbl">
+    <thead><tr><th style="width:190px">功能点</th><th>关键文件路径</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>OD MCP 工具定义（22 个）</td><td class="mono">apps/daemon/src/mcp.ts</td><td>瘦客户端：每个工具 = 对 OD_DAEMON_URL 的一次 fetch()；write_file / create_project 等</td></tr>
+      <tr><td>od mcp 子命令入口</td><td class="mono">apps/daemon/src/cli.ts</td><td>runMcp → runMcpStdio：解析 --daemon-url，拉起 stdio MCP server</td></tr>
+      <tr><td>daemon HTTP 服务</td><td class="mono">apps/daemon/src/server.ts</td><td>/api/* + SSE；生产模式伺服 web 静态导出（apps/web/out）</td></tr>
+      <tr><td>web dev 代理与生产导出</td><td class="mono">apps/web/next.config.ts</td><td>dev 模式 rewrite /api、/artifacts、/frames 到 daemon；prod 静态导出配置</td></tr>
+      <tr><td>项目文件监听容错</td><td class="mono">apps/daemon/src/project-watchers.ts</td><td>EMFILE / ENOSPC 时降级轮询，防止 daemon 被瞬时文件系统故障打崩</td></tr>
+    </tbody>
+  </table>
+  <p class="fig-note">以上均位于 open-design 仓库（v0.25.1），逐一核实过真实存在；官方 QUICKSTART.md 第 214、246、273–274 行可对照。</p>
+</section>
+
+<!-- ============ 04 具体实现 ============ -->
+<section id="setup">
+  <div class="sec-head">
+    <span class="sec-no">04 · 实现</span>
+    <h2>配置实录：从零到 tools/list 返回 22 个工具</h2>
+    <p>本章是重头：按真实执行顺序给出每一步命令，全部可复制直接跑。环境为 macOS + nvm；客户端在容器、局域网或云端的网络场景见步骤 7 的四种配置。</p>
+  </div>
+
+  <h3 class="sub">步骤 1 · Node 24 环境（nvm）</h3>
+  <div class="cb"><span class="tk-c"># Node 24（nvm 环境）</span>
+nvm install 24
+nvm use 24
+node -v   <span class="tk-c"># v24.x</span>
+
+<span class="tk-c"># corepack 接管 pnpm（仓库 packageManager 锁定 pnpm@10.33.2）</span>
+corepack enable
+pnpm -v   <span class="tk-c"># 10.33.2</span></div>
+
+  <h3 class="sub">步骤 2 · 克隆仓库（gh-proxy 镜像）</h3>
+  <div class="cb"><span class="tk-c"># 网络好可直接用 github.com；gh-proxy 镜像实测 13min/5MB → 7min 全量</span>
+git clone --depth 1 https://gh-proxy.com/https://github.com/nexu-io/open-design.git
+<span class="tk-f">cd</span> open-design</div>
+
+  <h3 class="sub">步骤 3 · 安装与构建</h3>
+  <div class="cb"><span class="tk-c"># 跳过 Electron 二进制下载（只要 daemon + web，不打包桌面端）</span>
+ELECTRON_SKIP_BINARY_DOWNLOAD=1 pnpm install
+
+<span class="tk-c"># 只构建 daemon（MCP server 与 cli.js 都在这个包里）</span>
+pnpm --filter @open-design/daemon build</div>
+
+  <h3 class="sub">步骤 4 · 启动 daemon 与 web 预览</h3>
+  <div class="cb"><span class="tk-c"># 终端 1：daemon（HTTP API + SQLite + 项目文件，端口 7457）</span>
+pnpm tools-dev start daemon --daemon-port <span class="tk-n">7457</span>
+
+<span class="tk-c"># 终端 2：web 预览（Next.js 16，端口 5175；首次编译约 60s 属正常）</span>
+pnpm tools-dev start web --daemon-port <span class="tk-n">7457</span> --web-port <span class="tk-n">5175</span></div>
+
+  <h3 class="sub">步骤 5 · 启动 SSE 桥（客户端只支持 SSE 时）</h3>
+  <div class="cb"><span class="tk-c"># 终端 3：OD MCP(stdio) → SSE，绑 0.0.0.0 供容器 / 局域网访问</span>
+<span class="tk-c"># 客户端原生支持 stdio（Claude Desktop / Cursor）可跳过本步，直接 od mcp</span>
+npx -y supergateway \
+  --stdio <span class="tk-s">"node apps/daemon/dist/cli.js mcp --daemon-url http://127.0.0.1:7457"</span> \
+  --port <span class="tk-n">7459</span> --host <span class="tk-n">0.0.0.0</span></div>
+  <p class="fig-note">apps/daemon/dist/cli.js 是步骤 3 构建产物；od mcp 子命令内部走 runMcpStdio。0.0.0.0 是 supergateway 的默认监听行为，这里显式写出——提醒自己在做「对局域网开放」的决定。</p>
+
+  <h3 class="sub">步骤 6 · 验证</h3>
+  <div class="cb"><span class="tk-c"># 1) daemon 健康检查（返回 ok 即 daemon 就位）</span>
+curl -s http://127.0.0.1:<span class="tk-n">7457</span>/api/health
+
+<span class="tk-c"># 2) SSE 端点连通（返回 text/event-stream 事件流即桥已就位）</span>
+curl -sN http://127.0.0.1:<span class="tk-n">7459</span>/sse | head -5
+
+<span class="tk-c"># 3) tools/list 端到端：实测返回 22 个工具</span>
+<span class="tk-c">#    （create_project / write_file / get_file / start_run …）</span>
+<span class="tk-c">#    客户端侧：mcpServers 配置处「测试连接」确认</span></div>
+
+  <h3 class="sub" id="mcp-config">步骤 7 · MCP 配置 JSON · 客户端的四种网络场景</h3>
+  <p class="body">标准 mcpServers 格式，在<strong>任意 MCP 客户端</strong>（Claude Desktop / Cursor / Kimi Code / 自研 Agent 平台）的配置处整段粘贴。按「客户端与 daemon 宿主的网络关系」四选一：</p>
+
+  <p class="body"><strong>场景一 · 客户端在 Docker 容器</strong> <span class="badge ok">桥接场景最常用 ✅</span>——容器回环不是宿主回环，走 host.docker.internal：</p>
+  <div class="cb">{
+  <span class="tk-k">"mcpServers"</span>: {
+    <span class="tk-k">"open-design"</span>: {
+      <span class="tk-k">"type"</span>: <span class="tk-s">"sse"</span>,
+      <span class="tk-k">"url"</span>: <span class="tk-s">"http://host.docker.internal:7459/sse"</span>
+    }
+  }
+}</div>
+
+  <p class="body"><strong>场景二 · 客户端在本机宿主机</strong> <span class="badge gray">同机回环</span>——supergateway 就在本机，直接走回环：</p>
+  <div class="cb">{
+  <span class="tk-k">"mcpServers"</span>: {
+    <span class="tk-k">"open-design"</span>: {
+      <span class="tk-k">"type"</span>: <span class="tk-s">"sse"</span>,
+      <span class="tk-k">"url"</span>: <span class="tk-s">"http://127.0.0.1:7459/sse"</span>
+    }
+  }
+}</div>
+
+  <p class="body"><strong>场景三 · 客户端在局域网其他机器</strong> <span class="badge wr">按实际 IP 改</span>——supergateway 已绑 0.0.0.0，填宿主的局域网地址：</p>
+  <div class="cb">{
+  <span class="tk-k">"mcpServers"</span>: {
+    <span class="tk-k">"open-design"</span>: {
+      <span class="tk-k">"type"</span>: <span class="tk-s">"sse"</span>,
+      <span class="tk-k">"url"</span>: <span class="tk-s">"http://192.168.1.4:7459/sse"</span>
+    }
+  }
+}</div>
+  <p class="fig-note">192.168.1.4 为本记录中 Mac 宿主的真实局域网 IP，使用时替换成你自己 <code>ifconfig</code> 查到的地址。</p>
+
+  <p class="body"><strong>场景四 · 客户端在云端服务器</strong> <span class="badge brand">SSH 反向隧道</span>——云机到 Mac 没有直达路由，先在云机建反向隧道：</p>
+  <div class="cb"><span class="tk-c"># 云端客户端所在机器上执行：把它的 7459 反向转发到 Mac 宿主的 7459</span>
+ssh -N -R <span class="tk-n">7459</span>:127.0.0.1:<span class="tk-n">7459</span> user@<span class="tk-n">192.168.1.4</span></div>
+  <div class="cb">{
+  <span class="tk-k">"mcpServers"</span>: {
+    <span class="tk-k">"open-design"</span>: {
+      <span class="tk-k">"type"</span>: <span class="tk-s">"sse"</span>,
+      <span class="tk-k">"url"</span>: <span class="tk-s">"http://127.0.0.1:7459/sse"</span>
+    }
+  }
+}</div>
+  <p class="fig-note">隧道在云机本地还原出 127.0.0.1:7459，所以 JSON 与场景二相同——区别只在连通方式。此时 supergateway 甚至可以绑回 127.0.0.1（--host 127.0.0.1），由 SSH 自己做安全边界。</p>
+
+  <h3 class="sub" id="ops">步骤 8 · 一键重启脚本</h3>
+  <p class="body">daemon + web + supergateway 合一条命令序列，存成 <code>restart-od.sh</code> 随时拉回全链路：</p>
+  <div class="cb"><span class="tk-c"># restart-od.sh：杀掉旧进程 → 拉起 daemon / web / supergateway → 健康检查</span>
+pkill -f <span class="tk-s">"supergateway"</span>; pkill -f <span class="tk-s">"tools-dev start"</span>; sleep <span class="tk-n">1</span>
+<span class="tk-f">cd</span> ~/codeWorks/open-design || <span class="tk-k">exit</span> <span class="tk-n">1</span>
+nohup pnpm tools-dev start daemon --daemon-port <span class="tk-n">7457</span> > /tmp/od-daemon.log 2>&1 &
+nohup pnpm tools-dev start web --daemon-port <span class="tk-n">7457</span> --web-port <span class="tk-n">5175</span> > /tmp/od-web.log 2>&1 &
+nohup npx -y supergateway \
+  --stdio <span class="tk-s">"node apps/daemon/dist/cli.js mcp --daemon-url http://127.0.0.1:7457"</span> \
+  --port <span class="tk-n">7459</span> --host <span class="tk-n">0.0.0.0</span> > /tmp/od-mcp.log 2>&1 &
+sleep <span class="tk-n">3</span> && curl -s http://127.0.0.1:<span class="tk-n">7457</span>/api/health</div>
+
+  <div class="co amber">
+    <div class="co-t">安全提示 · 0.0.0.0 = 局域网内任何人可读写</div>
+    <p>supergateway <strong>无鉴权</strong>，且默认监听所有网卡——绑 0.0.0.0 意味着<strong>局域网内任何机器都能通过 MCP 读写全部 OD 项目文件</strong>（write_file / delete_project 就在工具面里）。可信内网自用可以接受；<strong>不信网络时显式加 <code>--host 127.0.0.1</code> 锁回环</strong>，远程需求一律走 SSH 隧道（场景四），别让桥直接暴露在不可信网段。</p>
+  </div>
+</section>
+
+<!-- ============ 接入实例 ============ -->
+<section id="clawith">
+  <div class="sec-head">
+    <span class="sec-no">接入实例</span>
+    <h2>音巢（Clawith）：一个平台型客户端的接入</h2>
+    <p>用三十秒看这个平台级接入长什么样——对 OD 而言，它只是又一个标准 MCP 客户端。</p>
+  </div>
+  <p class="body">音巢（Clawith）是一个多智能体「数字员工」平台：管身份、记忆、触发、IM、审批与观测，内置的企业设置提供 Tools 面板。它接入 OD 没有任何特殊之处——把与场景一相同的 mcpServers JSON 粘进 Tools 表单（前端自动解析 name / url，后端 MCPClient 按 SSE 建连），平台内的数字员工「设计师」便获得了读写 OD 项目的完整能力：派单 → 建项目 → 写稿 → 预览 → 导出，全程在它的组织体系内被审计。</p>
+  <div class="cb">{
+  <span class="tk-k">"mcpServers"</span>: {
+    <span class="tk-k">"open-design"</span>: {
+      <span class="tk-k">"type"</span>: <span class="tk-s">"sse"</span>,
+      <span class="tk-k">"url"</span>: <span class="tk-s">"http://host.docker.internal:7459/sse"</span>
+    }
+  }
+}</div>
+  <p class="fig-note">即 04 章场景一：音巢跑在 Docker 容器里，客户端经 host.docker.internal 访问宿主的 supergateway。代码侧对应 backend/app/services/mcp_client.py（SSE 建连）与 frontend/src/pages/EnterpriseSettings.tsx:919（mcpServers 解析）。</p>
+</section>
+
+<!-- ============ 05 面试 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六个问题，验证你是真接通过还是看过文档</h2>
+    <p>全部来自本篇的真实接入与源码阅读，回答都落在具体代码与真实坑位上。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · OD 的 MCP server 是瘦客户端还是胖服务端？</div>
+    <p>瘦客户端。mcp.ts 头注释写得很直白：「every tool resolves to a fetch() against OD_DAEMON_URL」。server 本身无状态、不碰文件系统——daemon 没起时 <code>tools/list</code> 照常返回 22 个工具 schema，只有真正调用才报 "daemon not reachable"。真正的读写在 daemon 与项目文件系统里，MCP 层只是协议翻译。</p>
+  </div>
+  <div class="co teal">
+    <div class="co-t">Q2 · daemon、web、MCP server 三者的职责边界在哪？</div>
+    <p>daemon 是唯一事实源：项目 / 文件 / SQLite 元数据、引擎调度、REST API + SSE 全归它；web 是人的消费面（文件树、iframe 预览、对话、导出），dev 模式靠 next.config.ts 把 /api 等路径 rewrite 到 daemon，生产模式干脆由 daemon 伺服它的静态导出；MCP 是 Agent 的消费面，22 个瘦工具转发同一套 API。<strong>边界纪律是：web 与 MCP 永不直接对话</strong>，一切状态进出都走 daemon——所以消费面想加多少个都可以。</p>
+  </div>
+  <div class="co teal">
+    <div class="co-t">Q3 · 一个只支持 SSE 的 Agent 平台怎么接 stdio MCP？</div>
+    <p>先讲清传输层差异：stdio 是进程管道——客户端 spawn 子进程，数据走 stdin/stdout，天然本地、无端口无网络；SSE 是 HTTP 长连接——客户端 GET 一个事件流端点，可跨主机，但服务端要监听端口并处理暴露面。OD MCP 原生 stdio，而平台只实现 HTTP/SSE 时，supergateway 做双向翻译：把 od mcp 起成子进程，把 stdin/stdout 上的 JSON-RPC 帧封装成 SSE 事件对外提供——<strong>平台侧零改动</strong>，还顺带获得跨主机能力（容器 / 局域网 / 云端）。</p>
+  </div>
+  <div class="co teal">
+    <div class="co-t">Q4 · 项目一多 daemon 就报 EMFILE、预览停止刷新，怎么回事？</div>
+    <p>文件描述符被打满了。daemon 用 chokidar 给每个项目挂文件监听 watcher，而 <strong>macOS 默认 ulimit -n 只有 256</strong>，项目与 watcher 一多 fd 就耗尽，于是 EMFILE、监听失效、预览不刷新。处理：当前 shell <code>ulimit -n 10240</code>，持久化用 <code>launchctl limit maxfiles</code>；同时控制单 daemon 挂的项目数量。源码 project-watchers.ts:133 的注释直言这是「saturated inotify watches」，并做了轮询降级容错——但降级是保命绳，不是常态。</p>
+  </div>
+  <div class="co teal">
+    <div class="co-t">Q5 · 两条引擎链路（Local CLI vs BYOK API）怎么选？</div>
+    <p>默认 Local CLI：daemon 检测到本机装了编码 CLI 时，走 /api/chat 直接 spawn，结构化工具 / 文件事件经 SSE 回流、直接落项目文件——质量最高，且 CLI 订阅很多团队已经付了；纯文本流的 CLI 走 text-artifact 兜底路径。无 CLI 或要统一用自家模型时走 BYOK：/api/proxy/{provider}/stream 把厂商 SSE 归一化成 delta/end/error，再由 &lt;artifact&gt; 解析器提取产物。<strong>两条链路汇入同一文件工作区</strong>，预览、导出、MCP 工具面对引擎选择完全无感——选链路是部署决策，不是架构决策。</p>
+  </div>
+  <div class="co teal">
+    <div class="co-t">Q6 · 这套平台里唯一可能产生费用的是哪一环？</div>
+    <p>设计引擎。OD 本体 Apache 2.0 开源、全本地、无账号无鉴权；MCP server、daemon、web 预览、文件读写链路全部免费。只有 commission 类生成任务会 spawn 你的编码 CLI 或走 BYOK 模型 API——<strong>钱花在 CLI 订阅或模型 token 上</strong>。纯文件读写链路（create_project / write_file / 预览）一分钱不花。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>思考与呈现的分工</h2>
+    <p>Agent 管思考，OpenDesign 管呈现。</p>
+    <p>二十二个 MCP 工具、五跳链路、一座 stdio↔SSE 的小桥，就让任意 Agent 第一次拥有了「设计生产」这双手——而品牌语言，第一次可以被机器遵守。</p>
+    <p class="big">本地优先、文件即项目、API 即契约——这是 Agent 时代设计工具该有的样子。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 独立篇 · 打通 Agent 与设计稿平台间的协作体系（OpenDesign） · 基于 OpenDesign v0.25.1 源码与官方 QUICKSTART 实测核实 · <a href="index.html">返回系列导航</a><br>
+    <a href="yinchao-11-observability.html">上一篇 · 可观测性：运行事件流、内心独白与成本归因</a> · 文中命令与 JSON 均来自真实跑通记录；代码路径均位于 open-design 仓库，逐一核实
+  </div>
+</footer>
+
+</body>
+</html>

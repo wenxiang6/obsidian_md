@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字员工也要背 OKR：组织、关系图谱与目标管理 · 音巢设计分享 07/12</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 07/12 · 组织与 OKR</div>
+    <h1>数字员工也要背 OKR<br>组织、关系图谱与目标管理</h1>
+    <p class="sub">把 Agent 正式编入组织：企业通讯录同步进平台，Agent 作为成员挂到部门下；人-Agent、Agent-Agent 的关系图谱决定「谁能向谁派活」；OKR 全流程线上化，由平台默认播种的 OKR Agent 每天催收进度、沉淀日报、生成月报——Agent 既是被管理者，也是管理动作本身的自动化执行者。</p>
+    <div class="hero-meta">
+      <span>OKR 数据表 <b>8</b> 张</span>
+      <span>OKR 内置工具 <b>13</b> 个</span>
+      <span>关系图谱 <b>2</b> 类边</span>
+      <span>报告链 <b>日 → 周 → 月</b></span>
+      <span>系统 Agent <b>OKR Agent</b></span>
+      <span>基于 <b>上游 main v1.11.5</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scene">01 场景与定位</a>
+    <a href="#design">02 功能设计</a>
+    <a href="#impl">03 实现方案</a>
+    <span class="sep">·</span>
+    <a href="#fig-org">图 1 · 三元组织</a>
+    <a href="#fig-model">图 2 · 数据模型</a>
+    <a href="#fig-collect">图 3 · 每日催收</a>
+    <a href="#fig-report">图 4 · 报告汇聚</a>
+    <span class="sep">·</span>
+    <a href="#pseudo">04 伪代码</a>
+    <a href="#qa">05 面试 QA</a>
+    <a href="#ending">06 结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-06-im-channels.html">上一篇 · IM 渠道</a>
+    <a href="yinchao-08-memory-experience.html">下一篇 · 记忆与经验</a>
+    <a href="index.html">返回导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scene">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>Agent 不是外挂脚本，是组织里有工位的数字员工</h2>
+    <p>多数 Agent 平台止步于「人能调起一个 Agent」。音巢（Clawith）往前走了一步：把企业的组织架构、汇报关系、目标管理整套搬进平台，让 Agent 和人类成员一样有部门、有关系、有 OKR、有日报——管理能力第一次成为平台的一等公民。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">8</div><div class="l">OKR 数据表（models/okr.py）</div></div>
+    <div class="stat"><div class="n teal">13</div><div class="l">OKR 分类内置工具（agent 可调）</div></div>
+    <div class="stat"><div class="n amber">2</div><div class="l">类关系边（人-Agent / Agent-Agent）</div></div>
+    <div class="stat"><div class="n green">3</div><div class="l">O 的属主类型（company / user / agent）</div></div>
+  </div>
+
+  <h3 class="sub">四类业务场景</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">场景</th><th>做什么</th><th>关键机制</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>组织架构同步</td>
+        <td>企业通讯录（飞书等身份源）的部门与成员同步进平台，Agent 作为成员挂到部门下，与人的工位并列呈现</td>
+        <td><code>org_sync_service.py</code> 按身份提供方同步；<code>org_departments</code> / <code>org_members</code> 落地，成员可软绑定平台账号（<code>user_id</code>）</td>
+      </tr>
+      <tr>
+        <td>工作关系图谱</td>
+        <td>定义「谁可以向谁派活」：人-Agent 关系（<code>agent_relationships</code>）与 Agent-Agent 关系（<code>agent_agent_relationships</code>）两类边，构成协作网络</td>
+        <td><code>api/relationships.py</code> 维护关系；OKR 催收、目录可见性都以关系图谱为依据</td>
+      </tr>
+      <tr>
+        <td>OKR 全流程线上化</td>
+        <td>O / KR 的创建、对齐（alignment）、进度日志、状态跟踪（on_track / at_risk / behind / completed）全部在平台内闭环，前端有独立 OKR 页</td>
+        <td><code>api/okr.py</code> + <code>frontend/src/pages/OKR.tsx</code>；<code>okr_progress_logs</code> 不可变流水支撑进度曲线</td>
+      </tr>
+      <tr>
+        <td>OKR Agent 自动化管理</td>
+        <td>平台默认播种的 OKR Agent 每天到点催收未报成员、对话式收集进展、沉淀成员日报，再逐级汇总成公司日报 / 周报 / 月报</td>
+        <td><code>okr_daily_collection.py</code> 催收 → <code>member_daily_reports</code> 沉淀 → <code>okr_reporting.py</code> 逐级聚合</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>Agent 在音巢里同时是「被管理者」和「管理动作的自动化执行者」——OKR Agent 自己背着 OKR，同时替管理者把催收、汇总、报告这些最消耗耐心的动作全部自动化。</h3>
+    <p>这带来一个独特的自洽：管理系统（OKR 数据模型与工具）和管理者（OKR Agent）用的是同一套接口。人能做的 OKR 操作，Agent 通过 13 个工具全能做；Agent 做不到的（比如制定公司级 O），人不通过 Agent 也能在界面上做。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>三个关键决策：Agent 化、软耦合、不可变流水</h2>
+    <p>OKR 模块最反直觉的设计是：业务逻辑大头不在代码里，而在一个 Agent 的提示词和工具调用里。这不是偷懒，是深思熟虑的架构取舍。</p>
+  </div>
+
+  <div class="decision">
+    <h3>OKR 管理逻辑：写死的调度代码 vs Agent + 工具 <span class="badge brand">K1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 传统做法：定时任务 + 模板消息 + 固定报表生成逻辑全部硬编码<br>② Agent 化：平台只提供 13 个 OKR 工具和催收入口，「怎么催、怎么汇总、怎么写月报」交给 OKR Agent 的模型决策</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>Agent + 工具。工具是确定性的写路径，Agent 是可对话的智能层</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>催收话术要个性化（给人和给 Agent 的催收文案完全不同，见 <code>_human_request_message</code> / <code>_agent_request_message</code>）；进展要从自然语言对话里提炼（<code>member_daily_reports</code> 存的是 OKR Agent 蒸馏后的版本而非原始聊天记录）；月报要有洞察而非流水账。这些本质都是语言任务，硬编码做不了。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>行为有模型的不确定性，需要 <code>okr_settings</code> 做开关治理（enabled / daily_report_enabled），且写路径必须用工具兜底确定性——工具内部直接写库，不信模型的口头承诺。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>外部身份源耦合方式：强外键 vs 软耦合 <span class="badge brand">K2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 部门 / 成员表对身份提供方（IdentityProvider）、平台账号（User）建强外键<br>② 软耦合：<code>provider_id</code>、<code>user_id</code> 只存 UUID 不建 FK，代码注释明确写「No FK - soft coupling」</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>软耦合，关联完整性由程序查询保证</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>外部源是易变的：企业可能换身份提供方、解绑再重绑、成员先同步进来后注册平台账号。强外键会把同步逻辑和账号生命周期死死绑在一起，一次解绑就可能级联失败。软耦合让「同步」「绑定」「使用」三件事可以独立演进。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>数据库层面失去引用完整性保护，悬空引用要靠应用层查询时兜底（如催收时校验成员 <code>status == "active"</code>）；写代码时不能有「JOIN 一定有结果」的假设。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>KR 进度记录：覆盖式更新 vs 不可变流水 <span class="badge brand">K3</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① KR 只存 <code>current_value</code>，更新即覆盖<br>② KR 存当前值，同时每次变更写一条 <code>okr_progress_logs</code>（previous_value / new_value / source / note），流水不可变</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>当前值 + 不可变流水双写</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>流水让进度曲线可视化、变更可审计：<code>source</code> 字段区分 <code>okr_agent</code> / <code>manual</code> / <code>self_report</code>，谁改的、什么时候改的、附注了什么一目了然。模型类的 docstring 明说设计意图："Immutable log entry … Enables full progress curve visualization and audit trail."</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>每次 KR 更新多一条写；聚合查询要走流水表。换来的审计能力对「Agent 自动改 KR」这种场景是刚需——没有流水，Agent 改错了数你都不知道。</p></div>
+    </div>
+  </div>
+
+  <h3 class="sub">关键概念速查</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:170px">概念</th><th>载体</th><th>设计要点</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>三类属主</td>
+        <td class="mono">okr_objectives.owner_type</td>
+        <td><code>company</code>（owner_id 为 NULL）/ <code>user</code> / <code>agent</code>——Agent 和人一样可以持有 O，这是「数字员工背 OKR」的数据基础</td>
+      </tr>
+      <tr>
+        <td>KR ↔ Agent 焦点联动</td>
+        <td class="mono">okr_key_results.focus_ref</td>
+        <td>KR 可挂到某个 Agent 的 focus 文件（如 <code>content_quality</code>），OKR Agent 由此通过 Agent 的反思会话追踪进度，而不只是等汇报</td>
+      </tr>
+      <tr>
+        <td>对齐关系</td>
+        <td class="mono">okr_alignments</td>
+        <td>O / KR 之间的多对多对齐，支撑「我的 KR 支撑了哪个公司级 O」的向上对齐视图</td>
+      </tr>
+      <tr>
+        <td>租户级开关</td>
+        <td class="mono">okr_settings</td>
+        <td><code>enabled</code> / <code>daily_report_enabled</code> / <code>okr_agent_id</code>——催收与报告以租户为粒度启停，未配置 OKR Agent 时直接拒绝触发</td>
+      </tr>
+      <tr>
+        <td>新成员自动绑定</td>
+        <td class="mono">okr_agent_hook.py</td>
+        <td>新 OrgMember 创建或绑定时自动与系统 OKR Agent 建立 <code>agent_relationships</code> 关系——催收名单自动随组织扩张</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>四张图：组织怎么进、目标怎么存、催收怎么跑、报告怎么长</h2>
+    <p>实现拆成三条正交的线：组织同步（把人装进来）、OKR 数据模型（把目标存下来）、OKR Agent 驱动的事件流（让管理动作自动发生）。</p>
+  </div>
+
+  <div class="fig-t" id="fig-org"><span class="fno">图 1</span><h3>组织-人-Agent 三元关系架构：部门、成员、数字员工 + 两类关系边</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>外部身份源（飞书等 IdentityProvider）</h3><span class="need auto">权威数据源</span></div>
+      <div class="boxes">
+        <div class="box"><b>企业通讯录</b><small>部门树 + 成员信息</small></div>
+        <div class="box"><b>身份提供方配置</b><small>provider_id 标识来源</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">org_sync_service.sync_provider() 按提供方同步 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>组织层（org_departments / org_members）</h3><span class="need own">软耦合落地</span></div>
+      <div class="boxes">
+        <div class="box"><b>部门</b><small>external_id / parent_id / path 自引用成树</small></div>
+        <div class="box"><b>成员</b><small>open_id / email / title / department_id</small></div>
+        <div class="box"><b>账号软绑定</b><small>user_id 无 FK，先同步后注册也能对上</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">okr_agent_hook 自动建边 · api/relationships.py 手工维护 ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>关系图谱层（两类边）</h3><span class="need warn">派活与催收的依据</span></div>
+      <div class="boxes">
+        <div class="box"><b>agent_relationships</b><small>Agent ↔ 人成员，relation=collaborator…</small></div>
+        <div class="box"><b>agent_agent_relationships</b><small>Agent ↔ Agent，数字员工之间的协作边</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">关系驱动催收名单 · 目录可见性 · 上下文注入 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>消费方</h3><span class="need free">既有能力复用</span></div>
+      <div class="boxes">
+        <div class="box"><b>OKR Agent</b><small>按关系图谱确定催收范围</small></div>
+        <div class="box"><b>Agent 目录 directory.py</b><small>只读目录，谁能看到谁</small></div>
+        <div class="box"><b>enterprise_info 注入</b><small>Redis Pub/Sub 通知，Agent 拉取写入本地 enterprise_info/ 目录，只读共享上下文</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">注意两处刻意为之的设计：① 同步以<b>外部源为准</b>，本地字段（如拼音检索用的 name_translit_full / initial）是同步时生成的派生数据；② <code>enterprise_info/</code> 对 Agent 是<b>只读</b>的——agent_tools.py 里写操作命中该路径直接拒绝：「enterprise_info is shared company context and is read-only for agents. Ask an admin to update it.」公司级知识的写入权收在管理员手里。</p>
+
+  <div class="fig-t" id="fig-model"><span class="fno">图 2</span><h3>OKR 数据模型：8 张表，一棵目标树 + 一圈环绕的流水与报告</h3></div>
+  <div class="arch">
+    <div class="layer hl">
+      <div class="layer-head"><h3>目标主干</h3><span class="need own">okr_objectives 1─N okr_key_results</span></div>
+      <div class="boxes">
+        <div class="box"><b>okr_objectives</b><small>owner_type=company/user/agent · period · status</small></div>
+        <div class="box"><b>okr_key_results</b><small>target/current_value · unit · focus_ref · 四态状态机</small></div>
+        <div class="box"><b>okr_alignments</b><small>O/KR 多对多对齐，向上承接公司目标</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">进度变更双写 · 汇报对话蒸馏 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>流水与沉淀</h3><span class="need warn">审计与一致性</span></div>
+      <div class="boxes">
+        <div class="box"><b>okr_progress_logs</b><small>不可变流水：prev→new · source · note</small></div>
+        <div class="box"><b>member_daily_reports</b><small>唯一约束 (tenant, member_type, member_id, report_date)，≤2000 字蒸馏版</small></div>
+        <div class="box"><b>work_reports</b><small>人 / Agent 提交的日 / 周报，内容经 LLM 结构化</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">逐级聚合 ↑（okr_reporting.py）↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>派生报告与治理</h3><span class="need auto">读路径</span></div>
+      <div class="boxes">
+        <div class="box"><b>company_reports</b><small>公司级日 / 周 / 月报，确定性分节拼装</small></div>
+        <div class="box"><b>okr_settings</b><small>租户开关 + okr_agent_id 绑定</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">写入侧的分工：<b>人</b>在前端 OKR 页（pages/OKR.tsx）或对话里操作；<b>OKR Agent</b> 通过 13 个内置工具操作（创建 O/KR、更新进度、生成月报等，其中部分工具带 <code>okr_agent_only</code> 配置只许 OKR Agent 用）；<b>调度器</b>（okr_scheduler.py）直接写库做批量收集与报表生成，不经 HTTP 自调用——模块 docstring 写明 "Direct DB writes (no HTTP round-trips) for efficiency"。</p>
+
+  <div class="fig-t" id="fig-collect"><span class="fno">图 3</span><h3>每日催收流程：调度到点 → 名单圈定 → 个性化催收 → 回报入库</h3></div>
+  <div class="flow">
+    <span class="chip dark">到点触发<br>trigger_daily_collection_for_tenant</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">租户闸门<br>enabled + daily_report_enabled + okr_agent_id 缺一不可</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">圈定名单<br>关系图谱：active 成员 + 受管 Agent（排除 stopped/error/系统 Agent）</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">分流生成催收<br>人：提醒消息 / Agent：collection prompt 入队执行</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">对话回报<br>人聊两句 / Agent 自述 focus 进展</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">蒸馏入库<br>upsert_member_daily_report（唯一约束幂等）</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">汇总待报<br>进入公司日报原料</span>
+  </div>
+  <p class="fig-note">名单圈定的权威来源是<b>关系图谱而非目录可见性</b>——代码注释直言："OKR still uses legacy relationship rows as an explicit tracking list. Directory visibility is intentionally not the source of truth here." 催收是一份显式订阅清单，不因目录权限调整而漂移。人的催收消息与 Agent 的催收 prompt 由不同模板生成（<code>_human_request_message</code> vs <code>_agent_collection_prompt</code>）：给人的是一条待回复的提醒，给 Agent 的是一个触发它自检 focus.md 并回报的执行任务。</p>
+
+  <div class="fig-t" id="fig-report"><span class="fno">图 4</span><h3>报告汇聚链：成员日报 → 公司日报 → 周报 → 月报</h3></div>
+  <div class="flow">
+    <span class="chip">成员日报<br>member_daily_reports（≤2000 字）</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">公司日报<br>确定性分节拼装</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">公司周报<br>周粒度汇总</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">公司月报<br>generate_monthly_okr_report</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">发布出口<br>存 WorkReport + 返回字符串，由 OKR Agent 决定发广场 / 发渠道</span>
+  </div>
+  <p class="fig-note">okr_reporting.py 的模块注释阐明了克制的聚合哲学："intentionally keeps summarization lightweight"——成员报告写入时即截断 2000 字，公司报告用确定性的分节构建而非全部丢给 LLM 重写，源数据量大时用分桶聚合（bucketed aggregation）控制上下文体积。报告同时落 WorkReport 表和作为字符串返回给调用方，OKR Agent 拿到文本后自主决定贴到广场还是推到 IM 渠道——存储与传播解耦。</p>
+
+  <h3 class="sub">代码依据</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:180px">功能点</th><th>关键文件</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>组织架构 API</td><td class="mono">backend/app/api/organization.py</td><td>部门 / 成员的查询与管理接口（面向平台用户）</td></tr>
+      <tr><td>Agent 目录</td><td class="mono">backend/app/api/directory.py</td><td>只读 Agent 目录 API，谁能看到哪些数字员工</td></tr>
+      <tr><td>组织同步</td><td class="mono">backend/app/services/org_sync_service.py</td><td>按身份提供方（provider-based）同步部门与成员树</td></tr>
+      <tr><td>企业信息同步</td><td class="mono">backend/app/services/enterprise_sync.py</td><td>Redis Pub/Sub 通知在线 Agent 容器，Agent 拉取最新企业信息写入本地 enterprise_info/ 目录</td></tr>
+      <tr><td>组织与关系模型</td><td class="mono">backend/app/models/org.py</td><td>org_departments / org_members / agent_relationships / agent_agent_relationships 四张表</td></tr>
+      <tr><td>关系维护 API</td><td class="mono">backend/app/api/relationships.py</td><td>人-Agent、Agent-Agent 关系的增删查（路由前缀 /agents/{id}/relationships）</td></tr>
+      <tr><td>OKR API</td><td class="mono">backend/app/api/okr.py</td><td>O / KR / 对齐 / 进度 / 报告的 REST 接口</td></tr>
+      <tr><td>OKR 数据模型</td><td class="mono">backend/app/models/okr.py</td><td>okr_objectives、okr_key_results、okr_alignments、okr_progress_logs、work_reports、member_daily_reports、company_reports、okr_settings 共 8 张表</td></tr>
+      <tr><td>OKR 批量调度</td><td class="mono">backend/app/services/okr_scheduler.py</td><td>collect_all_focus_updates（正则解析 Agent focus.md，不花 token）+ 日 / 周报生成，直接写库</td></tr>
+      <tr><td>每日催收</td><td class="mono">backend/app/services/okr_daily_collection.py</td><td>trigger_daily_collection_for_tenant：按关系图谱圈人、分人/Agent 生成催收、入队执行</td></tr>
+      <tr><td>报告聚合</td><td class="mono">backend/app/services/okr_reporting.py</td><td>成员日报 → 公司日 / 周 / 月报的确定性聚合链</td></tr>
+      <tr><td>新成员自动绑定</td><td class="mono">backend/app/services/okr_agent_hook.py</td><td>新 OrgMember / 公司可见 Agent 自动与系统 OKR Agent 建立关系</td></tr>
+      <tr><td>OKR 工具族</td><td class="mono">backend/app/services/builtin_tool_definitions.py</td><td>13 个 category=okr 的内置工具：get_okr / create_objective / update_kr_progress / upsert_member_daily_report / generate_monthly_okr_report 等</td></tr>
+      <tr><td>OKR Agent 播种</td><td class="mono">backend/app/main.py（启动引导）</td><td>启动时调用 agent_seeder.seed_okr_agent() 播种系统 OKR Agent，并 patch 既有实例</td></tr>
+      <tr><td>企业知识库 API</td><td class="mono">backend/app/api/files.py / api/enterprise.py</td><td>enterprise_kb_router（/enterprise/knowledge-base 前缀）+ 企业信息管理</td></tr>
+      <tr><td>前端 OKR 页</td><td class="mono">frontend/src/pages/OKR.tsx</td><td>OKR 看板：目标树、进度、对齐视图</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudo">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：催收调度 + 进度聚合</h2>
+    <p>剥掉工程细节后，OKR 自动化的核心就两件事：到点把该报的人找齐、逐个触达、幂等落库；以及把离散的进度更新聚合成可读的曲线。</p>
+  </div>
+
+  <h3 class="sub">伪代码 1 · 每日催收调度（okr_daily_collection 的最小骨架）</h3>
+  <div class="cb"><span class="tk-k">async def</span> <span class="tk-f">trigger_daily_collection_for_tenant</span>(tenant_id, report_day=<span class="tk-f">today</span>()):
+    <span class="tk-c"># ① 租户闸门：三道开关缺一即拒</span>
+    settings = <span class="tk-k">await</span> db.<span class="tk-f">get</span>(OKRSettings, tenant_id=tenant_id)
+    <span class="tk-k">if not</span> (settings <span class="tk-k">and</span> settings.enabled <span class="tk-k">and</span> settings.daily_report_enabled):
+        <span class="tk-k">raise</span> <span class="tk-e">ValueError</span>(<span class="tk-s">"OKR 日报催收未启用"</span>)
+    okr_agent = <span class="tk-k">await</span> db.<span class="tk-f">get</span>(Agent, id=settings.okr_agent_id, deleted_at=<span class="tk-t">None</span>)
+    <span class="tk-k">if not</span> okr_agent:
+        <span class="tk-k">raise</span> <span class="tk-e">ValueError</span>(<span class="tk-s">"租户未配置 OKR Agent"</span>)
+
+    <span class="tk-c"># ② 名单圈定：权威来源是关系图谱（显式订阅），不是目录可见性</span>
+    humans  = <span class="tk-k">await</span> db.<span class="tk-f">query</span>(AgentRelationship.<span class="tk-f">join</span>(OrgMember)
+                  .<span class="tk-f">where</span>(agent_id=okr_agent.id, OrgMember.status == <span class="tk-s">"active"</span>))
+    agents  = <span class="tk-k">await</span> db.<span class="tk-f">query</span>(AgentAgentRelationship.<span class="tk-f">join</span>(Agent)
+                  .<span class="tk-f">where</span>(agent_id=okr_agent.id,
+                          Agent.is_system == <span class="tk-t">False</span>,
+                          Agent.status.<span class="tk-f">notin_</span>([<span class="tk-s">"stopped"</span>, <span class="tk-s">"error"</span>])))
+
+    <span class="tk-c"># ③ 分流触达：人发提醒消息，Agent 发执行型 prompt</span>
+    <span class="tk-k">for</span> m <span class="tk-k">in</span> humans:
+        msg = <span class="tk-f">human_request_message</span>(m.display_name, report_day)  <span class="tk-c"># 个性化文案</span>
+        <span class="tk-k">await</span> <span class="tk-f">send_as_okr_agent</span>(to=m, content=msg)             <span class="tk-c"># IM / 站内触达</span>
+    <span class="tk-k">for</span> a <span class="tk-k">in</span> agents:
+        prompt = <span class="tk-f">agent_collection_prompt</span>(a, report_day)      <span class="tk-c"># "自检 focus.md 并回报进展"</span>
+        <span class="tk-k">await</span> <span class="tk-f">enqueue_agent_run</span>(a, prompt)                     <span class="tk-c"># 入队让目标 Agent 跑一轮</span>
+
+    <span class="tk-c"># ④ 回报沉淀：成员回复后由 OKR Agent 蒸馏，唯一约束保证幂等</span>
+    <span class="tk-c"># upsert_member_daily_report: ON CONFLICT (tenant, member_type, member_id, report_date) DO UPDATE</span></div>
+
+  <h3 class="sub">伪代码 2 · KR 进度更新与聚合（不可变流水 + 向 O 滚动）</h3>
+  <div class="cb"><span class="tk-k">async def</span> <span class="tk-f">update_kr_progress</span>(kr_id, new_value, source, note=<span class="tk-t">None</span>):
+    <span class="tk-c"># source ∈ {"okr_agent", "manual", "self_report"} —— 谁改的必须留名</span>
+    <span class="tk-k">async with</span> db.<span class="tk-f">transaction</span>():
+        kr = <span class="tk-k">await</span> db.<span class="tk-f">get_for_update</span>(OKRKeyResult, kr_id)      <span class="tk-c"># 行锁防并发覆盖</span>
+        db.<span class="tk-f">add</span>(OKRProgressLog(kr_id=kr.id,
+                          previous_value=kr.current_value,     <span class="tk-c"># 不可变流水</span>
+                          new_value=new_value,
+                          source=source, note=note))
+        kr.current_value = new_value                           <span class="tk-c"># 当前值双写</span>
+        kr.status = <span class="tk-f">classify</span>(kr)                               <span class="tk-c"># on_track/at_risk/behind/completed</span>
+
+<span class="tk-k">async def</span> <span class="tk-f">objective_progress</span>(objective_id) -&gt; <span class="tk-t">float</span>:
+    <span class="tk-c"># O 没有自己的 current_value：由名下 KR 完成度滚动聚合</span>
+    krs = <span class="tk-k">await</span> db.<span class="tk-f">query</span>(OKRKeyResult.<span class="tk-f">where</span>(objective_id=objective_id))
+    <span class="tk-k">return</span> <span class="tk-f">mean</span>([<span class="tk-f">min</span>(kr.current_value / kr.target_value, <span class="tk-n">1.0</span>) <span class="tk-k">for</span> kr <span class="tk-k">in</span> krs])
+
+<span class="tk-k">async def</span> <span class="tk-f">progress_curve</span>(kr_id, period):
+    <span class="tk-c"># 进度曲线 = 流水按时间重放，前端 OKR 页直接可用</span>
+    logs = <span class="tk-k">await</span> db.<span class="tk-f">query</span>(OKRProgressLog.<span class="tk-f">where</span>(kr_id=kr_id)
+                     .<span class="tk-f">order_by</span>(created_at))
+    <span class="tk-k">return</span> [(log.created_at, log.new_value) <span class="tk-k">for</span> log <span class="tk-k">in</span> logs]</div>
+
+  <div class="co green">
+    <div class="co-t">为什么这套伪代码就是最小闭环</div>
+    <p>催收闭环（闸门 → 名单 → 触达 → 幂等沉淀）回答了「管理动作怎么自动发生」；进度闭环（流水双写 → 状态机 → 向 O 聚合 → 曲线重放）回答了「目标进展怎么可信地度量」。两个闭环拼起来，就是 OKR Agent 每天实际在跑的全部逻辑——剩下的都是 LLM 层的文案与洞察，不影响数据正确性。</p>
+  </div>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，从设计动机问到数据一致性</h2>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 为什么 OKR 管理要用「Agent + 工具」实现，而不是写死的业务逻辑？</div>
+    <p>音巢的分层很清晰：<strong>确定性的事交给工具，语言性的事交给 Agent</strong>。创建 O/KR、更新进度、写日报这些写路径由 13 个内置工具承载，工具内部直接操作数据库，行为完全确定；而「给谁催、用什么话术催、从一段闲聊里提炼出今天的进展、月报里写什么洞察」本质是语言任务，硬编码模板做不到个性化。音巢的实现里这个分界肉眼可见：okr_daily_collection 里人的催收文案和 Agent 的催收 prompt 是两套模板（<code>_human_request_message</code> vs <code>_agent_collection_prompt</code>），因为对象不同，沟通方式本质不同。另一个收益是<strong>可对话化</strong>：成员可以直接跟 OKR Agent 说「我这个月 KR 进度帮我更新到 60%」，Agent 调 update_kr_progress 完成——管理系统第一次有了自然语言界面。代价是行为不确定性，所以治理开关（okr_settings 的 enabled/daily_report_enabled）和只许 OKR Agent 用的工具配置（<code>okr_agent_only</code>）必须配套。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · 组织架构从外部身份源同步，本地修改与外部源冲突时怎么处理？</div>
+    <p>音巢的立场是<strong>外部源为准，本地不养可编辑副本</strong>。org_sync_service 是 provider-based 的同步器，部门/成员以身份提供方的数据为权威；本地字段分两类——从外部来的（name、email、title、department_id）同步时覆盖，本地派生的（拼音检索字段 name_translit_full/initial、账号软绑定 user_id）同步时保留或重建。模型设计上，org_members 对 provider_id 和 user_id 都是软耦合（注释明确 "No FK - soft coupling"），这避免了「换身份提供方」「成员先同步后注册」这些现实场景被外键卡死。工程上的关键推论：应用层永远不能假设 JOIN 必有结果——催收名单圈定时显式过滤 <code>OrgMember.status == "active"</code>，就是在应用层兜软耦合的引用完整性。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 关系图谱（agent_relationships / agent_agent_relationships）在平台里到底起什么作用？</div>
+    <p>它是<strong>「谁可以向谁派活」的显式声明</strong>，三个消费点：① OKR 催收名单的权威来源——daily_collection 代码注释明说 "Directory visibility is intentionally not the source of truth here"，催收范围是关系图谱这份显式订阅清单，不随目录权限漂移；② OKR Agent 的管理半径——okr_agent_hook 在新成员创建时自动把他和 OKR Agent 建边，组织扩张时催收名单自动生长；③ Agent 间的协作拓扑——Agent-Agent 边定义数字员工之间的协作关系，daily_collection 据此找出「受 OKR Agent 管理的 Agent」（排除 stopped/error 和系统 Agent）。设计上值得一提的取舍：这两张表在 models/org.py 里而非独立模型文件，因为关系图谱的本质是<strong>组织图的边</strong>，和部门/成员节点是同一个聚合。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · 自动催收怎么避免变成骚扰？频控和边界在哪里？</div>
+    <p>三层边界：① <strong>开关层</strong>——okr_settings 按租户控制 enabled / daily_report_enabled，催收触发函数进来先过三道闸门（开关、日报开关、okr_agent_id 配置），任一缺失直接抛错拒绝，不存在「默认全员轰炸」；② <strong>名单层</strong>——催收对象来自关系图谱这份显式清单，只有和 OKR Agent 建立了关系的成员才会被催，未订阅者天然免疫；③ <strong>节奏层</strong>——一天一次由调度触发（而非 Agent 自主高频追问），且 legacy 的每日回复触发器会被清理（<code>_cleanup_legacy_daily_reply_triggers</code>），防止历史配置叠加造成重复触达。更深一层的答案在内容侧：催收消息是个性化生成的而非模板群发，对人是轻提醒、对 Agent 是执行任务——骚扰的本质是「无信息量的高频打扰」，个性化和一天一次分别从内容与频率两端压住它。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · 企业知识（enterprise_info）是怎么进入 Agent 上下文的？写入权为什么在管理员手里？</div>
+    <p>链路是「<strong>集中管理 → Pub/Sub 通知 → 本地拉取</strong>」：管理员通过企业知识库 API（api/files.py 的 enterprise_kb_router，/enterprise/knowledge-base 前缀；api/enterprise.py 管企业信息）维护内容；enterprise_sync.py 用 Redis Pub/Sub 通知在线 Agent 容器有变更；各 Agent 按自己的角色拉取最新数据，写入自己工作区的 enterprise_info/ 目录，成为运行时上下文的一部分。写入权收紧的原因在 agent_tools.py 里写得很直白——Agent 对 enterprise_info 的写操作直接被拒：「enterprise_info is shared company context and is read-only for agents. Ask an admin to update it.」公司级事实如果允许 Agent 自写，一个幻觉就会污染所有 Agent 的上下文，且没有审计入口。这是个典型的<strong>读路径自动化、写路径人工化</strong>的安全设计：分发要快要广，变更要慢要审。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · 日报→周报→月报这条聚合链，怎么保证数据一致性和质量不劣化？</div>
+    <p>四个机制叠加：① <strong>源头幂等</strong>——member_daily_reports 有唯一约束 (tenant_id, member_type, member_id, report_date)，upsert 语义保证同一天同一成员只有一份终稿，重复催收/重复提交不会产生重复记录；② <strong>入库即瘦身</strong>——成员报告写入时就截断到 2000 字（okr_reporting 模块注释 "member reports are capped at 2000 chars at write time"），存的是 OKR Agent 蒸馏后的版本而非原始聊天，原始讨论留在聊天记录里备查——聚合层永远面对的是已压缩的输入；③ <strong>确定性聚合优先</strong>——公司报告用 deterministic section-building 而非整篇交给 LLM 重写，量大时分桶聚合，把模型的发挥空间限制在洞察层而非事实层；④ <strong>存储与传播解耦</strong>——报告落 WorkReport 表的同时返回字符串给 OKR Agent，由它决定发广场还是发渠道，传播行为不回写污染数据层。这条链路的哲学是：<strong>越往上层，LLM 的角色越从「记录者」退到「评论者」，事实底座始终是底层那些幂等、不可变的行。</strong></p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>管理的最后一公里，交给最不怕烦的那个「员工」</h2>
+    <p>组织架构给了 Agent 一个工位，关系图谱给了它一张通讯录，OKR 给了它一份责任。</p>
+    <p>而 OKR Agent 把管理里最消耗人性的部分——每天催、每天记、每月汇总——变成了永不疲倦的自动动作。</p>
+    <p class="big">数字员工背 OKR，不是把 KPI 的压力复制给机器，而是让机器替人扛起目标管理本身。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 数字员工也要背 OKR：组织、关系图谱与目标管理 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    <a href="yinchao-06-im-channels.html">上一篇 · IM 渠道接入</a> · <a href="yinchao-08-memory-experience.html">下一篇 · 记忆与经验</a>
+  </div>
+</footer>
+
+</body>
+</html>

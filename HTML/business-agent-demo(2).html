@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Agent 工作台 — 交互演示</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --navy:#0f1b33;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --red-bg:#fdecec;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);font-size:14.5px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  code,.mono{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em}
+  code{background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  button{font-family:inherit;cursor:pointer}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#d6d1c4;border-radius:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* ===== App shell ===== */
+  .app{display:flex;height:100vh}
+  .side{
+    width:236px;flex:none;display:flex;flex-direction:column;color:#dfe4f7;
+    background:
+      radial-gradient(600px 300px at 90% -10%,rgba(109,40,217,.5),transparent 60%),
+      radial-gradient(500px 400px at -10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(170deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+  }
+  .side-brand{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .side-brand .logo{
+    width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;margin-bottom:10px;
+    box-shadow:0 6px 16px -6px rgba(109,40,217,.6);
+  }
+  .side-brand h1{font-size:15.5px;font-weight:800;letter-spacing:.02em}
+  .side-brand p{font-size:11.5px;color:#9aa6cf;margin-top:2px}
+  .nav{flex:1;overflow-y:auto;padding:12px 10px}
+  .nav-item{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:9px 12px;border:none;border-radius:10px;background:transparent;
+    color:#b9c1e2;font-size:13.5px;font-weight:500;margin-bottom:2px;transition:all .15s;
+  }
+  .nav-item svg{flex:none;opacity:.85}
+  .nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .nav-item.active{background:rgba(255,255,255,.12);color:#fff;font-weight:700;box-shadow:inset 2px 0 0 #a5b4fc}
+  .nav-item .star{margin-left:auto;font-size:10px;color:#fcd34d;font-weight:800}
+  .side-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#8b96bf}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{
+    height:54px;flex:none;background:var(--card);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:18px;padding:0 22px;
+  }
+  .topbar .tb-title{font-size:15px;font-weight:800}
+  .host-dot{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft)}
+  .host-dot i{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.18);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(34,197,94,.18)}50%{box-shadow:0 0 0 5px rgba(34,197,94,.08)}}
+  .tb-pill{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 12px;color:var(--ink-soft);background:#fbfaf7}
+  .tb-pill b{color:var(--brand)}
+  .tb-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .role-sel{
+    font-size:12.5px;border:1px solid var(--line);border-radius:9px;padding:5px 10px;
+    background:#fbfaf7;color:var(--ink);font-weight:600;
+  }
+  .env-badge{
+    font-size:11.5px;font-weight:700;color:var(--amber);background:var(--amber-bg);
+    border:1px solid #f0d9b5;border-radius:999px;padding:3px 12px;
+  }
+  .content{flex:1;overflow-y:auto;padding:22px 26px 40px}
+
+  .page{display:none;animation:fadeIn .25s ease}
+  .page.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* ===== Common components ===== */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .card-p{padding:20px 22px}
+  .sec-title{font-size:17px;font-weight:800;margin-bottom:4px}
+  .sec-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.green{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.amber{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.teal{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+  .badge.red{background:var(--red-bg);color:var(--red);border:1px solid #f3c5c5}
+  .btn{
+    border:none;border-radius:10px;padding:8px 18px;font-size:13.5px;font-weight:700;
+    background:var(--brand);color:#fff;transition:all .15s;
+  }
+  .btn:hover{background:#3730a3}
+  .btn:disabled{background:#c9c4b8;cursor:not-allowed}
+  .btn.ghost{background:#fbfaf7;color:var(--ink-soft);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--brand)}
+  .btn.danger{background:#fff;color:var(--red);border:1px solid #f3c5c5}
+  .btn.danger:hover{background:var(--red-bg)}
+  .btn.sm{padding:5px 13px;font-size:12.5px;border-radius:8px}
+  .fineprint{font-size:11.5px;color:var(--muted)}
+  .grid{display:grid;gap:16px}
+
+  /* ===== Module 1: overview ===== */
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+  .stat{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow);
+  }
+  .stat .num{font-size:30px;font-weight:800;line-height:1.2}
+  .stat .num.brand{color:var(--brand)}.stat .num.teal{color:var(--teal)}
+  .stat .num.amber{color:var(--amber)}.stat .num.green{color:var(--green)}
+  .stat .lbl{font-size:12.5px;color:var(--muted)}
+  .cap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .cap{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s;
+  }
+  .cap:hover{border-color:#c3bdf0;transform:translateY(-2px)}
+  .cap .ico{
+    width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);margin-bottom:10px;
+  }
+  .cap h4{font-size:14px;font-weight:700;margin-bottom:4px}
+  .cap p{font-size:12.5px;color:var(--ink-soft);line-height:1.6}
+  .running-card{
+    display:flex;align-items:center;gap:18px;padding:18px 22px;margin-top:22px;
+    background:linear-gradient(135deg,#fbfaff,#f5f3ff);border:1px solid #d9d3f6;border-radius:var(--radius);
+  }
+  .running-card .info{flex:1;min-width:0}
+  .running-card h4{font-size:14.5px;font-weight:800;margin-bottom:4px}
+  .running-card p{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+  .mini-progress{height:7px;border-radius:99px;background:#e8e4f8;overflow:hidden;max-width:420px}
+  .mini-progress i{display:block;height:100%;width:55%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+
+  /* ===== Module 2: iteration 3-column ===== */
+  .iter-grid{display:grid;grid-template-columns:250px minmax(0,1fr) 330px;gap:16px;align-items:start}
+  @media(max-width:1180px){.iter-grid{grid-template-columns:220px minmax(0,1fr) 300px}}
+  .col-panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+  .col-head{padding:13px 16px;border-bottom:1px solid var(--line);font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px;background:#fbfaf7}
+  .col-body{padding:12px;overflow-y:auto;max-height:calc(100vh - 210px);min-height:420px}
+  .task-group{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:12px 6px 6px}
+  .task-group:first-child{margin-top:0}
+  .task-item{
+    border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:7px;
+    font-size:12.5px;cursor:pointer;transition:all .15s;background:#fff;
+  }
+  .task-item:hover{border-color:#c3bdf0}
+  .task-item.active{border-color:var(--brand);background:var(--brand-bg);box-shadow:0 0 0 1px var(--brand)}
+  .task-item .t{font-weight:700;color:var(--ink);margin-bottom:3px;line-height:1.45}
+  .task-item .m{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .new-task-btn{
+    width:100%;border:1.5px dashed #c3bdf0;border-radius:11px;background:#fbfaff;
+    color:var(--brand);font-size:13px;font-weight:700;padding:10px;margin-bottom:4px;
+  }
+  .new-task-btn:hover{background:var(--brand-bg)}
+
+  /* stage progress bar */
+  .stage-bar{display:flex;flex-wrap:wrap;gap:4px;padding:10px 14px;border-bottom:1px solid var(--line);background:#fbfaf7}
+  .st{
+    font-size:10.5px;font-weight:700;border-radius:7px;padding:3px 8px;
+    background:#f1efe9;color:var(--muted);border:1px solid var(--line);transition:all .3s;
+  }
+  .st.doing{background:var(--brand-bg);color:var(--brand);border-color:#c3bdf0;box-shadow:0 0 0 2px rgba(67,56,202,.12)}
+  .st.done{background:var(--green-bg);color:var(--green);border-color:#bbe5c8}
+  .st.gate.doing{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+
+  /* chat timeline */
+  .chat{display:flex;flex-direction:column;gap:12px}
+  .msg{display:flex;gap:10px;max-width:94%;animation:fadeIn .3s ease}
+  .msg .avatar{
+    width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;color:#fff;
+  }
+  .msg.ai .avatar{background:linear-gradient(135deg,var(--brand),var(--brand-2))}
+  .msg.user{align-self:flex-end;flex-direction:row-reverse}
+  .msg.user .avatar{background:linear-gradient(135deg,var(--teal),#0891b2)}
+  .bubble{
+    border:1px solid var(--line);border-radius:13px;padding:10px 14px;font-size:13.5px;
+    background:#fff;box-shadow:var(--shadow);min-width:0;
+  }
+  .msg.user .bubble{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .msg.sys{align-self:center;max-width:100%}
+  .msg.sys .bubble{background:#fbfaf7;font-size:12px;color:var(--muted);box-shadow:none;border-style:dashed}
+  .bubble h5{font-size:13px;font-weight:800;margin-bottom:6px}
+  .bubble ul{padding-left:18px;font-size:13px}
+  .bubble li{margin:2px 0}
+  .bubble .kv{display:flex;gap:8px;font-size:12.5px;margin:2px 0}
+  .bubble .kv b{color:var(--ink);min-width:64px;flex:none}
+  .bubble .kv span{color:var(--ink-soft)}
+  .typing{display:inline-flex;gap:4px;padding:6px 2px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:#b7b0a0;animation:tp 1s infinite}
+  .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes tp{0%,100%{opacity:.3;transform:none}50%{opacity:1;transform:translateY(-3px)}}
+  .chat-input{border-top:1px solid var(--line);padding:12px 14px;background:#fbfaf7}
+  .chat-input textarea{
+    width:100%;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:13px;
+    font-family:inherit;resize:none;height:74px;background:#fff;color:var(--ink);line-height:1.6;
+  }
+  .chat-input textarea:focus{outline:none;border-color:var(--brand)}
+  .chat-input .row{display:flex;align-items:center;margin-top:8px;gap:10px}
+  .chat-input .hint{font-size:11px;color:var(--muted)}
+
+  /* right decision column */
+  .right-status{
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    background:linear-gradient(135deg,#fbfaff,#f5f3ff);
+  }
+  .right-status .s{font-size:14px;font-weight:800;color:var(--brand)}
+  .right-status .d{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .confirm-card{
+    border:1px solid #ecd3ab;border-radius:13px;background:linear-gradient(180deg,#fffdf8,#fff);
+    padding:14px 16px;margin-bottom:12px;animation:fadeIn .3s ease;box-shadow:0 6px 18px -10px rgba(180,83,9,.25);
+  }
+  .confirm-card h5{font-size:13.5px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+  .confirm-card .ver{font-size:10.5px;font-weight:800;color:var(--amber);background:var(--amber-bg);border-radius:6px;padding:1px 7px}
+  .confirm-card .sum{font-size:12.5px;color:var(--ink-soft);margin:8px 0;line-height:1.65}
+  .confirm-card .sum ul{padding-left:16px}
+  .confirm-card .diff{
+    font-size:11.5px;background:#fbfaf7;border:1px dashed var(--line);border-radius:9px;
+    padding:7px 10px;color:var(--teal);margin-bottom:10px;
+  }
+  .confirm-card .acts{display:flex;gap:8px}
+  .confirm-card .acts .btn{flex:1}
+  .side-card{border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin-bottom:12px;background:#fff;animation:fadeIn .3s ease}
+  .side-card h5{font-size:12.5px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .side-card p{font-size:12px;color:var(--ink-soft)}
+  .blocked-card{border-color:#f0d9b5;background:#fffdf8}
+  .preview-link{
+    display:block;font-family:"SF Mono",Menlo,monospace;font-size:11.5px;color:var(--brand);
+    background:var(--brand-bg);border:1px solid #d5d9f5;border-radius:8px;padding:7px 10px;margin:8px 0;word-break:break-all;
+  }
+
+  /* mini sandbox preview (CSS-drawn page thumbnail) */
+  .sandbox{
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;margin-top:8px;
+  }
+  .sandbox .sb-bar{height:20px;background:#f1efe9;display:flex;align-items:center;gap:4px;padding:0 8px}
+  .sandbox .sb-bar i{width:6px;height:6px;border-radius:50%;background:#d6d1c4}
+  .sandbox .sb-page{padding:8px;display:flex;flex-direction:column;gap:5px;background:var(--paper)}
+  .sb-row{display:flex;gap:5px}
+  .sb-box{border-radius:4px;background:#e6e2d9;height:12px}
+  .sb-box.b{background:#c7d2fe}.sb-box.t{background:#bfe3ea}
+  .sb-prog{height:8px;border-radius:99px;background:#e6e2d9;overflow:hidden}
+  .sb-prog i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--brand-2));transition:width .3s linear}
+  .sb-table{display:flex;flex-direction:column;gap:3px}
+  .sb-table i{display:block;height:7px;border-radius:3px;background:#eeece4}
+
+  /* wireframe mock (module 2 step 4) */
+  .wire{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;margin-top:6px}
+  .wire .w-top{background:var(--navy);color:#e7ebf8;font-size:11px;padding:7px 12px;display:flex;gap:10px}
+  .wire .w-top i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);align-self:center}
+  .wire .w-body{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--paper)}
+  .wire .w-field{border:1.5px dashed #c3bcab;border-radius:8px;padding:8px 10px;font-size:11px;color:var(--muted);background:#fff}
+  .wire .w-field b{display:block;color:var(--ink-soft);font-size:11.5px;margin-bottom:3px}
+  .wire .w-field .fake{height:16px;border-radius:5px;background:#f0eee7}
+  .wire .w-prog{grid-column:1/-1;border:1.5px dashed #c3bcab;border-radius:8px;padding:8px 10px;background:#fff}
+  .wire .w-prog .bar{height:10px;border-radius:99px;background:#eef0fd;overflow:hidden}
+  .wire .w-prog .bar i{display:block;height:100%;width:64%;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-radius:99px}
+  .wire .w-table{grid-column:1/-1;border:1.5px dashed #c3bcab;border-radius:8px;background:#fff;padding:8px 10px}
+  .wire .w-table .r{display:flex;gap:8px;margin-bottom:5px}
+  .wire .w-table .r:last-child{margin-bottom:0}
+  .wire .w-table .r i{height:9px;border-radius:4px;background:#f0eee7;flex:1}
+  .wire .w-table .r.head i{background:#d5d9f5}
+
+  /* file change stream */
+  .file-stream{display:flex;flex-direction:column;gap:6px;font-size:12px}
+  .file-op{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;
+    padding:6px 10px;background:#fbfaf7;animation:fadeIn .25s ease;
+  }
+  .file-op .op{font-family:"SF Mono",Menlo,monospace;font-size:10px;font-weight:800;border-radius:5px;padding:1px 6px}
+  .file-op .op.w{background:var(--green-bg);color:var(--green)}
+  .file-op .op.e{background:var(--brand-bg);color:var(--brand)}
+  .file-op .path{font-family:"SF Mono",Menlo,monospace;font-size:11.5px;color:var(--ink-soft);word-break:break-all}
+
+  /* test case list */
+  .case-run{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:6px 4px;animation:fadeIn .25s ease}
+  .case-run .ic{width:18px;height:18px;flex:none;display:flex;align-items:center;justify-content:center}
+  .spin{width:14px;height:14px;border:2px solid #d5d9f5;border-top-color:var(--brand);border-radius:50%;animation:rot .7s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .check-ok{color:var(--green)}
+  .case-run .no{font-family:"SF Mono",Menlo,monospace;font-size:10.5px;color:var(--muted);flex:none}
+
+  /* acceptance checkbox card */
+  .acc-item{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .acc-item:last-of-type{border-bottom:none}
+  .acc-item input{width:15px;height:15px;margin-top:2px;accent-color:var(--brand)}
+
+  /* ===== Module 3: assistant ===== */
+  .asst-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+  .quick-btn{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 13px;
+    font-size:13px;font-weight:600;color:var(--ink);margin-bottom:9px;transition:all .15s;
+  }
+  .quick-btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-bg)}
+  .quick-btn svg{color:var(--brand);flex:none}
+  .metric-row{display:flex;gap:10px;margin:8px 0}
+  .metric{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fbfaf7}
+  .metric .v{font-size:18px;font-weight:800;color:var(--brand)}
+  .metric .k{font-size:11px;color:var(--muted)}
+  .bars{display:flex;align-items:flex-end;gap:8px;height:88px;padding:10px 4px 2px}
+  .bars .b{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--brand-2),var(--brand));position:relative;min-height:6px;animation:grow .6s ease}
+  .bars .b span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9.5px;color:var(--muted);white-space:nowrap}
+  @keyframes grow{from{height:0}}
+  .bars-x{display:flex;gap:8px;padding:2px 4px 0}
+  .bars-x span{flex:1;text-align:center;font-size:10px;color:var(--muted)}
+
+  /* ===== Module 4: trace waterfall ===== */
+  .trace{display:flex;flex-direction:column;gap:7px;margin:10px 0;font-size:11.5px}
+  .span-row{display:flex;align-items:center;gap:10px}
+  .span-row .nm{width:128px;flex:none;font-family:"SF Mono",Menlo,monospace;color:var(--ink-soft);text-align:right}
+  .span-track{flex:1;height:20px;position:relative}
+  .span-bar{
+    position:absolute;top:2px;height:16px;border-radius:5px;background:var(--teal);
+    display:flex;align-items:center;padding:0 8px;color:#fff;font-size:10px;font-weight:700;
+    white-space:nowrap;animation:spanIn .5s ease;min-width:52px;
+  }
+  .span-bar.err{background:var(--red)}
+  @keyframes spanIn{from{width:0;opacity:0}}
+  .evidence{font-family:"SF Mono",Menlo,monospace;font-size:11px;background:#101c38;color:#c8d2f0;border-radius:10px;padding:10px 14px;margin:8px 0;line-height:1.8}
+  .evidence .ln{color:#5c6a96;user-select:none;display:inline-block;width:30px}
+  .evidence .hl{color:#fca5a5}
+
+  /* ===== Module 5: mock chain ===== */
+  .chain{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:10px 0}
+  .chain-node{
+    border:1px solid var(--line);border-radius:11px;background:#fff;padding:10px 12px;
+    width:170px;position:relative;animation:fadeIn .3s ease;
+  }
+  .chain-node h6{font-size:12px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+  .chain-node pre{
+    font-family:"SF Mono",Menlo,monospace;font-size:10px;line-height:1.6;color:var(--ink-soft);
+    background:#fbfaf7;border-radius:7px;padding:6px 8px;overflow:hidden;
+  }
+  .chain-node .stamp{
+    position:absolute;top:-9px;right:-7px;font-size:9.5px;font-weight:800;color:#fff;background:var(--green);
+    border-radius:99px;padding:2px 8px;transform:scale(0);transition:transform .25s;
+  }
+  .chain-node.written{border-color:#bbe5c8}
+  .chain-node.written .stamp{transform:scale(1)}
+  .chain-arrow{display:flex;align-items:center;padding:0 6px;color:#c3bcab}
+
+  /* ===== Module 6/7/8/9 ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);font-size:13px}
+  .tbl th,.tbl td{padding:11px 14px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12px;letter-spacing:.03em}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;white-space:nowrap}
+  .ok{color:var(--green);font-weight:700}.no{color:var(--red);font-weight:700}
+  .plan-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .plan-item:last-child{border-bottom:none}
+  .plan-item .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none}
+  .hash{font-family:"SF Mono",Menlo,monospace;font-size:10.5px;color:var(--muted)}
+
+  /* modal */
+  .modal-mask{
+    position:fixed;inset:0;background:rgba(15,27,51,.45);display:none;
+    align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(2px);
+  }
+  .modal-mask.show{display:flex}
+  .modal{background:#fff;border-radius:var(--radius);padding:24px 26px;width:420px;box-shadow:0 24px 60px -20px rgba(15,27,51,.5);animation:fadeIn .2s ease}
+  .modal h3{font-size:15.5px;font-weight:800;margin-bottom:8px}
+  .modal p{font-size:13px;color:var(--ink-soft);margin-bottom:16px}
+  .modal .acts{display:flex;gap:10px;justify-content:flex-end}
+
+  .demo-foot{margin-top:26px;text-align:center;font-size:11.5px;color:var(--muted)}
+  .toast{
+    position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;font-size:12.5px;border-radius:10px;padding:9px 18px;
+    opacity:0;transition:all .25s;z-index:60;pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="side">
+    <div class="side-brand">
+      <div class="logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>
+      </div>
+      <h1>Business Agent</h1>
+      <p>业务智能体工作台 · Demo</p>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-page="overview">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        工作台总览
+      </button>
+      <button class="nav-item" data-page="iteration">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        需求迭代<span class="star">★</span>
+      </button>
+      <button class="nav-item" data-page="assistant">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        业务助理
+      </button>
+      <button class="nav-item" data-page="trace">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7 7.5l3.5 8M17 7.5l-3.5 8M7.5 6h9"/></svg>
+        日志链路排查
+      </button>
+      <button class="nav-item" data-page="mock">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+        链路化数据 Mock
+      </button>
+      <button class="nav-item" data-page="maintain">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 0-10-10"/><path d="M2 12a10 10 0 0 1 10-10"/><path d="M12 6v6l4 2"/></svg>
+        巡检与维护
+      </button>
+      <button class="nav-item" data-page="release">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2 0-2.8-.8-.7-2-.7-3 0z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.7 12.7 0 0 1 21.5 2.5c0 2.7-.8 7.5-5.6 10.5A22 22 0 0 1 12 15z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></svg>
+        发布管理
+      </button>
+      <button class="nav-item" data-page="audit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        审计与权限
+      </button>
+      <button class="nav-item" data-page="kb">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        知识库与文档
+      </button>
+    </nav>
+    <div class="side-foot">基于开源理念 business-agent<br>任务是一等公民 · 发布权在人</div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <div class="main">
+    <div class="topbar">
+      <span class="tb-title" id="tbTitle">工作台总览</span>
+      <span class="host-dot"><i></i>Host 在线 · 运行 36 天</span>
+      <span class="tb-pill">队列 <b id="queueCount">2</b> 条等待</span>
+      <div class="tb-right">
+        <select class="role-sel" id="roleSel">
+          <option value="requester" selected>requester · 提出人</option>
+          <option value="operator">operator · 操作员</option>
+        </select>
+        <span class="env-badge">演示沙箱</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ Module 1: Overview ============ -->
+      <section class="page active" id="page-overview">
+        <div class="stat-row">
+          <div class="stat"><div class="num brand">1</div><div class="lbl">进行中任务</div></div>
+          <div class="stat"><div class="num amber">2</div><div class="lbl">排队中</div></div>
+          <div class="stat"><div class="num teal">3</div><div class="lbl">今日已完成</div></div>
+          <div class="stat"><div class="num green">36 天</div><div class="lbl">Host 持续运行</div></div>
+        </div>
+
+        <div class="card card-p" style="margin-bottom:22px">
+          <div class="sec-title">能力全景</div>
+          <div class="sec-sub">同一时刻只有一个进行中任务，其余排队；关掉页面任务照跑，状态保存在常驻 Host。点击卡片可进入对应模块。</div>
+          <div class="cap-grid">
+            <div class="cap" data-goto="iteration">
+              <div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
+              <h4>需求迭代 ★</h4><p>对话 → 确认 → 开发 → 交付全流程。人只在决策点出现：确认卡上点「同意」或「要改」。</p>
+            </div>
+            <div class="cap" data-goto="assistant">
+              <div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+              <h4>业务助理</h4><p>不用进业务系统，对话即办理：查询、提单、审批，操作通过业务 API 执行并留痕。</p>
+            </div>
+            <div class="cap" data-goto="trace">
+              <div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7 7.5l3.5 8M17 7.5l-3.5 8M7.5 6h9"/></svg></div>
+              <h4>日志链路排查</h4><p>按 traceId 串起跨服务调用链，trace 级根因定位，给出证据与修复建议。只读，不改服务。</p>
+            </div>
+            <div class="cap" data-goto="mock">
+              <div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></div>
+              <h4>链路化数据 Mock</h4><p>一句话造出一条完整业务链路的测试数据，外键自动对齐，一键写入沙箱。</p>
+            </div>
+            <div class="cap" data-goto="maintain">
+              <div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 0-10-10"/><path d="M2 12a10 10 0 0 1 10-10"/><path d="M12 6v6l4 2"/></svg></div>
+              <h4>巡检与维护</h4><p>有界维护：巡检不占进行中通道，只有已授权的具体实施才进入迭代流水线。</p>
+            </div>
+            <div class="cap" data-goto="release">
+              <div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2 0-2.8-.8-.7-2-.7-3 0z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.7 12.7 0 0 1 21.5 2.5c0 2.7-.8 7.5-5.6 10.5A22 22 0 0 1 12 15z"/></svg></div>
+              <h4>发布管理</h4><p>Agent 默认只生成交接计划；保护分支推送必须 operator 显式确认。发布权永远在人。</p>
+            </div>
+            <div class="cap" data-goto="audit">
+              <div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+              <h4>审计与权限</h4><p>回执、版本指纹、操作留痕；四级角色分工，任何人口头说明都不能豁免闸门。</p>
+            </div>
+            <div class="cap" data-goto="kb">
+              <div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+              <h4>知识库与文档</h4><p>领域文档驱动影响面判断；外部阻塞显式登记，不静默跳过。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="running-card">
+          <div class="info">
+            <h4>当前进行中：购物车凑单提示优化 <span class="badge brand">需求迭代</span></h4>
+            <p>阶段：开发 → 自动测试 · 已运行 42 分钟 · 通道 K1</p>
+            <div class="mini-progress"><i></i></div>
+          </div>
+          <button class="btn" data-goto="iteration">进入工作台</button>
+        </div>
+
+        <div class="demo-foot">本页为效果演示，数据均为 mock · Business Agent 工作台 Demo</div>
+      </section>
+
+      <!-- ============ Module 2: Iteration ============ -->
+      <section class="page" id="page-iteration">
+        <div class="iter-grid">
+          <!-- Left: task list -->
+          <div class="col-panel">
+            <div class="col-head">任务列表</div>
+            <div class="col-body" id="taskList">
+              <button class="new-task-btn" id="newTaskBtn">+ 新需求</button>
+              <div class="task-group">进行中</div>
+              <div class="task-item">
+                <div class="t">购物车凑单提示优化</div>
+                <div class="m"><span class="badge teal">开发中</span>K1</div>
+              </div>
+              <div class="task-group">等你确认</div>
+              <div class="task-item active" id="demoTaskItem">
+                <div class="t">优惠券批量发放</div>
+                <div class="m"><span class="badge amber" id="demoTaskBadge">待发起</span>演示任务</div>
+              </div>
+              <div class="task-group">排队</div>
+              <div class="task-item">
+                <div class="t">商品评价支持晒图</div>
+                <div class="m"><span class="badge gray">排队 #1</span></div>
+              </div>
+              <div class="task-item">
+                <div class="t">会员积分规则调整</div>
+                <div class="m"><span class="badge gray">排队 #2</span></div>
+              </div>
+              <div class="task-group">已完成</div>
+              <div class="task-item">
+                <div class="t">订单导出增加筛选项</div>
+                <div class="m"><span class="badge green">已交付</span>10-17</div>
+              </div>
+              <div class="task-item">
+                <div class="t">首页 Banner 点击统计</div>
+                <div class="m"><span class="badge green">已交付</span>10-15</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Middle: chat -->
+          <div class="col-panel">
+            <div class="stage-bar" id="stageBar"></div>
+            <div class="col-body chat" id="chatBody">
+              <div class="msg sys"><div class="bubble">任务「优惠券批量发放」已就绪。在下方输入需求，发送后开始演示完整迭代流程。</div></div>
+            </div>
+            <div class="chat-input">
+              <textarea id="iterInput">给商城后台加一个优惠券批量发放功能：运营可以按用户分组批量发券，发放过程能看到进度，发完要有记录可以导出查询。</textarea>
+              <div class="row">
+                <span class="hint">演示剧本：发送后将逐阶段推进，确认卡出现时需你点击</span>
+                <button class="btn sm" id="iterSend" style="margin-left:auto">发送</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: decision area -->
+          <div class="col-panel">
+            <div class="right-status">
+              <div class="s" id="rightStatus">等待你发起需求</div>
+              <div class="d" id="rightStatusSub">输入框已预填示例需求，点击发送开始</div>
+            </div>
+            <div class="col-body" id="rightBody">
+              <div class="side-card">
+                <h5>决策区说明</h5>
+                <p>你只在决策点出现：每个关键产物会在这里生成确认卡，点「同意」继续，点「要改」退回对话生成新版本。其余时间 Agent 自主推进。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Module 3: Assistant ============ -->
+      <section class="page" id="page-assistant">
+        <div class="asst-grid">
+          <div class="col-panel">
+            <div class="col-head">业务助理 · 对话即办理</div>
+            <div class="col-body chat" id="asstChat">
+              <div class="msg sys"><div class="bubble">不用进业务系统。直接说事，或点右侧快捷办理。所有操作通过业务系统 API 执行并留痕。</div></div>
+            </div>
+            <div class="chat-input">
+              <textarea id="asstInput" placeholder="例如：帮我查一下订单 M2026101800099 的状态"></textarea>
+              <div class="row">
+                <span class="hint">角色 requester · 只读查询 + 受权办理</span>
+                <button class="btn sm" id="asstSend" style="margin-left:auto">发送</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-panel">
+            <div class="col-head">快捷办理</div>
+            <div class="col-body">
+              <button class="quick-btn" data-act="sales">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+                查本周销售额
+              </button>
+              <button class="quick-btn" data-act="order">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+                查询订单
+              </button>
+              <button class="quick-btn" data-act="approval">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                创建加急审批
+              </button>
+              <button class="quick-btn" data-act="purchase">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                审批采购单
+              </button>
+              <div class="side-card" style="margin-top:6px">
+                <h5>权限说明</h5>
+                <p>requester 可查询与发起；涉及资金/库存的写操作，仍需对应审批人确认后才真正生效。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Module 4: Trace ============ -->
+      <section class="page" id="page-trace">
+        <div class="iter-grid" style="grid-template-columns:minmax(0,1fr) 330px">
+          <div class="col-panel">
+            <div class="col-head">日志链路排查 · 只读检索</div>
+            <div class="col-body chat" id="traceChat">
+              <div class="msg sys"><div class="bubble">描述故障现象即可。Agent 会按 traceId 检索调用链，定位根因并给出证据。全程只读，不改动任何服务。</div></div>
+            </div>
+            <div class="chat-input">
+              <textarea id="traceInput">有用户反馈下单失败，订单号 M2026101800123，帮我查一下链路</textarea>
+              <div class="row">
+                <span class="hint">只读检索 · 不改动任何服务</span>
+                <button class="btn sm" id="traceSend" style="margin-left:auto">发送</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-panel">
+            <div class="right-status"><div class="s" id="traceStatus">等待排查请求</div><div class="d">trace 级根因定位</div></div>
+            <div class="col-body" id="traceRight">
+              <div class="side-card">
+                <h5>能力说明</h5>
+                <p>跨服务日志按 traceId 串联成调用瀑布图，异常段自动标红；根因卡附日志行号证据与修复建议，可一键生成排查报告。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Module 5: Mock ============ -->
+      <section class="page" id="page-mock">
+        <div class="iter-grid" style="grid-template-columns:minmax(0,1fr) 330px">
+          <div class="col-panel">
+            <div class="col-head">链路化数据 Mock</div>
+            <div class="col-body chat" id="mockChat">
+              <div class="msg sys"><div class="bubble">说一句你要测的业务链路，Agent 逐节点造数并对齐外键，一键写入沙箱环境。</div></div>
+            </div>
+            <div class="chat-input">
+              <textarea id="mockInput">我要测售后退款全流程，帮我造一条链路数据：已发货订单 → 申请退款 → 审核通过 → 退款成功</textarea>
+              <div class="row">
+                <span class="hint">外键自动对齐 · 写入沙箱不影响正式数据</span>
+                <button class="btn sm" id="mockSend" style="margin-left:auto">发送</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-panel">
+            <div class="right-status"><div class="s" id="mockStatus">等待造数请求</div><div class="d">链路节点自动拆解</div></div>
+            <div class="col-body" id="mockRight">
+              <div class="side-card">
+                <h5>能力说明</h5>
+                <p>按业务链路逐节点生成 mock 数据（用户、订单、支付、物流、售后、退款），节点间外键自动对齐，写入沙箱后即可直接开始全流程测试。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Module 6: Maintain ============ -->
+      <section class="page" id="page-maintain">
+        <div class="grid" style="grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)">
+          <div class="card card-p">
+            <div class="sec-title">维护必须有界</div>
+            <div class="sec-sub">长期优化与周期巡检写在文档里，不悄悄动手；只有已授权的具体实施才占用进行中通道；巡检不得重开已收口任务。</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <span class="sec-title" style="font-size:14px">最近一次巡检报告</span>
+              <span class="badge gray">2026-10-18 03:00 · 自动</span>
+            </div>
+            <table class="tbl">
+              <thead><tr><th>检查项</th><th>结果</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td>依赖漏洞扫描</td><td>2 项低危（fastjson 传递依赖、logback 旧版）</td><td><span class="badge amber">低危</span></td></tr>
+                <tr><td>慢查询</td><td>订单列表页 1 条 &gt; 800ms（缺复合索引）</td><td><span class="badge amber">待优化</span></td></tr>
+                <tr><td>磁盘占用</td><td>数据盘 78%（日志保留 30 天）</td><td><span class="badge teal">关注</span></td></tr>
+                <tr><td>容器健康</td><td>MySQL / Redis / Mongo / RabbitMQ / ES 全部正常</td><td><span class="badge green">正常</span></td></tr>
+                <tr><td>证书有效期</td><td>沙箱证书剩余 214 天</td><td><span class="badge green">正常</span></td></tr>
+              </tbody>
+            </table>
+            <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+              <button class="btn sm" id="maintainGen">按建议生成优化需求</button>
+              <span class="fineprint">将跳到「需求迭代」并预填需求，需你确认后才会进入流水线</span>
+            </div>
+          </div>
+          <div class="card card-p">
+            <div class="sec-title">巡检计划</div>
+            <div class="sec-sub">周期巡检在后台静默执行，只占报告位，不占任务通道。</div>
+            <div class="plan-item"><i class="dot"></i><div><b>每周一 03:00</b> · 依赖漏洞扫描<br><span class="fineprint">范围：全部业务仓依赖树</span></div></div>
+            <div class="plan-item"><i class="dot" style="background:var(--teal)"></i><div><b>每日 06:00</b> · 服务健康检查<br><span class="fineprint">容器状态、端口、接口探活</span></div></div>
+            <div class="plan-item"><i class="dot" style="background:var(--amber)"></i><div><b>每日 07:30</b> · 慢查询与磁盘巡检<br><span class="fineprint">阈值：慢查询 &gt; 500ms，磁盘 &gt; 85% 告警</span></div></div>
+            <div class="plan-item"><i class="dot" style="background:var(--green)"></i><div><b>每月 1 日</b> · 知识库一致性核对<br><span class="fineprint">领域文档与实际仓库结构比对，漂移项列入报告</span></div></div>
+            <div class="side-card blocked-card" style="margin-top:14px">
+              <h5>边界规则</h5>
+              <p>巡检发现问题 → 只出报告与建议；是否实施由人决定，确认后作为一个普通需求进入排队队列，不插队、不重开已收口任务。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Module 7: Release ============ -->
+      <section class="page" id="page-release">
+        <div class="grid" style="grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)">
+          <div>
+            <div class="card card-p" style="margin-bottom:16px">
+              <div class="sec-title">待发布 · 迭代 #20261018-07</div>
+              <div class="sec-sub">Agent 默认只生成交接计划；保护分支推送需要 operator 显式确认。</div>
+              <div class="kv" style="display:flex;gap:8px;font-size:13px;margin:4px 0"><b style="min-width:76px">改动清单</b><span>mall-admin-web 5 个文件 · mall 后端 4 个文件（优惠券批量发放）</span></div>
+              <div class="kv" style="display:flex;gap:8px;font-size:13px;margin:4px 0"><b style="min-width:76px">回滚方案</b><span>特性开关 <code>coupon.batch.enabled=false</code> 一键关闭；表结构变更为纯新增，可保留</span></div>
+              <div class="kv" style="display:flex;gap:8px;font-size:13px;margin:4px 0"><b style="min-width:76px">发布窗口</b><span>建议工作日 10:00–11:30，避开下单高峰</span></div>
+              <div class="kv" style="display:flex;gap:8px;font-size:13px;margin:4px 0"><b style="min-width:76px">验收状态</b><span><span class="badge green">验收通过</span> 回执 RCPT-20261018-041</span></div>
+              <div style="display:flex;gap:10px;margin-top:16px">
+                <button class="btn sm ghost" id="genHandover">生成发布交接</button>
+                <button class="btn sm" id="pushProtected">确认推送保护分支</button>
+              </div>
+              <div class="fineprint" id="handoverNote" style="margin-top:10px;display:none">交接计划已生成：<span class="hash">release-plan-20261018-07.md · 指纹 a3f9c2e1</span>，已同步给 operator。</div>
+            </div>
+            <div class="card card-p">
+              <div class="sec-title" style="font-size:14px">发布历史</div>
+              <table class="tbl">
+                <thead><tr><th>迭代</th><th>内容</th><th>操作者</th><th>时间</th><th>结果</th></tr></thead>
+                <tbody>
+                  <tr><td>#20261017-03</td><td>订单导出增加筛选项</td><td>operator · 王</td><td>10-17 15:20</td><td><span class="badge green">成功</span></td></tr>
+                  <tr><td>#20261015-02</td><td>首页 Banner 点击统计</td><td>operator · 王</td><td>10-15 10:42</td><td><span class="badge green">成功</span></td></tr>
+                  <tr><td>#20261012-01</td><td>支付回调重试优化</td><td>operator · 李</td><td>10-12 11:05</td><td><span class="badge amber">回滚过一次</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card card-p">
+            <div class="sec-title">发布权在人</div>
+            <div class="sec-sub">发布链路上的每一步显式授权</div>
+            <div class="plan-item"><i class="dot" style="background:var(--green)"></i><div><b>本地交付提交</b> · 验收通过后自动生成<br><span class="fineprint">requester 验收即可，无需操作</span></div></div>
+            <div class="plan-item"><i class="dot" style="background:var(--brand)"></i><div><b>发布交接计划</b> · Agent 生成，人审阅<br><span class="fineprint">改动清单、回滚方案、发布窗口</span></div></div>
+            <div class="plan-item"><i class="dot" style="background:var(--amber)"></i><div><b>保护分支推送</b> · operator 显式确认<br><span class="fineprint">二次确认弹窗，操作留痕并生成回执</span></div></div>
+            <div class="side-card blocked-card" style="margin-top:14px">
+              <h5>红线</h5>
+              <p>任何人的口头说明（包括 admin）都不能豁免发布确认。未确认时 Agent 最多做到「交接计划已就绪」。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Module 8: Audit ============ -->
+      <section class="page" id="page-audit">
+        <div class="card card-p" style="margin-bottom:16px">
+          <div class="sec-title">角色权限</div>
+          <div class="sec-sub">四级角色 · 任何人口头说明都不能豁免确认闸门</div>
+          <table class="tbl">
+            <thead><tr><th>能力</th><th>viewer</th><th>requester</th><th>operator</th><th>admin</th></tr></thead>
+            <tbody>
+              <tr><td>查看任务 / 产物 / 报告</td><td class="ok">能</td><td class="ok">能</td><td class="ok">能</td><td class="ok">能</td></tr>
+              <tr><td>提需求 / 确认方案 / 验收 / 取消自己的需求</td><td class="no">不能</td><td class="ok">能</td><td class="ok">能</td><td class="ok">能</td></tr>
+              <tr><td>审代码 / 接管写锁 / 发布确认</td><td class="no">不能</td><td class="no">不能</td><td class="ok">能</td><td class="ok">能</td></tr>
+              <tr><td>放弃任务 / 切换活动迭代 / 管理角色</td><td class="no">不能</td><td class="no">不能</td><td class="no">不能</td><td class="ok">能</td></tr>
+              <tr><td>豁免确认闸门（含口头说明）</td><td class="no">不能</td><td class="no">不能</td><td class="no">不能</td><td class="no">不能</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)">
+          <div class="card card-p">
+            <div class="sec-title" style="font-size:14px">操作审计流水</div>
+            <table class="tbl">
+              <thead><tr><th>时间</th><th>操作者</th><th>动作</th><th>产物指纹</th><th>回执编号</th></tr></thead>
+              <tbody>
+                <tr><td>10-18 14:02</td><td>requester · 陈</td><td><span class="badge brand">confirm</span> 需求卡 v1</td><td class="hash">req-7d2a91f0</td><td class="hash">RCPT-…-038</td></tr>
+                <tr><td>10-18 14:05</td><td>requester · 陈</td><td><span class="badge brand">confirm</span> PRD v1</td><td class="hash">prd-51bc08e3</td><td class="hash">RCPT-…-039</td></tr>
+                <tr><td>10-18 14:09</td><td>requester · 陈</td><td><span class="badge brand">confirm</span> 界面方案 v1</td><td class="hash">ux-e04f7a2c</td><td class="hash">RCPT-…-040</td></tr>
+                <tr><td>10-18 14:26</td><td>agent · K1</td><td><span class="badge teal">dev</span> 开发完成 9 文件</td><td class="hash">dev-2c88d41b</td><td class="hash">RCPT-…-041a</td></tr>
+                <tr><td>10-18 14:31</td><td>agent · K1</td><td><span class="badge teal">test</span> 用例 7/7 通过</td><td class="hash">tst-9f10e556</td><td class="hash">RCPT-…-041b</td></tr>
+                <tr><td>10-18 14:38</td><td>requester · 陈</td><td><span class="badge green">complete</span> 验收通过</td><td class="hash">acc-3d61c907</td><td class="hash">RCPT-…-041</td></tr>
+                <tr><td>10-17 15:24</td><td>operator · 王</td><td><span class="badge amber">publish</span> 推送保护分支</td><td class="hash">rel-a3f9c2e1</td><td class="hash">RCPT-…-036</td></tr>
+                <tr><td>10-16 09:12</td><td>admin · 赵</td><td><span class="badge red">abandon</span> 放弃任务 #…-05</td><td class="hash">—</td><td class="hash">RCPT-…-033</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card card-p">
+            <div class="sec-title" style="font-size:14px">版本失效规则</div>
+            <div class="sec-sub">以下任一发生，下游授权全部失效，需重新走确认</div>
+            <div class="plan-item"><i class="dot" style="background:var(--red)"></i><div><b>需求卡版本变化</b><br><span class="fineprint">v1 → v2 后，基于 v1 的所有方案确认作废</span></div></div>
+            <div class="plan-item"><i class="dot" style="background:var(--amber)"></i><div><b>产物被替换</b><br><span class="fineprint">PRD / 界面方案重新生成后，技术方案确认失效</span></div></div>
+            <div class="plan-item"><i class="dot" style="background:var(--brand)"></i><div><b>实施方案哈希变化</b><br><span class="fineprint">开发产物指纹与确认时不一致，验收授权失效</span></div></div>
+            <div class="side-card" style="margin-top:14px">
+              <h5>旧回执不删除</h5>
+              <p>失效只是「不再授权」，旧回执全部保留供审计，任何时刻可还原「谁在什么时候确认过哪一版」。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Module 9: Knowledge ============ -->
+      <section class="page" id="page-kb">
+        <div class="grid" style="grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)">
+          <div class="card card-p">
+            <div class="sec-title">领域文档</div>
+            <div class="sec-sub">Agent 据此判断影响面 —— 每次需求评估、技术方案都先读这些文档</div>
+            <table class="tbl">
+              <thead><tr><th>文档</th><th>内容</th><th>更新</th></tr></thead>
+              <tbody>
+                <tr><td class="hash">business-domain-overview.md</td><td>业务域总览：商城核心域、端与仓库分工</td><td><span class="badge green">10-18</span></td></tr>
+                <tr><td class="hash">business-repositories/mall.md</td><td>后端仓档案：模块、表结构、关键流程、已知坑</td><td><span class="badge green">10-17</span></td></tr>
+                <tr><td class="hash">business-repositories/mall-admin-web.md</td><td>后台前端档案：路由、权限、组件约定</td><td><span class="badge green">10-17</span></td></tr>
+                <tr><td class="hash">business-repositories/mall-app-web.md</td><td>H5 商城档案：页面结构、API 层</td><td><span class="badge gray">10-12</span></td></tr>
+                <tr><td class="hash">business-repositories/deploy.md</td><td>基础设施：容器、端口、固定工具链</td><td><span class="badge gray">10-10</span></td></tr>
+              </tbody>
+            </table>
+            <div class="side-card" style="margin-top:14px">
+              <h5>文档随迭代增值</h5>
+              <p>每次迭代发现的新知识（表关系、隐藏约定、踩坑记录）会回写档案；文档越准，影响面判断与方案质量越高，形成复利。</p>
+            </div>
+          </div>
+          <div class="card card-p">
+            <div class="sec-title">外部阻塞登记</div>
+            <div class="sec-sub">显式记录，不静默跳过</div>
+            <div class="side-card blocked-card">
+              <h5>ES IK 分词插件缺失 <span class="badge amber">阻塞中</span></h5>
+              <p>影响：搜索类需求（商品搜索、订单模糊查询）的中文分词效果。<br>处理方：运维 · 预计 10-20 安装。<br>登记于 10-11，期间 2 个搜索类需求被明确标注「分词效果受限」。</p>
+            </div>
+            <div class="side-card blocked-card">
+              <h5>SMTP 未配置 <span class="badge amber">阻塞中</span></h5>
+              <p>影响：邮件通知类功能只能在沙箱内验证，无法真实外发。<br>处理方：行政 · 待申请企业邮箱授权。</p>
+            </div>
+            <div class="side-card">
+              <h5>规则</h5>
+              <p>遇到外部依赖缺失，Agent 必须登记阻塞并告知影响面，严禁静默跳过或假装完成。阻塞解除后自动通知受影响需求的提出人。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- modal -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <h3>确认推送保护分支？</h3>
+    <p>此操作将把迭代 #20261018-07 的交付内容推送至保护分支，并通知 operator 值班群。操作将留痕并生成回执，不可由 Agent 自行撤销。</p>
+    <div class="acts">
+      <button class="btn ghost sm" id="modalCancel">再想想</button>
+      <button class="btn sm" id="modalOk">确认推送</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ================= navigation ================= */
+const pageTitles = {
+  overview:'工作台总览', iteration:'需求迭代', assistant:'业务助理', trace:'日志链路排查',
+  mock:'链路化数据 Mock', maintain:'巡检与维护', release:'发布管理', audit:'审计与权限', kb:'知识库与文档'
+};
+function gotoPage(key){
+  $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === key));
+  $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + key));
+  $('#tbTitle').textContent = pageTitles[key];
+}
+$$('.nav-item').forEach(b => b.addEventListener('click', () => gotoPage(b.dataset.page)));
+$$('[data-goto]').forEach(el => el.addEventListener('click', () => gotoPage(el.dataset.goto)));
+$('#roleSel').addEventListener('change', e => toast('演示环境：角色已切换为 ' + e.target.value + '（仅视觉演示）'));
+
+/* ================= chat primitives ================= */
+function scrollChat(el){ el.scrollTop = el.scrollHeight; }
+function addMsg(chatEl, who, html){
+  const d = document.createElement('div');
+  d.className = 'msg ' + who;
+  const name = who === 'ai' ? 'AI' : (who === 'user' ? '我' : '');
+  d.innerHTML = (who === 'sys')
+    ? '<div class="bubble">' + html + '</div>'
+    : '<div class="avatar">' + name + '</div><div class="bubble">' + html + '</div>';
+  chatEl.appendChild(d);
+  scrollChat(chatEl);
+  return d;
+}
+async function aiTyping(chatEl, ms){
+  const d = addMsg(chatEl, 'ai', '<span class="typing"><i></i><i></i><i></i></span>');
+  await sleep(ms);
+  d.remove();
+}
+async function aiSay(chatEl, html, ms){
+  await aiTyping(chatEl, ms == null ? 900 : ms);
+  return addMsg(chatEl, 'ai', html);
+}
+
+/* ================================================================
+   Module 2 · 需求迭代 —— 剧本引擎
+   剧本数据（SCRIPT_DATA）与渲染/流程（runIteration）分离
+================================================================ */
+const STAGES = ['对话','需求确认','产品方案','界面方案','技术方案','测试用例','开发','自动测试','Review','验收交付','完成'];
+const GATE_STAGES = new Set([1,2,3,9]); // 人工确认卡点（视觉标记）
+
+const SCRIPT_DATA = {
+  reqCard: {
+    title:'需求卡', ver:1,
+    summary:
+      '<div class="kv"><b>目标</b><span>运营可按用户分组批量发放优惠券，过程可见、结果可查可导出</span></div>' +
+      '<div class="kv"><b>范围内</b><span>后台批量发券页、分组选择、发放进度、发放记录与导出</span></div>' +
+      '<div class="kv"><b>范围外</b><span>券模板的新增/编辑（沿用现有券管理）、H5 端改动</span></div>' +
+      '<h5 style="margin-top:8px">可测试的验收标准</h5><ul>' +
+      '<li>AC1：选择分组与券模板发起发放后，页面实时展示进度直至完成</li>' +
+      '<li>AC2：发放完成后生成记录，可按时间/状态查询并导出 CSV</li>' +
+      '<li>AC3：无发券权限的账号进入该页面被拦截并提示</li></ul>' +
+      '<div class="kv" style="margin-top:6px"><b>影响面</b><span>mall-admin-web（后台前端）、mall 后端 admin 模块 · <span style="color:var(--teal)">由领域文档判断，可纠正</span></span></div>',
+    diff:'相对上一版的变化：首个版本，无对比基线。',
+    diffV2:'相对上一版的变化：验收标准 AC2 补充「导出字段包含券面额与领取人」；范围外补充「不涉及短信通知」。'
+  },
+  prd: {
+    title:'产品方案确认', artifact:'product-design.md', ver:1,
+    summary:
+      '<div class="kv"><b>功能点</b><span>批量发放页（分组+券模板+确认弹窗）、发放进度组件、发放记录列表、CSV 导出</span></div>' +
+      '<h5 style="margin-top:8px">业务规则</h5><ul>' +
+      '<li>同一批次对同一用户只发一次，重复自动跳过并计入「跳过数」</li>' +
+      '<li>单次批量上限 5000 人，超出需拆批</li>' +
+      '<li>券库存不足时整批中止并回滚已发放部分</li></ul>' +
+      '<div class="kv" style="margin-top:6px"><b>边界</b><span>空分组禁止提交；发放中刷新页面可从记录页恢复查看进度</span></div>',
+    diff:'相对上一版的变化：基于已确认的需求卡 v1 生成。',
+    diffV2:'相对上一版的变化：新增业务规则「库存不足整批回滚」；边界补充「发放中刷新可恢复查看」。'
+  },
+  tech: {
+    title:'技术方案确认', artifact:'technical-design.md', ver:1,
+    summary:
+      '<div class="kv"><b>改动仓库</b><span>mall（后端）、mall-admin-web（后台前端）</span></div>' +
+      '<h5 style="margin-top:8px">引用实际读过的源码位置</h5><ul class="mono" style="font-size:12px">' +
+      '<li>mall/mall-admin/src/main/java/com/macro/mall/controller/CouponController.java:42 — 现有单张发券接口，批量接口复用其校验逻辑</li>' +
+      '<li>mall/mall-admin/src/main/java/com/macro/mall/service/SmsCouponService.java:128 — 券库存扣减与事务边界</li>' +
+      '<li>mall-admin-web/src/api/coupon.ts:17 — 券管理 API 封装，新增 batchGrant/exportRecords</li>' +
+      '<li>mall-admin-web/src/router/index.ts:86 — 营销模块路由注册点</li></ul>' +
+      '<div class="kv" style="margin-top:6px"><b>明确不改</b><span>H5 端 mall-app-web、支付/订单链路、券模板表结构（仅新增发放批次表 sms_coupon_batch）</span></div>',
+    diff:'相对上一版的变化：基于已确认的 PRD v1，新增源码引用清单。',
+    diffV2:'相对上一版的变化：进度上报由轮询改为 WebSocket 降级轮询双通道；补充「不改 H5 端」声明。'
+  },
+  cases: {
+    title:'测试用例确认', artifact:'api-test-cases.md', ver:1,
+    summary:
+      '<h5>主路径</h5><ul>' +
+      '<li>TC1：分组 200 人发券成功，进度 0→100%，记录生成 → 对应 AC1</li>' +
+      '<li>TC2：记录列表按状态筛选并导出 CSV，字段完整 → 对应 AC2</li></ul>' +
+      '<h5 style="margin-top:6px">异常路径</h5><ul>' +
+      '<li>TC3：无权限账号访问批量发放页被拦截 → 对应 AC3</li>' +
+      '<li>TC4：空分组提交被禁止并给出提示 → 对应 AC1 边界</li>' +
+      '<li>TC5：批量配置未生效（开关关闭）时接口返回明确错误 → 对应 AC1 边界</li></ul>',
+    diff:'相对上一版的变化：用例与验收标准逐条映射，先立靶子再放箭。',
+    diffV2:'相对上一版的变化：补充 TC6「单次超 5000 人拆批提示」；TC4 补充提示文案断言。'
+  },
+  devFiles: [
+    {op:'write_file', path:'mall-admin-web/src/views/coupon/batch.vue'},
+    {op:'write_file', path:'mall-admin-web/src/api/coupon.ts (+batchGrant/exportRecords)'},
+    {op:'edit_file',  path:'mall-admin-web/src/router/index.ts (注册路由)'},
+    {op:'write_file', path:'mall/mall-admin/.../controller/CouponBatchController.java'},
+    {op:'write_file', path:'mall/mall-admin/.../service/impl/CouponBatchServiceImpl.java'},
+    {op:'write_file', path:'mall/mall-admin/.../dao/SmsCouponBatchDao.java'},
+    {op:'edit_file',  path:'mall/mall-admin/.../CouponController.java:42 (复用校验)'},
+    {op:'write_file', path:'mall/sql/sms_coupon_batch.sql (新增批次表)'},
+    {op:'edit_file',  path:'mall-admin-web/src/config/menus.ts (菜单挂载)'}
+  ],
+  testRuns: ['TC1 主路径发放','TC2 记录查询与导出','TC3 无权限拦截','TC4 空分组提示','TC5 配置未生效','TC6 超量拆批提示','冒烟 页面渲染与路由'],
+  reviewFix: [
+    {op:'edit_file', path:'mall-admin-web/src/views/coupon/batch.vue (分批提示)'},
+    {op:'edit_file', path:'mall/mall-admin/.../CouponBatchServiceImpl.java (阈值校验)'}
+  ],
+  acceptance: [
+    'AC1：选择分组与券模板发起发放后，页面实时展示进度直至完成',
+    'AC2：发放完成后生成记录，可按时间/状态查询并导出 CSV',
+    'AC3：无发券权限的账号进入该页面被拦截并提示'
+  ],
+  summary: {duration:'38 分钟', files:9, cases:7, artifacts:['requirement-card.md','product-design.md','ux-design.md','technical-design.md','api-test-cases.md','test-report.md']}
+};
+
+/* ---- stage bar ---- */
+function renderStageBar(){
+  $('#stageBar').innerHTML = STAGES.map((s,i) =>
+    '<span class="st' + (GATE_STAGES.has(i) ? ' gate' : '') + '" data-i="' + i + '">' + s + '</span>'
+  ).join('');
+}
+function setStage(idx){
+  $$('#stageBar .st').forEach(el => {
+    const i = +el.dataset.i;
+    el.classList.toggle('done', i < idx);
+    el.classList.toggle('doing', i === idx);
+  });
+}
+renderStageBar();
+
+function setRightStatus(main, sub){
+  $('#rightStatus').textContent = main;
+  $('#rightStatusSub').textContent = sub || '';
+}
+
+/* ---- 确认卡（同意 / 要改 → v2） ---- */
+function showConfirm(cfg, okText){
+  return new Promise(resolve => {
+    const right = $('#rightBody');
+    const render = () => {
+      const old = $('#confirmCard');
+      if (old) old.remove();
+      const card = document.createElement('div');
+      card.className = 'confirm-card';
+      card.id = 'confirmCard';
+      card.innerHTML =
+        '<h5>' + cfg.title + (cfg.artifact ? ' <span class="badge gray" style="font-weight:600">' + cfg.artifact + '</span>' : '') +
+        ' <span class="ver">v' + cfg.ver + '</span></h5>' +
+        '<div class="sum">' + cfg.summary + '</div>' +
+        '<div class="diff">' + cfg.diff + '</div>' +
+        '<div class="acts"><button class="btn sm" data-a="ok">' + (okText || '同意') + '</button>' +
+        '<button class="btn sm danger" data-a="chg">要改</button></div>';
+      right.prepend(card);
+      card.scrollIntoView({behavior:'smooth', block:'nearest'});
+      card.querySelector('[data-a="ok"]').onclick = () => { card.remove(); resolve(); };
+      card.querySelector('[data-a="chg"]').onclick = async () => {
+        cfg.ver += 1;
+        cfg.diff = cfg.diffV2 || ('相对上一版的变化：已按你的意见完成第 ' + (cfg.ver - 1) + ' 轮修订。');
+        card.remove();
+        addMsg($('#chatBody'), 'user', '这版要改一下（演示：意见已随点击写回对话）');
+        await aiSay($('#chatBody'), '意见已写回对话，正在生成 v' + cfg.ver + '…', 800);
+        setRightStatus(cfg.title + ' · 等你确认', 'v' + cfg.ver + ' 已生成');
+        render();
+      };
+    };
+    render();
+  });
+}
+
+/* ---- 剧本主流程 ---- */
+let iterRunning = false, iterDone = false;
+
+async function runIteration(){
+  if (iterRunning || iterDone) return;
+  const text = $('#iterInput').value.trim();
+  if (!text) return;
+  iterRunning = true;
+  $('#iterSend').disabled = true;
+  $('#iterInput').disabled = true;
+  const chat = $('#chatBody');
+  const right = $('#rightBody');
+  const D = SCRIPT_DATA;
+
+  $('#demoTaskBadge').textContent = '进行中';
+  $('#demoTaskBadge').className = 'badge teal';
+  addMsg(chat, 'user', text);
+  setStage(0);
+  setRightStatus('正在理解需求', '对话阶段');
+
+  /* 1. 需求引导 → 需求卡 v1 */
+  await aiSay(chat,
+    '<h5>需求卡 v' + D.reqCard.ver + '</h5>' + D.reqCard.summary +
+    '<p class="fineprint" style="margin-top:8px">请在右侧确认：同意则进入迭代，要改则写回对话重新生成。</p>', 1400);
+  setStage(1);
+  setRightStatus('方案等你确认', '需求卡 v' + D.reqCard.ver);
+  await showConfirm(D.reqCard, '确认需求卡');
+  addMsg(chat, 'sys', '已确认需求卡 v' + D.reqCard.ver + ' · 回执 RCPT-20261018-038 · 已留痕');
+
+  /* 2. 迭代开始 */
+  await sleep(600);
+  addMsg(chat, 'sys', '迭代已创建 <b>#20261018-07</b> · K1 空闲，立即开始 · 排队中的需求不受影响');
+  await aiSay(chat, '迭代流水线已启动。接下来我会依次产出：产品方案 → 界面方案 → 技术方案 → 测试用例，每个关键产物都需要你确认一次。开发和测试阶段我会自主推进，你可以随时在右侧沙箱看实时效果。', 1100);
+
+  /* 3. PRD */
+  setStage(2);
+  setRightStatus('方案等你确认', '产品方案 product-design.md');
+  await aiSay(chat, '<h5>产品方案 · product-design.md</h5>' + D.prd.summary, 1600);
+  await showConfirm(D.prd);
+  addMsg(chat, 'sys', '已确认产品方案 v' + D.prd.ver + ' · 回执 RCPT-20261018-039');
+
+  /* 4. UI 稿 + 线框 mock */
+  setStage(3);
+  setRightStatus('方案等你确认', '界面方案 ux-design.md');
+  await aiSay(chat,
+    '<h5>界面方案 · ux-design.md</h5>' +
+    '<p style="font-size:13px;color:var(--ink-soft)">后台新增「优惠券批量发放」页面，线框示意如下：</p>' +
+    '<div class="wire">' +
+      '<div class="w-top"><i></i><i></i><i></i><span>mall-admin · 营销 / 优惠券批量发放</span></div>' +
+      '<div class="w-body">' +
+        '<div class="w-field"><b>用户分组</b><div class="fake" style="width:70%"></div></div>' +
+        '<div class="w-field"><b>券模板</b><div class="fake" style="width:55%"></div></div>' +
+        '<div class="w-prog"><b style="font-size:11px;color:var(--ink-soft)">发放进度 · 1,280 / 2,000（64%）</b><div class="bar"><i></i></div></div>' +
+        '<div class="w-table">' +
+          '<div class="r head"><i></i><i></i><i></i><i></i></div>' +
+          '<div class="r"><i></i><i></i><i></i><i></i></div>' +
+          '<div class="r"><i></i><i></i><i></i><i></i></div>' +
+          '<div class="r"><i></i><i></i><i></i><i></i></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<p class="fineprint" style="margin-top:8px">交互说明：分组与券模板为必选；提交前弹确认；发放中进度条实时更新；下方为发放记录表格（支持筛选与导出）。</p>', 1600);
+  await showConfirm({title:'界面方案确认', artifact:'ux-design.md', ver:1,
+    summary:'页面结构、交互流与线框如左。确认后进入技术方案。',
+    diff:'相对上一版的变化：基于已确认的产品方案 v' + D.prd.ver + ' 生成。',
+    diffV2:'相对上一版的变化：进度条改为「已发/总数 + 跳过数」三段显示；记录表格增加「失败原因」列。'});
+  addMsg(chat, 'sys', '已确认界面方案 · 回执 RCPT-20261018-040');
+
+  /* 5. 技术方案 */
+  setStage(4);
+  setRightStatus('方案等你确认', '技术方案 technical-design.md');
+  await aiSay(chat, '<h5>技术方案 · technical-design.md</h5>' + D.tech.summary, 1700);
+  await showConfirm(D.tech);
+  addMsg(chat, 'sys', '已确认技术方案 v' + D.tech.ver + ' · 实施方案哈希 <span class="hash">dev-plan-2c88d41b</span>');
+
+  /* 6. 测试用例 */
+  setStage(5);
+  setRightStatus('方案等你确认', '测试用例 api-test-cases.md');
+  await aiSay(chat, '<h5>测试用例 · api-test-cases.md</h5>' + D.cases.summary, 1500);
+  await showConfirm(D.cases);
+  addMsg(chat, 'sys', '已确认测试用例 v' + D.cases.ver + ' · 用例即验收靶子');
+
+  /* 7. 开发中 + 沙箱预览 */
+  setStage(6);
+  setRightStatus('正在改功能', '开发阶段 · 沙箱实时可见');
+  const devMsg = await aiSay(chat, '<h5>开发中</h5><div class="file-stream" id="fileStream"></div>', 700);
+  const stream = devMsg.querySelector('#fileStream');
+  for (const f of D.devFiles){
+    const row = document.createElement('div');
+    row.className = 'file-op';
+    row.innerHTML = '<span class="op ' + (f.op === 'write_file' ? 'w' : 'e') + '">' + f.op + '</span><span class="path">' + f.path + '</span>';
+    stream.appendChild(row);
+    scrollChat(chat);
+    await sleep(420);
+  }
+
+  /* 沙箱预览卡（右栏） */
+  const sb = document.createElement('div');
+  sb.className = 'side-card';
+  sb.innerHTML =
+    '<h5>沙箱预览 <span class="badge green" id="sbBadge">实时同步中</span></h5>' +
+    '<span class="preview-link">http://192.168.31.10:5173/#/coupon/batch</span>' +
+    '<p class="fineprint">同网段设备可直接访问；API 自动指向页面所在主机。</p>' +
+    '<div class="sandbox"><div class="sb-bar"><i></i><i></i><i></i></div><div class="sb-page">' +
+      '<div class="sb-row"><div class="sb-box b" style="flex:1.4"></div><div class="sb-box t" style="flex:1"></div></div>' +
+      '<div class="sb-prog"><i id="sbProg"></i></div>' +
+      '<div class="sb-table"><i></i><i></i><i></i></div>' +
+    '</div></div>' +
+    '<div style="display:flex;gap:8px;margin-top:10px">' +
+      '<button class="btn sm ghost" data-i="pause">暂停本轮</button>' +
+      '<button class="btn sm ghost" data-i="takeover">接管为人工</button>' +
+    '</div>' +
+    '<p class="fineprint" style="margin-top:8px" id="sbNote">开发通道 K1 · 你可随时干预</p>';
+  right.prepend(sb);
+  sb.scrollIntoView({behavior:'smooth', block:'nearest'});
+  sb.querySelector('[data-i="pause"]').onclick = e => {
+    e.target.disabled = true;
+    $('#sbBadge').textContent = '已暂停'; $('#sbBadge').className = 'badge amber';
+    $('#sbNote').textContent = '本轮已暂停，等待你恢复（演示）';
+  };
+  sb.querySelector('[data-i="takeover"]').onclick = e => {
+    e.target.disabled = true;
+    $('#sbBadge').textContent = '人工接管中'; $('#sbBadge').className = 'badge brand';
+    $('#sbNote').textContent = '写锁已移交人工，Agent 转为旁观（演示）';
+  };
+
+  await aiSay(chat, '沙箱环境已就绪，预览画面与真实改动实时同步。发放进度演示：', 800);
+  const prog = sb.querySelector('#sbProg');
+  for (let p = 0; p <= 100; p += 4){
+    prog.style.width = p + '%';
+    await sleep(90);
+  }
+  $('#sbBadge').textContent = '本轮改动已就绪';
+  setRightStatus('可以看效果了', '沙箱预览已同步最新改动');
+  addMsg(chat, 'sys', '开发完成 · 改动 9 个文件 · 产物指纹 <span class="hash">dev-2c88d41b</span>');
+
+  /* 8. 自动化测试 */
+  setStage(7);
+  setRightStatus('正在自动测试', '按预先确认的用例逐条执行');
+  const testMsg = await aiSay(chat, '<h5>自动化测试执行</h5><div id="testRuns"></div>', 700);
+  const tr = testMsg.querySelector('#testRuns');
+  for (const name of D.testRuns){
+    const row = document.createElement('div');
+    row.className = 'case-run';
+    row.innerHTML = '<span class="ic"><span class="spin"></span></span><span>' + name + '</span>';
+    tr.appendChild(row);
+    scrollChat(chat);
+    await sleep(520);
+    row.querySelector('.ic').innerHTML = '<svg class="check-ok" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+    row.insertAdjacentHTML('beforeend', '<span class="fineprint" style="margin-left:auto">通过</span>');
+  }
+  await sleep(300);
+  addMsg(chat, 'sys', '测试通过 <b>7/7</b> · 已生成 <code>test-report.md</code> · 指纹 <span class="hash">tst-9f10e556</span>');
+
+  /* 9. 循环 Review */
+  setStage(8);
+  setRightStatus('正在自动 Review', '发现问题会自动修复并重跑受影响用例');
+  await aiSay(chat,
+    '<h5>自动 Review</h5>' +
+    '<p style="font-size:13px">发现 1 个问题：<b>批量发放超过 5000 条时缺少分批提示</b>（对应 TC6 边界）。</p>' +
+    '<p style="font-size:13px;color:var(--teal)">正在自动修复…</p>', 1000);
+  const fixMsg = addMsg(chat, 'ai', '<div class="file-stream" id="fixStream"></div>');
+  const fs = fixMsg.querySelector('#fixStream');
+  for (const f of D.reviewFix){
+    const row = document.createElement('div');
+    row.className = 'file-op';
+    row.innerHTML = '<span class="op e">' + f.op + '</span><span class="path">' + f.path + '</span>';
+    fs.appendChild(row);
+    scrollChat(chat);
+    await sleep(450);
+  }
+  await aiSay(chat,
+    '<p style="font-size:13px">重跑受影响用例：</p>' +
+    '<div class="case-run"><span class="ic"><svg class="check-ok" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>TC6 超量拆批提示</span><span class="fineprint" style="margin-left:auto">通过</span></div>' +
+    '<div class="case-run"><span class="ic"><svg class="check-ok" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>TC1 主路径回归</span><span class="fineprint" style="margin-left:auto">通过</span></div>' +
+    '<p class="fineprint" style="margin-top:6px">规则：相同失败最多自动重试 2 轮，仍失败则停下来交给人处理。</p>', 900);
+  addMsg(chat, 'sys', 'Review 修复完成 · 受影响用例 2/2 通过 · 改动 2 个文件');
+
+  /* 10. 验收 */
+  setStage(9);
+  setRightStatus('需要你验收', '逐项核对验收标准，全勾后放行');
+  await aiSay(chat, '开发与测试全部完成，产物已到「验收交付」阶段。请在右侧逐项核对验收标准，全部勾选后点击「验收通过」。', 1000);
+  await new Promise(resolve => {
+    const acc = document.createElement('div');
+    acc.className = 'confirm-card';
+    acc.innerHTML =
+      '<h5>验收卡 · #20261018-07 <span class="ver">交付确认</span></h5>' +
+      '<div class="sum">' + D.acceptance.map((a,i) =>
+        '<label class="acc-item"><input type="checkbox" data-acc="' + i + '"><span>' + a + '</span></label>').join('') + '</div>' +
+      '<div class="acts"><button class="btn sm" id="accOk" disabled>验收通过</button></div>' +
+      '<p class="fineprint" style="margin-top:8px">验收将基于当前产物指纹 <span class="hash">dev-2c88d41b</span> 生成回执；产物若被替换，本次授权自动失效。</p>';
+    right.prepend(acc);
+    acc.scrollIntoView({behavior:'smooth', block:'nearest'});
+    const boxes = acc.querySelectorAll('[data-acc]');
+    const btn = acc.querySelector('#accOk');
+    boxes.forEach(b => b.addEventListener('change', () => {
+      btn.disabled = !Array.from(boxes).every(x => x.checked);
+    }));
+    btn.onclick = () => { acc.remove(); resolve(); };
+  });
+  addMsg(chat, 'sys', '验收通过 · 回执 RCPT-20261018-041 · 已生成本地交付提交（业务仓内，发布需另行确认）');
+
+  /* 11. 收口 */
+  setStage(10);
+  await sleep(500);
+  setStage(11);
+  $$('#stageBar .st').forEach(el => { el.classList.remove('doing'); el.classList.add('done'); });
+  setRightStatus('迭代已收口', '通道已释放 · 等待队列下一条确认');
+  $('#demoTaskBadge').textContent = '已交付';
+  $('#demoTaskBadge').className = 'badge green';
+  const S = D.summary;
+  await aiSay(chat,
+    '<h5>迭代总结 · #20261018-07</h5>' +
+    '<div class="kv"><b>耗时</b><span>' + S.duration + '</span></div>' +
+    '<div class="kv"><b>改动文件</b><span>' + S.files + ' 个（另 Review 修复 2 个）</span></div>' +
+    '<div class="kv"><b>测试用例</b><span>' + S.cases + ' 条全部通过</span></div>' +
+    '<div class="kv"><b>产物清单</b><span class="hash">' + S.artifacts.join(' · ') + '</span></div>' +
+    '<p style="font-size:13px;margin-top:8px">迭代已收口，通道已释放，队列下一条「商品评价支持晒图」等待你确认后开始。发布请到「发布管理」由 operator 确认。</p>', 900);
+  toast('演示剧本播放完毕');
+  iterDone = true;
+  iterRunning = false;
+}
+
+$('#iterSend').addEventListener('click', runIteration);
+$('#newTaskBtn').addEventListener('click', () => {
+  if (iterRunning) { toast('当前有任务进行中，新需求将进入排队（演示）'); return; }
+  $('#iterInput').focus();
+  toast('请在输入框描述新需求，发送后进入排队');
+});
+
+/* ================================================================
+   Module 3 · 业务助理
+================================================================ */
+const asstChat = $('#asstChat');
+function asstFine(){ return '<p class="fineprint" style="margin-top:8px">通过业务系统 API 执行，操作已留痕</p>'; }
+
+const asstActions = {
+  sales: {
+    q:'查一下本周销售额',
+    run: async () => {
+      await aiSay(asstChat,
+        '<h5>本周经营概览（10-12 ~ 10-18）</h5>' +
+        '<div class="metric-row">' +
+          '<div class="metric"><div class="v">¥286,400</div><div class="k">GMV · 环比 +12.4%</div></div>' +
+          '<div class="metric"><div class="v">1,847</div><div class="k">订单量 · 环比 +8.1%</div></div>' +
+          '<div class="metric"><div class="v">¥155</div><div class="k">客单价 · 环比 +3.9%</div></div>' +
+        '</div>' +
+        '<div class="bars">' +
+          '<div class="b" style="height:42%"><span>3.4w</span></div><div class="b" style="height:55%"><span>3.9w</span></div>' +
+          '<div class="b" style="height:48%"><span>3.6w</span></div><div class="b" style="height:66%"><span>4.5w</span></div>' +
+          '<div class="b" style="height:78%"><span>5.2w</span></div><div class="b" style="height:95%"><span>6.1w</span></div>' +
+          '<div class="b" style="height:60%"><span>2.1w</span></div>' +
+        '</div>' +
+        '<div class="bars-x"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>' +
+        asstFine(), 1100);
+    }
+  },
+  order: {
+    q:'查询订单 M2026101800099',
+    run: async () => {
+      await aiSay(asstChat,
+        '<h5>订单 M2026101800099</h5>' +
+        '<div class="kv"><b>状态</b><span><span class="badge teal">已发货</span> 顺丰 SF1389220412</span></div>' +
+        '<div class="kv"><b>金额</b><span>¥329.00（含运费 ¥0，已用券 -¥30）</span></div>' +
+        '<div class="kv"><b>下单人</b><span>会员 u_88231 · 10-18 09:42 支付成功</span></div>' +
+        '<h5 style="margin-top:8px">物流节点</h5><ul>' +
+        '<li>10-18 16:20 · 杭州转运中心已发出</li>' +
+        '<li>10-18 11:05 · 商家已发货</li>' +
+        '<li>10-18 09:47 · 仓库拣货完成</li></ul>' + asstFine(), 1100);
+    }
+  },
+  approval: {
+    q:'创建加急审批',
+    run: async () => {
+      const msg = await aiSay(asstChat,
+        '<h5>新建加急审批 · 请确认</h5>' +
+        '<div class="kv"><b>类型</b><span>营销费用追加</span></div>' +
+        '<div class="kv"><b>事由</b><span>双 11 预热活动追加投放预算</span></div>' +
+        '<div class="kv"><b>金额</b><span>¥20,000</span></div>' +
+        '<div class="kv"><b>期望</b><span>今日内审批完成</span></div>' +
+        '<div style="margin-top:10px"><button class="btn sm" id="apvSubmit">确认提交</button></div>' +
+        asstFine(), 1000);
+      msg.querySelector('#apvSubmit').onclick = async e => {
+        e.target.disabled = true;
+        e.target.textContent = '已提交';
+        await aiSay(asstChat,
+          '<span class="badge green">提交成功</span> 审批单号 <b>APV-20261018-0057</b>，已推送至审批人（运营总监）。进度变化会在本对话中通知你。' + asstFine(), 700);
+      };
+    }
+  },
+  purchase: {
+    q:'审批采购单',
+    run: async () => {
+      const msg = await aiSay(asstChat,
+        '<h5>待审批 · 采购单 PO-20261017-011</h5>' +
+        '<div class="kv"><b>申请人</b><span>供应链 · 刘</span></div>' +
+        '<div class="kv"><b>金额</b><span>¥48,600</span></div>' +
+        '<div class="kv"><b>明细</b><span>仓储包装耗材 ×3 项，供应商：恒泰包装</span></div>' +
+        '<div style="margin-top:10px;display:flex;gap:8px">' +
+          '<button class="btn sm" id="poOk">通过</button><button class="btn sm danger" id="poNo">驳回</button>' +
+        '</div>' + asstFine(), 1000);
+      const done = async txt => aiSay(asstChat, txt + asstFine(), 600);
+      msg.querySelector('#poOk').onclick = async e => {
+        e.target.disabled = msg.querySelector('#poNo').disabled = true;
+        await done('<span class="badge green">已通过</span> PO-20261017-011，已记录回执 RCPT-20261018-043。');
+      };
+      msg.querySelector('#poNo').onclick = async e => {
+        e.target.disabled = msg.querySelector('#poOk').disabled = true;
+        await done('<span class="badge red">已驳回</span> PO-20261017-011，驳回原因已写入审批流，已记录回执 RCPT-20261018-044。');
+      };
+    }
+  }
+};
+
+async function asstHandle(key){
+  addMsg(asstChat, 'user', asstActions[key].q);
+  await asstActions[key].run();
+}
+$$('.quick-btn').forEach(b => b.addEventListener('click', () => asstHandle(b.dataset.act)));
+$('#asstSend').addEventListener('click', async () => {
+  const t = $('#asstInput').value.trim();
+  if (!t) return;
+  $('#asstInput').value = '';
+  if (/销售|gmv|GMV|营业额/.test(t)) { asstHandle('sales'); return; }
+  if (/订单|M\d{8,}/.test(t)) { asstHandle('order'); return; }
+  addMsg(asstChat, 'user', t);
+  await aiSay(asstChat, '收到。这类请求我可以帮你办理，演示环境请试试右侧「快捷办理」的四个场景，或询问销售额 / 订单。' + asstFine(), 800);
+});
+
+/* ================================================================
+   Module 4 · 日志链路排查
+================================================================ */
+const traceChat = $('#traceChat');
+let traceRan = false;
+$('#traceSend').addEventListener('click', async () => {
+  if (traceRan) { toast('演示剧本已播放过，刷新页面可重播'); return; }
+  traceRan = true;
+  const t = $('#traceInput').value.trim();
+  addMsg(traceChat, 'user', t);
+  $('#traceInput').disabled = true; $('#traceSend').disabled = true;
+  $('#traceStatus').textContent = '正在检索调用链';
+
+  await aiSay(traceChat, '已按订单号反查 traceId <span class="hash">a81f3c…9e02</span>，检索到 5 个服务的 14 条日志，正在还原调用链…', 1200);
+
+  const spans = [
+    {nm:'app-web',       left:'0%',  w:'100%', ms:'2120ms', err:false},
+    {nm:'portal-api',    left:'4%',  w:'88%',  ms:'1902ms', err:false},
+    {nm:'order-service', left:'10%', w:'72%',  ms:'1544ms', err:false},
+    {nm:'payment-service',left:'14%',w:'18%',  ms:'388ms',  err:false},
+    {nm:'inventory-service',left:'36%',w:'52%',ms:'1120ms', err:false},
+    {nm:'└ redis 扣减',  left:'38%', w:'46%',  ms:'1840ms 超时', err:true}
+  ];
+  const wf = addMsg(traceChat, 'ai', '<h5>调用链瀑布</h5><div class="trace" id="traceWf"></div>');
+  const wfEl = wf.querySelector('#traceWf');
+  for (const s of spans){
+    const row = document.createElement('div');
+    row.className = 'span-row';
+    row.innerHTML = '<span class="nm">' + s.nm + '</span><div class="span-track"><div class="span-bar' + (s.err ? ' err' : '') +
+      '" style="left:' + s.left + ';width:' + s.w + '">' + s.ms + '</div></div>';
+    wfEl.appendChild(row);
+    scrollChat(traceChat);
+    await sleep(380);
+  }
+
+  $('#traceStatus').textContent = '根因已定位';
+  await aiSay(traceChat,
+    '<h5>根因卡</h5>' +
+    '<div class="kv"><b>根因</b><span style="color:var(--red);font-weight:700">库存扣减 Redis 连接池耗尽</span>（近 1 小时已发生 3 次）</div>' +
+    '<div class="kv"><b>影响</b><span>下单链路在库存校验段超时回滚，用户侧表现为「下单失败」</span></div>' +
+    '<h5 style="margin-top:8px">证据</h5>' +
+    '<div class="evidence">' +
+      '<div><span class="ln">1024</span>inventory-service | acquire connection timeout after 2000ms</div>' +
+      '<div class="hl"><span class="ln">1025</span>pool[stock-redis] active=32/32 pending=47 exhausted</div>' +
+      '<div><span class="ln">1091</span>order-service | TX rollback: stock check failed trace=a81f3c…</div>' +
+      '<div class="hl"><span class="ln">1402</span>pool[stock-redis] exhausted (2nd within 1h)</div>' +
+      '<div class="hl"><span class="ln">1710</span>pool[stock-redis] exhausted (3rd within 1h)</div>' +
+    '</div>' +
+    '<h5>建议</h5><ul>' +
+    '<li>库存 Redis 连接池 32 → 128，并配置等待队列上限</li>' +
+    '<li>扣减段增加 1 次快速重试（间隔 200ms），超时才回滚</li>' +
+    '<li>加连接池使用率 &gt; 80% 的告警</li></ul>' +
+    '<p class="fineprint" style="margin-top:8px">只读检索，未改动任何服务。</p>', 1300);
+
+  const rep = document.createElement('div');
+  rep.className = 'side-card';
+  rep.innerHTML = '<h5>排查结论</h5><p>Redis 连接池耗尽 · 证据 5 条 · 建议 3 项</p>' +
+    '<div style="margin-top:10px"><button class="btn sm" id="traceReport">生成排查报告</button></div>';
+  $('#traceRight').prepend(rep);
+  rep.querySelector('#traceReport').onclick = e => {
+    e.target.disabled = true; e.target.textContent = '已生成';
+    toast('排查报告已生成：trace-report-a81f3c.md（已留痕）');
+  };
+});
+
+/* ================================================================
+   Module 5 · 链路化数据 Mock
+================================================================ */
+const mockChat = $('#mockChat');
+let mockRan = false;
+
+const MOCK_NODES = [
+  {name:'用户', json:'{ id: u_t1001, 等级: 黄金会员 }'},
+  {name:'订单', json:'{ 单号: MO-…0917, 状态: 已发货, 金额: ¥329 }'},
+  {name:'支付单', json:'{ pay_no: PAY-…551, 渠道: 微信, 实付: ¥329 }'},
+  {name:'物流单', json:'{ ship_no: SF-…412, 状态: 运输中 }'},
+  {name:'售后单', json:'{ after_no: AS-…088, 类型: 仅退款, 状态: 审核通过 }'},
+  {name:'退款单', json:'{ refund_no: RF-…310, 金额: ¥329, 状态: 退款成功 }'}
+];
+
+$('#mockSend').addEventListener('click', async () => {
+  if (mockRan) { toast('演示剧本已播放过，刷新页面可重播'); return; }
+  mockRan = true;
+  addMsg(mockChat, 'user', $('#mockInput').value.trim());
+  $('#mockInput').disabled = true; $('#mockSend').disabled = true;
+  $('#mockStatus').textContent = '正在拆解链路节点';
+
+  await aiSay(mockChat, '已拆解为 6 个链路节点：用户 → 订单 → 支付单 → 物流单 → 售后单 → 退款单。逐节点生成 mock 数据，外键将按真实表关系对齐。', 1100);
+
+  const chainMsg = addMsg(mockChat, 'ai', '<div class="chain" id="mockChain"></div>');
+  const chain = chainMsg.querySelector('#mockChain');
+  const arrow = '<div class="chain-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>';
+  for (let i = 0; i < MOCK_NODES.length; i++){
+    if (i > 0) chain.insertAdjacentHTML('beforeend', arrow);
+    const n = document.createElement('div');
+    n.className = 'chain-node';
+    n.innerHTML = '<h6>' + MOCK_NODES[i].name + '</h6><span class="stamp">已写入</span><pre>' + MOCK_NODES[i].json + '</pre>';
+    chain.appendChild(n);
+    scrollChat(mockChat);
+    await sleep(420);
+  }
+  $('#mockStatus').textContent = '链路数据已生成';
+
+  const w = document.createElement('div');
+  w.className = 'side-card';
+  w.innerHTML = '<h5>写入沙箱</h5><p>6 个节点已生成，确认后写入沙箱库（不影响正式数据）。</p>' +
+    '<div style="margin-top:10px"><button class="btn sm" id="mockWrite">一键写入沙箱环境</button></div>' +
+    '<p class="fineprint" style="margin-top:8px" id="mockWriteNote"></p>';
+  $('#mockRight').prepend(w);
+  w.querySelector('#mockWrite').onclick = async e => {
+    e.target.disabled = true;
+    const nodes = chain.querySelectorAll('.chain-node');
+    for (const n of nodes){
+      n.classList.add('written');
+      await sleep(300);
+    }
+    $('#mockWriteNote').textContent = '写入完成：6 个节点 · 14 个字段外键已对齐 · 可在沙箱直接开始售后退款全流程测试';
+    $('#mockStatus').textContent = '已写入沙箱，可以开测';
+    addMsg(mockChat, 'sys', '写入完成 · 6 个节点 · 14 个字段外键已对齐 · 沙箱测试入口已就绪');
+  };
+});
+
+/* ================================================================
+   Module 6 · 巡检 → 跳需求迭代
+================================================================ */
+$('#maintainGen').addEventListener('click', () => {
+  if (iterRunning || iterDone){
+    toast('需求迭代通道忙：优化建议已记入排队队列（演示）');
+  } else {
+    $('#iterInput').value = '根据巡检建议优化：给订单列表页加复合索引消除慢查询，并升级 2 项低危依赖（fastjson、logback）。';
+    gotoPage('iteration');
+    toast('已预填优化需求，发送后进入确认流程');
+  }
+});
+
+/* ================================================================
+   Module 7 · 发布管理
+================================================================ */
+$('#genHandover').addEventListener('click', e => {
+  $('#handoverNote').style.display = 'block';
+  e.target.disabled = true;
+  toast('发布交接计划已生成并同步给 operator');
+});
+$('#pushProtected').addEventListener('click', () => $('#modalMask').classList.add('show'));
+$('#modalCancel').addEventListener('click', () => $('#modalMask').classList.remove('show'));
+$('#modalOk').addEventListener('click', () => {
+  $('#modalMask').classList.remove('show');
+  $('#pushProtected').disabled = true;
+  $('#pushProtected').textContent = '已推送保护分支';
+  toast('已推送 · 回执 RCPT-20261018-042 · 操作已留痕');
+});
+$('#modalMask').addEventListener('click', e => {
+  if (e.target.id === 'modalMask') e.target.classList.remove('show');
+});
+</script>
+</body>
+</html>

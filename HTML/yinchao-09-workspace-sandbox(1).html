@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每个 Agent 一台电脑：私有工作区与多后端沙箱 · 音巢设计分享 09</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 09/12 · 工作区与沙箱</div>
+    <h1>每个 Agent 一台电脑<br>私有工作区与多后端沙箱</h1>
+    <p class="sub">Agent 要干活，就得有文件系统可以读写、有沙箱可以跑代码。音巢（Clawith）给每个 Agent 一台「独占的电脑」：soul / memory / skills / workspace 四个分区的私有文件系统，落盘即版本化；代码执行走可插拔的沙箱后端——本地 bubblewrap、Docker、E2B、Judge0、自托管、阿里云 AgentBay——隔离失败时默认 fail-closed，绝不退化成在宿主机裸跑。</p>
+    <div class="hero-meta">
+      <span>基于上游 <b>main · v1.11.5</b></span>
+      <span>工作区分区 <b>4</b> 个</span>
+      <span>沙箱后端 <b>7</b> 种</span>
+      <span>存储后端 <b>local / S3</b> 可插拔</span>
+      <span>页面发布 <b>/p/{short_id}</b></span>
+      <span>隔离策略 <b>fail-closed</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">01 · 场景</a>
+    <a href="#design">02 · 设计</a>
+    <a href="#impl">03 · 实现</a>
+    <span class="sep">·</span>
+    <a href="#fig-workspace">图 1 · 工作区架构</a>
+    <a href="#fig-exec">图 2 · 代码执行</a>
+    <a href="#fig-publish">图 3 · 产物发布</a>
+    <span class="sep">·</span>
+    <a href="#pseudo">04 · 伪代码</a>
+    <a href="#qa">05 · 面试 QA</a>
+    <a href="#ending">06 · 结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-08-memory-experience.html">上一篇 · 记忆与经验</a>
+    <a href="yinchao-10-multitenancy.html">下一篇 · 多租户</a>
+    <a href="index.html">返回导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>没有文件系统和沙箱的 Agent，只是一个聊天框</h2>
+    <p>LLM 的上下文窗口是易失的：会话结束，中间产物全没了。音巢把工作区与沙箱做成平台级基础设施——每个 Agent 独占一套文件系统，产出物落盘、版本化、可分享；代码在隔离环境里执行，宿主机永远不被污染。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">4</div><div class="l">工作区分区（soul / memory / skills / workspace）</div></div>
+    <div class="stat"><div class="n teal">7</div><div class="l">沙箱后端（subprocess / docker / e2b / judge0 / codesandbox / self_hosted / aio_sandbox）</div></div>
+    <div class="stat"><div class="n amber">180s</div><div class="l">代码执行默认超时（上限 300s 服务端封顶）</div></div>
+    <div class="stat"><div class="n green">2</div><div class="l">存储后端（本地盘 / S3 预签名 URL）</div></div>
+  </div>
+
+  <h3 class="sub">四类典型业务场景</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:130px">场景</th><th>Agent 在做什么</th><th>工作区 / 沙箱提供的能力</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>报告与文档生产</td>
+        <td>数据分析师 Agent 定时汇总数据，产出 Markdown / HTML 报告，再转成 PDF / PPTX 交付</td>
+        <td>workspace/ 落盘持久化；document_conversion 格式转换（csv→xlsx、md/html→pdf/pptx/docx）；publish_page 一键生成公开短链</td>
+      </tr>
+      <tr>
+        <td>代码生成与执行</td>
+        <td>研发助手 Agent 写脚本、跑数据处理、验证结果，把 stdout 与产物文件带回对话</td>
+        <td>execute_code 走沙箱 registry 选后端，bwrap / Docker / E2B 隔离执行，CPU / 内存 / 超时硬限制</td>
+      </tr>
+      <tr>
+        <td>长期记忆与技能沉淀</td>
+        <td>Agent 跨会话记住用户偏好、把踩过的坑写成经验、把可复用流程沉淀为技能</td>
+        <td>memory/memory.md 与 skills/ 是工作区里的普通文件，读写走同一套文件工具，天然版本化</td>
+      </tr>
+      <tr>
+        <td>浏览器 / GUI 自动化</td>
+        <td>Agent 需要打开网页截图、操作真实桌面环境完成端到端任务</td>
+        <td>阿里云 AgentBay 云沙箱（wuying-agentbay-sdk）提供浏览器与电脑操控会话，与本地沙箱互补</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>工作区是 Agent 的手脚——让产出物落得住；沙箱是保险柜——让代码跑得开、又伤不到人。</h3>
+    <p>这两个子系统共同回答了多智能体平台最现实的问题：Agent 干完活，东西放哪、怎么回溯、怎么分享；Agent 要跑代码，在哪跑、跑挂了谁兜底。音巢的答案是：独占文件系统 + 版本化 + 可插拔存储，多后端沙箱 + 注册表选择 + fail-closed 默认。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>三个关键取舍：分区约定、可插拔后端、宁可不可用不可不安全</h2>
+    <p>工作区与沙箱的设计没有炫技成分，全是工程上反复权衡后的保守选择——因为这两层一旦出事，丢的是用户数据、宿主机安全。</p>
+  </div>
+
+  <h3 class="sub">核心概念速览</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">概念</th><th>含义</th><th>关键载体</th></tr></thead>
+    <tbody>
+      <tr><td>工作区四分区</td><td>每个 Agent 的数据根（AGENT_DATA_DIR/&lt;agent_id&gt;/）下按职责分四区：soul.md 人格、memory/ 长期记忆、skills/ 技能、workspace/ 产出物</td><td class="mono">workspace_paths.py · agent_tools.py</td></tr>
+      <tr><td>编辑锁</td><td>多会话 / 多 Agent 协同时，对同一文件的写操作先取数据库锁，防止并发写撕裂</td><td class="mono">workspace_edit_locks 表</td></tr>
+      <tr><td>版本化修订</td><td>每次写入把旧版本落修订表，文件历史可回溯</td><td class="mono">workspace_file_revisions 表</td></tr>
+      <tr><td>存储后端</td><td>文件字节流实际存放位置：本地磁盘或 S3，由 STORAGE_BACKEND 切换，上层无感</td><td class="mono">storage_runtime/（local.py / s3.py / facade.py）</td></tr>
+      <tr><td>沙箱后端</td><td>execute_code 的执行环境，注册表按 SandboxType 选择，七选一</td><td class="mono">sandbox/registry.py</td></tr>
+      <tr><td>fail-closed</td><td>隔离能力缺失（如容器内没有 bwrap）时，execute_code 直接拒绝执行，而不是降级裸跑</td><td class="mono">main.py:37-69 启动自检</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">决策一：存储后端做成可插拔，而不是绑死本地盘</h3>
+  <div class="decision">
+    <h3>本地磁盘 vs 对象存储 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 所有文件只落本地磁盘，简单直接<br>② 抽象存储接口，本地 / S3 双后端，配置切换</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>② 可插拔：STORAGE_BACKEND=local|s3，S3 走 boto3/aioboto3 + 预签名 URL</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>平台是多租户 SaaS 形态：本地盘无法水平扩展、容器重建即丢数据、大文件（用户上传的文档、Agent 产出的视频/安装包）会撑爆磁盘。S3 后端把字节流挪到对象存储，预签名 URL 让下载直连对象存储、不过应用带宽。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>多一层抽象与一致性取舍：S3 是最终一致语义，写入确认、失败重试、本地缓存都要自己处理；预签名 URL 过期（S3_PRESIGN_TTL_SECONDS=3600）要前端配合刷新。</p></div>
+    </div>
+  </div>
+
+  <h3 class="sub">决策二：隔离缺失时 fail-closed，而不是降级裸跑</h3>
+  <div class="decision">
+    <h3>bwrap 缺失时怎么办 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 检测不到 bubblewrap 就退化为普通 subprocess，保证功能可用<br>② 拒绝执行，返回明确错误，除非显式设置开关</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>② fail-closed：默认拒绝；只有 SANDBOX_ALLOW_UNSAFE_FALLBACK_WHEN_BWRAP_MISSING=true 才允许降级</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>execute_code 跑的是 LLM 生成的代码——本质上是不可信输入。在容器化部署里失去 bwrap 就等于在 backend 容器里裸跑任意代码，一次提示词注入就能读写整个工作区根目录。可用性可以靠报错恢复，安全洞补不回来。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>部署门槛变高：backend 容器需要装 bwrap，进而需要 privileged + SYS_ADMIN 能力；启动时只做告警不阻断（_log_bwrap_startup_status），问题延迟到首次 execute_code 才暴露，依赖运维看日志。</p></div>
+    </div>
+  </div>
+
+  <div class="co amber">
+    <div class="co-t">设计哲学：把「不可信」当默认值</div>
+    <p>沙箱模块的所有默认值都在收紧而不是放宽：cpu_limit=0.5 核、memory_limit=256m、default_timeout=180s、max_timeout=300s 服务端封顶；workspace_mode 支持 merge / isolated_output 两种产物回收策略。LLM 生成的代码按「可能恶意」对待，是这个模块与「能跑就行」的玩具实现之间最本质的分界线。</p>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>文件系统分层、沙箱注册表、发布短链——三条链路拆开看</h2>
+    <p>这一节用一张分层架构图、一张后端矩阵、两张流程图，把工作区写入、代码执行、产物发布三条主链路讲清楚，最后附代码依据表。</p>
+  </div>
+
+  <div class="fig-t" id="fig-workspace"><span class="fno">图 1</span><h3>工作区分层架构：四分区 → 文件工具 → 锁与版本 → 可插拔存储</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>Agent 数据根 · AGENT_DATA_DIR/&lt;agent_uuid&gt;/</h3><span class="need own">每 Agent 独占</span></div>
+      <div class="boxes">
+        <div class="box"><b>soul.md</b><small>人格定义，写操作受保护</small></div>
+        <div class="box"><b>memory/</b><small>memory.md 长期记忆与笔记</small></div>
+        <div class="box"><b>skills/</b><small>技能定义（Markdown）</small></div>
+        <div class="box"><b>workspace/</b><small>产出物：报告 / 代码 / 文档</small></div>
+        <div class="box"><b>enterprise_info/</b><small>租户级共享资料（按 tenant_id 隔离）</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">文件工具调用（read_file / write_file / move_file / list_files…，路径必须带分区前缀）↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>文件操作层 · agent_tools.py + 治理</h3><span class="need own">并发与历史</span></div>
+      <div class="boxes">
+        <div class="box"><b>workspace_paths.py</b><small>路径校验：拒绝逃逸出 Agent 根目录</small></div>
+        <div class="box"><b>workspace_locking.py</b><small>编辑锁 · workspace_edit_locks 表</small></div>
+        <div class="box"><b>workspace_file_revisions</b><small>写入前旧版本落修订表</small></div>
+        <div class="box"><b>workspace_reconciliation.py</b><small>存储与数据库元数据对账</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">字节流读写（STORAGE_BACKEND 配置切换）↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>存储后端 · storage_runtime/</h3><span class="need auto">可插拔</span></div>
+      <div class="boxes">
+        <div class="box"><b>local.py</b><small>本地磁盘（STORAGE_LOCAL_ROOT）</small></div>
+        <div class="box"><b>s3.py</b><small>boto3/aioboto3 · 预签名 URL（TTL 3600s）</small></div>
+        <div class="box"><b>facade.py / fallback.py</b><small>统一门面与降级</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">路径安全是第一道闸：workspace_paths.py 对每个相对路径做 resolve 后校验，逃出 Agent 根目录（如 ../../）直接抛错。soul.md、tasks.json、enterprise_info/ 被 move_file 等工具显式排除，防止 Agent 误操作毁掉自己的人格与任务状态。</p>
+
+  <h3 class="sub">沙箱后端矩阵：七种实现，一个接口</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:130px">后端</th><th>实现文件</th><th>隔离机制</th><th>适用场景</th></tr></thead>
+    <tbody>
+      <tr><td class="kid">subprocess</td><td class="mono">sandbox/local/subprocess_backend.py</td><td>bubblewrap（bwrap）命名空间隔离；bwrap 缺失默认 fail-closed</td><td>单容器一体化部署，默认后端</td></tr>
+      <tr><td class="kid">docker</td><td class="mono">sandbox/local/docker_backend.py</td><td>独立容器，挂 /var/run/docker.sock 起 sibling 容器</td><td>隔离更强，宿主机已有 Docker</td></tr>
+      <tr><td class="kid">e2b</td><td class="mono">sandbox/api/e2b_backend.py</td><td>E2B 云端 Firecracker 微虚拟机</td><td>不想自己维护隔离，接受按量付费</td></tr>
+      <tr><td class="kid">judge0</td><td class="mono">sandbox/api/judge0_backend.py</td><td>Judge0 判题沙箱服务</td><td>在线评测 / 多语言执行</td></tr>
+      <tr><td class="kid">codesandbox</td><td class="mono">sandbox/api/codesandbox_backend.py</td><td>CodeSandbox 云端沙箱</td><td>前端 / Node 生态代码执行</td></tr>
+      <tr><td class="kid">self_hosted</td><td class="mono">sandbox/remote/self_hosted_backend.py</td><td>自托管远程执行服务</td><td>隔离机器单独部署，backend 不持特权</td></tr>
+      <tr><td class="kid">aio_sandbox</td><td class="mono">sandbox/remote/aio_sandbox_backend.py</td><td>一体化远程沙箱（多合一环境）</td><td>需要浏览器 + 终端 + 文件系统的复合任务</td></tr>
+    </tbody>
+  </table>
+  <p class="fig-note">除注册表内的七种后端外，阿里云 AgentBay（services/agentbay_client.py / agentbay_live.py，依赖 wuying-agentbay-sdk）走独立通道提供云端浏览器与电脑操控会话——它解决的是「GUI 自动化」而非「代码执行」，与 execute_code 沙箱互补而非互替。</p>
+
+  <div class="fig-t" id="fig-exec"><span class="fno">图 2</span><h3>execute_code 执行链路：注册表选后端 → 隔离执行 → 限额回收</h3></div>
+  <div class="flow">
+    <span class="chip dark">execute_code 调用<br>LLM 生成的代码</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">registry.get(type)<br>SandboxConfig 选后端</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">能力自检<br>bwrap 缺失则 fail-closed</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">隔离执行<br>0.5 CPU / 256m / 无网可配</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">超时熔断<br>默认 180s 封顶 300s</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">产物回收<br>merge / isolated_output</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">返回 stdout / stderr<br>+ 产物文件</span>
+  </div>
+  <p class="fig-note">本地部署的关键前提写在 docker-compose.yml：backend 容器挂载 /var/run/docker.sock、privileged: true、cap_add SYS_ADMIN——这是 bwrap 在容器内创建命名空间、以及 Docker 后端起 sibling 容器的前提。privileged 的收敛方式见面试 QA。</p>
+
+  <div class="fig-t" id="fig-publish"><span class="fno">图 3</span><h3>产物发布链路：文件 → publish_page → 短链 → 公开访问</h3></div>
+  <div class="flow">
+    <span class="chip dark">Agent 产出文件<br>workspace/report.html</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">内置工具 publish_page<br>必填参数 path</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">写 published_pages 表<br>short_id(16) · source_path · tenant_id</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">返回公开短链<br>/p/{short_id}</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">匿名公开访问<br>view_count 计数</span>
+  </div>
+  <p class="fig-note">published_pages 表带 tenant_id（__tenant_scoped__ = True），但 /p/{short_id} 是匿名公开路由——短链本身就是 capability：知道链接即可访问，适合外部分享报告；不适合放敏感内容，这条边界需要在 Agent 的工具描述与用户教育中讲清楚。</p>
+
+  <h3 class="sub">代码依据</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:170px">功能点</th><th>关键文件路径</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>工作区路径约定</td><td class="mono">backend/app/services/workspace_paths.py</td><td>路径解析与逃逸校验、enterprise_info 租户目录</td></tr>
+      <tr><td>文件工具实现</td><td class="mono">backend/app/services/agent_tools.py</td><td>read/write/move/list 等文件工具，四分区路径前缀约定</td></tr>
+      <tr><td>工具注册与描述</td><td class="mono">backend/app/services/builtin_tool_definitions.py</td><td>execute_code / publish_page 等内置工具定义</td></tr>
+      <tr><td>编辑锁</td><td class="mono">backend/app/services/workspace_locking.py</td><td>workspace_edit_locks 表的锁获取 / 释放</td></tr>
+      <tr><td>版本化修订</td><td class="mono">backend/app/models/workspace.py</td><td>WorkspaceFileRevision（workspace_file_revisions）与 WorkspaceEditLock 模型</td></tr>
+      <tr><td>对账</td><td class="mono">backend/app/services/workspace_reconciliation.py</td><td>存储内容与数据库元数据的一致性核对</td></tr>
+      <tr><td>文件 / 上传 API</td><td class="mono">backend/app/api/files.py · backend/app/api/upload.py</td><td>文件读写与用户上传入口</td></tr>
+      <tr><td>文档文本抽取</td><td class="mono">backend/app/services/text_extractor.py</td><td>上传文档（PDF/Word 等）抽取为可注入上下文的文本</td></tr>
+      <tr><td>格式转换</td><td class="mono">backend/app/services/document_conversion/</td><td>html_to_pdf.py / html_to_pptx.py（Chrome 渲染），配合 convert_csv_to_xlsx、convert_markdown_to_docx 等工具</td></tr>
+      <tr><td>存储抽象</td><td class="mono">backend/app/services/storage.py · backend/app/services/storage_runtime/</td><td>local.py / s3.py / facade.py 可插拔后端，S3 预签名 URL</td></tr>
+      <tr><td>存储配置</td><td class="mono">backend/app/config.py:113-126</td><td>STORAGE_BACKEND、S3_BUCKET / S3_PREFIX / S3_PRESIGN_TTL_SECONDS 等</td></tr>
+      <tr><td>页面发布</td><td class="mono">backend/app/api/pages.py · backend/app/models/published_page.py</td><td>published_pages 表与公开路由 /p/{short_id}</td></tr>
+      <tr><td>沙箱注册表</td><td class="mono">backend/app/services/sandbox/registry.py · base.py · config.py</td><td>SandboxType 七后端注册、SandboxBackend 接口、限额配置</td></tr>
+      <tr><td>沙箱后端实现</td><td class="mono">sandbox/local/ · sandbox/api/ · sandbox/remote/</td><td>subprocess / docker / e2b / judge0 / codesandbox / self_hosted / aio_sandbox</td></tr>
+      <tr><td>AgentBay 云沙箱</td><td class="mono">backend/app/services/agentbay_client.py · agentbay_live.py · backend/app/api/agentbay_control.py</td><td>阿里云 AgentBay（wuying-agentbay-sdk）浏览器 / 电脑操控</td></tr>
+      <tr><td>沙箱启动自检</td><td class="mono">backend/app/main.py:37-69</td><td>_log_bwrap_startup_status：bwrap 缺失告警与 fail-closed 提示</td></tr>
+      <tr><td>容器特权配置</td><td class="mono">docker-compose.yml</td><td>docker.sock 挂载、privileged: true、cap_add SYS_ADMIN</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudo">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：沙箱执行与带版本化的文件写入</h2>
+    <p>剥掉日志、指标、异常分类后的骨架，核心机制就这两段：注册表选后端跑代码，取锁写文件留版本。</p>
+  </div>
+
+  <h3 class="sub">骨架一：沙箱执行最小闭环</h3>
+  <div class="cb"><span class="tk-c"># services/sandbox/ —— execute_code 的核心路径（简化）</span>
+<span class="tk-k">async def</span> <span class="tk-f">execute_code</span>(code: <span class="tk-t">str</span>, lang: <span class="tk-t">str</span>, timeout: <span class="tk-t">int</span>) -> <span class="tk-t">ExecResult</span>:
+    cfg = SandboxConfig.from_settings()            <span class="tk-c"># type / 限额 / 超时</span>
+    backend = get_sandbox_backend(cfg)             <span class="tk-c"># registry: type -&gt; Backend 类</span>
+
+    <span class="tk-k">if</span> cfg.type == <span class="tk-s">"subprocess"</span> <span class="tk-k">and not</span> shutil.which(<span class="tk-s">"bwrap"</span>):
+        <span class="tk-k">if not</span> cfg.allow_unsafe_fallback_when_bwrap_missing:
+            <span class="tk-k">raise</span> <span class="tk-e">SandboxUnavailable</span>(<span class="tk-s">"bwrap missing, fail closed"</span>)
+        <span class="tk-c"># 显式开关才允许降级为裸 subprocess</span>
+
+    timeout = <span class="tk-f">min</span>(timeout, cfg.max_timeout)        <span class="tk-c"># 服务端封顶 300s</span>
+    <span class="tk-k">await</span> backend.<span class="tk-f">prepare</span>()                        <span class="tk-c"># 镜像 / 会话 / 工作目录</span>
+    <span class="tk-k">try</span>:
+        result = <span class="tk-k">await</span> backend.<span class="tk-f">run</span>(
+            code, lang,
+            timeout=timeout,                     <span class="tk-c"># 默认 180s</span>
+            limits={<span class="tk-s">"cpu"</span>: cfg.cpu_limit,         <span class="tk-c"># "0.5"</span>
+                    <span class="tk-s">"mem"</span>: cfg.memory_limit,       <span class="tk-c"># "256m"</span>
+                    <span class="tk-s">"net"</span>: cfg.allow_network},
+        )
+        artifacts = <span class="tk-k">await</span> backend.<span class="tk-f">collect_outputs</span>()  <span class="tk-c"># 按 workspace_mode 回收产物</span>
+        <span class="tk-k">return</span> ExecResult(result.stdout, result.stderr, artifacts)
+    <span class="tk-k">finally</span>:
+        <span class="tk-k">await</span> backend.<span class="tk-f">cleanup</span>()                   <span class="tk-c"># 杀进程 / 销容器 / 关会话</span></div>
+
+  <h3 class="sub">骨架二：带版本化的文件写入</h3>
+  <div class="cb"><span class="tk-c"># agent_tools.write_file 的核心路径（简化）</span>
+<span class="tk-k">async def</span> <span class="tk-f">write_file</span>(agent_id, path: <span class="tk-t">str</span>, content: <span class="tk-t">str</span>) -> <span class="tk-t">str</span>:
+    root = agent_data_dir / agent_id
+    abs_path = <span class="tk-f">resolve_in_workspace</span>(root, path)   <span class="tk-c"># 逃逸校验：../.. 直接拒绝</span>
+
+    lock = <span class="tk-k">await</span> edit_locks.<span class="tk-f">acquire</span>(agent_id, path) <span class="tk-c"># workspace_edit_locks 行锁</span>
+    <span class="tk-k">try</span>:
+        old = <span class="tk-k">await</span> storage.<span class="tk-f">read</span>(abs_path)          <span class="tk-c"># local 或 S3，接口一致</span>
+        <span class="tk-k">if</span> old <span class="tk-k">is not None</span>:
+            <span class="tk-k">await</span> db.<span class="tk-f">add</span>(WorkspaceFileRevision(   <span class="tk-c"># 旧版本落修订表</span>
+                agent_id=agent_id, path=path, content=old))
+        <span class="tk-k">await</span> storage.<span class="tk-f">write</span>(abs_path, content)      <span class="tk-c"># 新版本覆盖写</span>
+        <span class="tk-k">await</span> reconcile.<span class="tk-f">mark</span>(agent_id, path)        <span class="tk-c"># 供对账任务核对</span>
+        <span class="tk-k">return</span> <span class="tk-s">f"written: </span>{path}<span class="tk-s">"</span>
+    <span class="tk-k">finally</span>:
+        <span class="tk-k">await</span> edit_locks.<span class="tk-f">release</span>(lock)            <span class="tk-c"># 锁必释放，防死锁</span></div>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，从隔离原理问到设计哲学</h2>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · bubblewrap 和 Docker 的隔离强度差在哪？音巢为什么容器内还要套一层 bwrap？</div>
+    <p>Docker 是完整的容器隔离：独立 namespaces + cgroups + 镜像文件系统，隔离边界厚重但代价是每次执行要起容器、拉镜像，冷启动以秒计。bwrap 是轻量沙箱：用 user/mount/pid namespace 把单个进程包起来，百毫秒级启动，但不带镜像分发能力。音巢 backend 本身跑在容器里，execute_code 用 bwrap 是<strong>纵深防御</strong>：外层容器防的是平台被入侵后扩散，内层 bwrap 防的是「LLM 生成的代码」这个一等不可信输入在容器内乱窜——读写其他 Agent 的工作区、摸环境变量里的密钥。一层防外敌，一层防家贼。追求更强隔离可以切 docker 后端（sibling 容器）或 E2B（Firecracker 微虚拟机）。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · 什么是 fail-closed？音巢在沙箱上是怎么贯彻的？</div>
+    <p>fail-closed 指「安全依赖的能力缺失时，默认拒绝服务」；反义是 fail-open——为了可用性静默降级。音巢的做法：main.py 启动时 _log_bwrap_startup_status 检测 bwrap，缺失只告警不阻断进程（平台其他功能不该陪葬）；但真正执行 execute_code 时，bwrap 缺失直接返回明确错误，除非运维显式设置 SANDBOX_ALLOW_UNSAFE_FALLBACK_WHEN_BWRAP_MISSING=true。这个设计的关键在于<strong>降级必须是一个显式动作</strong>：开关名里带 UNSAFE，谁开的谁负责，事后审计也有据可查。安全工程里最常见的灾难不是攻击多高明，而是某次「先让它能跑」的静默降级被遗忘了。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 为什么 backend 容器需要 privileged 和 docker.sock？风险怎么收？</div>
+    <p>两个需求来源：① bwrap 在容器内创建 user namespace 需要 SYS_ADMIN capability，默认容器 seccomp/权限策略会拦；② docker 后端要通过 /var/run/docker.sock 起 sibling 容器做执行隔离。风险是实打实的：privileged 容器被突破约等于宿主机失守。收敛手段：① docker-compose 里 privileged 只给 backend，其他服务不挂；② 不可信代码永远先进 bwrap / sibling 容器，特权只被「沙箱管理器」这一小段代码使用；③ 对安全更敏感的部署可以整体切 self_hosted / E2B 后端，把执行面挪出 backend 容器，这时可以摘掉 privileged——沙箱后端可插拔的价值在这里兑现：部署形态决定隔离策略，而不是反过来。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · 文件编辑锁的粒度怎么选？怎么避免死锁？</div>
+    <p>音巢的锁粒度是 (agent_id, path) 行级锁，落在 workspace_edit_locks 表。选数据库锁而不是进程内锁，是因为平台多进程 / 多副本部署，内存锁根本不可见；选文件级而不是目录级，是因为 Agent 的典型写模式是「读几个文件、改一个文件」，目录锁会把无关文件串行化。死锁避免靠三条：① 锁在 finally 里必释放，写路径持锁时间只覆盖「读旧版 + 写新版」，不含 LLM 调用等长耗时操作；② 单写者模型——一个 Agent 的执行循环是串行的，锁主要防的是多会话 / 协同 Agent 并发改同一文件，锁顺序冲突的场景极少；③ 数据库行锁天然带超时与事务回滚，持锁方崩溃由数据库清理，不会留孤儿锁。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · S3 预签名 URL 的安全边界在哪里？</div>
+    <p>预签名 URL 把「下载授权」从应用服务器转移给对象存储：URL 里带签名，持链即可下载，TTL 到期自动失效（音巢 S3_PRESIGN_TTL_SECONDS=3600）。边界要想清楚三件事：① <strong>URL 即凭证</strong>——它一旦泄露（日志、转发、截图），TTL 内任何人可用，所以只用于短期下载、不进持久化存储；② 签名按 key 精确生成，不能目录级通配，越权读其他租户文件的窗口不存在；③ 写路径不用预签名 POST 放权给客户端乱传，字节流仍走后端校验。它的价值是卸载带宽——大文件下载不挤应用服务器；代价是把「访问控制的有效期」从会话级缩短到 TTL 级，这是个可接受的置换。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · 版本化存储的成本怎么控制？AgentBay 这类云沙箱又打开了什么新场景？</div>
+    <p>版本化（workspace_file_revisions）的成本是写放大：每次覆盖写都留一份旧版本，一个被反复重写的大文件会产生线性增长的历史。控制手段的常规菜单：按文件大小设版本化阈值（小文件全留、大文件只留元数据或最近 N 版）、按时间窗口合并、冷版本转廉价存储——配合 workspace_reconciliation 对账任务定期清理孤儿版本。AgentBay 的意义在于把沙箱从「代码解释器」扩展成「一台云端的电脑」：浏览器会话让 Agent 能操作需要登录态的网页、截图取证、做端到端 UI 验证；电脑操控会话打开了 GUI 自动化这一类本地 bwrap 根本覆盖不了的场景。多后端架构的回报就在这儿——新执行形态出现时，加一个后端而不是重写一个子系统。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>给 Agent 一台电脑，也给它上好锁</h2>
+    <p>工作区让 Agent 的产出落得住、查得回、发得出；沙箱让 Agent 的代码跑得开、限得住、伤不到人。</p>
+    <p>这两层都不性感，但它们决定了多智能体平台是「演示玩具」还是「生产系统」。</p>
+    <p class="big">信任不是给的，是设计出来的：默认隔离、默认版本化、默认 fail-closed。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 每个 Agent 一台电脑：私有工作区与多后端沙箱 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    上一篇 <a href="yinchao-08-memory-experience.html">记忆与经验</a> · 下一篇 <a href="yinchao-10-multitenancy.html">多租户</a>
+  </div>
+</footer>
+
+</body>
+</html>

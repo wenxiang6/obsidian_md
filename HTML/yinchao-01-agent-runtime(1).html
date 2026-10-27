@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会断点续跑的 Agent 内核 · LangGraph 持久化运行时 · 音巢设计分享</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 01/12 · Agent 运行时</div>
+    <h1>会断点续跑的 Agent 内核<br>LangGraph 持久化运行时</h1>
+    <p class="sub">音巢（Clawith）的 Durable Agent Runtime V2 把「一次 Agent 执行」拆成三件可恢复的事：命令入表排队、LangGraph 确定性控制流逐步推进、每一步状态落 Postgres checkpoint。进程可以死、机器可以重启、人可以半路介入——Run 不会丢。</p>
+    <div class="hero-meta">
+      <span>控制流 <b>LangGraph StateGraph</b></span>
+      <span>状态持久化 <b>Postgres Checkpointer</b></span>
+      <span>工作队列 <b>agent_run_commands 表</b></span>
+      <span>认领方式 <b>FOR UPDATE SKIP LOCKED</b></span>
+      <span>人工介入 <b>中断 · 恢复 · 审批</b></span>
+      <span>循环防护 <b>MAX_AGENT_CYCLE_COUNT = 5</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">场景与定位</a>
+    <a href="#design">功能设计</a>
+    <a href="#impl">实现方案</a>
+    <span class="sep">·</span>
+    <a href="#fig-arch">图 1 · 运行时架构</a>
+    <a href="#fig-lifecycle">图 2 · 命令生命周期</a>
+    <a href="#fig-approval">图 3 · 审批恢复</a>
+    <span class="sep">·</span>
+    <a href="#code">最小伪代码</a>
+    <a href="#qa">面试 QA</a>
+    <a href="#ending">结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-00-architecture.html">上一篇 · 整体架构</a>
+    <a href="yinchao-02-agent-lifecycle.html">下一篇 · Agent 生命周期</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>Agent 不能死在半路：运行时为什么必须是「持久化」的</h2>
+    <p>普通聊天机器人丢了上下文大不了重问一遍；但音巢的 Agent 会调工具、改数据、跨小时执行任务、等人审批——任何一步因为进程重启而丢失，都是数据正确性事故。Durable Agent Runtime V2（代码位于 <code>backend/app/services/agent_runtime/</code>）就是为这类场景造的内核。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">60s</div><div class="l">命令认领租约 TTL（AGENT_RUNTIME_COMMAND_CLAIM_TTL_SECONDS）</div></div>
+    <div class="stat"><div class="n teal">20s</div><div class="l">租约心跳续约间隔（CLAIM_RENEW_SECONDS）</div></div>
+    <div class="stat"><div class="n amber">5 次</div><div class="l">命令最大重试（COMMAND_MAX_ATTEMPTS）后转 dead</div></div>
+    <div class="stat"><div class="n green">10 路</div><div class="l">单 worker 并发执行命令上限（COMMAND_CONCURRENCY）</div></div>
+    <div class="stat"><div class="n">5 环</div><div class="l">Agent 委派循环上限（MAX_AGENT_CYCLE_COUNT）</div></div>
+  </div>
+
+  <h3 class="sub">五个真实业务场景</h3>
+  <div class="values">
+    <div class="value">
+      <div class="no">①</div>
+      <h3>长任务断点续跑</h3>
+      <p>一个 OKR 周报汇总 Agent 跑了 40 分钟、已调用十几次工具，此时后端发版重启。checkpoint 落库后，worker 拉起时从最后一个已提交的图状态继续，<strong>已执行的工具不会重跑</strong>，进度零丢失。</p>
+    </div>
+    <div class="value">
+      <div class="no">②</div>
+      <h3>危险操作人工审批</h3>
+      <p>Agent 想执行 L3 风险级工具（如群删除、发起飞书审批）时，运行时在工具步前 <code>interrupt()</code> 挂起，写 <code>approval_requests</code>，等人工批准后由一条新命令唤醒——<strong>人在环路上，而不是事后审计</strong>。</p>
+    </div>
+    <div class="value">
+      <div class="no">③</div>
+      <h3>单 Agent 串行执行</h3>
+      <p>同一个 Agent 同一时刻只允许跑一条冲突的 Run：<code>thread_lock.py</code> 用 Postgres 咨询锁（<code>pg_try_advisory_lock</code>）按 thread 串行化，避免两条并发 Run 同时改一份会话上下文造成的错乱。</p>
+    </div>
+    <div class="value">
+      <div class="no">④</div>
+      <h3>工具循环失控防护</h3>
+      <p>LLM 偶发会陷入「委派 A → 委派 B → 又委派 A」的死循环。<code>cycle_guard.py</code> 基于数据库中的委派边计算环计数，超过 <code>MAX_AGENT_CYCLE_COUNT = 5</code> 直接拒绝，把失控拦在图执行之前。</p>
+    </div>
+    <div class="value">
+      <div class="no">⑤</div>
+      <h3>多入口统一内核</h3>
+      <p>群聊消息、定时触发器、心跳自省、A2A 跨 Agent 调用——入口形态完全不同，但统一由 <code>chat_intake / trigger_completion / heartbeat_completion / a2a_completion</code> 转成命令写入同一张队列表，<strong>一种运行时服务所有触发源</strong>。</p>
+    </div>
+  </div>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>把 Agent 执行建模为「可持久化的状态机」：命令是队列里的行，进度是 checkpoint 里的快照，人的审批只是另一条入队命令。</h3>
+    <p>这三个抽象让「恢复」「重试」「介入」都不再是特殊逻辑——它们全部复用同一条命令通道与同一份状态存储，这是整个运行时设计的主轴。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>三个关键取舍：用表做队列、把状态交给 LangGraph、危险动作必须过人</h2>
+    <p>运行时的设计难点不在「跑起来」，而在「出事之后语义仍然正确」。音巢在队列选型、状态归属、人工介入三个点上做了明确取舍，每一个都有对应代价。</p>
+  </div>
+
+  <div class="decision">
+    <h3>工作队列载体：数据库表 vs 专职 MQ <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① Redis Stream：轻量、有消费组语义<br>② Kafka：吞吐与回放能力强<br>③ Postgres <code>agent_run_commands</code> 表 + <code>FOR UPDATE SKIP LOCKED</code> 竞争认领</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>③ Postgres 表做命令队列，persistence 层用行锁实现租约认领</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p><strong>少一个组件</strong>：部署面只有 Postgres，不新增中间件；<strong>事务一致性</strong>：命令状态与 <code>agent_runs</code> / <code>agent_run_events</code> 同事务提交，不存在「队列说成功、业务表没写」的两半状态；<strong>可观测</strong>：队列积压、卡死命令直接 SQL 可查；租约续约在表上就是一个 UPDATE，语义直白。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>吞吐天花板低于专职 MQ，依赖行锁与索引设计；高频轮询给数据库带来固定负载。换取的是部署、事务、排障三件事的极致简化——对一个企业内多智能体平台，这个交换是赚的。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>运行时状态的单一事实源：checkpoint 优先，不做双写 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 业务表与 LangGraph checkpoint 双写，两边各自维护状态<br>② checkpoint 作为图执行状态的唯一事实源，业务表（<code>agent_runs</code> / 事件流）只做投影与查询视图</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>② checkpoint 为事实源——<code>checkpointer.py</code> 的模块注释写得很直白：「without product-state dual writes」</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>双写意味着两份状态要永远一致，崩溃恰好落在两次写之间就出现无法归责的漂移。checkpoint 每节点提交一次、天然带版本（checkpoint_id），恢复语义由 LangGraph 保证；业务侧只把「用户要看的部分」投影成表，投影坏了可重建，事实源不脏。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>团队必须理解 LangGraph 的 thread / checkpoint 模型，排查问题要在两套视角（图状态 vs 业务投影）之间切换；checkpoint 数据需定期清理（保留 30 天，<code>AGENT_RUNTIME_CHECKPOINT_RETENTION_DAYS</code>）。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>危险工具的处理：失败重试 vs 挂起等人 <span class="badge brand">D3</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 高风险工具直接拒绝执行，由 Agent 改用话术回复<br>② 命中 L3 风险策略时 <code>interrupt()</code> 挂起整条 Run，人批准后从 checkpoint 恢复继续</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>② interrupt → approval_requests → resume，审批本身也是一条命令</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>直接拒绝会把「能不能做」永久焊死在策略里，业务上大量高危操作其实是「该做、但要人点头」。挂起语义让审批不阻塞 worker（图状态已落库，资源释放），批准动作以新命令入队——复用同一条队列通道，不需要单独的回调系统。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>一次 Run 可能跨小时甚至跨天，上下文管理、checkpoint 留存、用户侧「等待审批」的体验设计都要跟上；审批超时要有兜底策略。</p></div>
+    </div>
+  </div>
+
+  <h3 class="sub">关键概念对齐</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:130px">概念</th><th>载体</th><th>语义</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Run（一次运行）</td>
+        <td class="mono">agent_runs 表 + LangGraph 一次图执行</td>
+        <td>Agent 的一次完整任务执行，有终态（completed / failed / cancelled）。</td>
+      </tr>
+      <tr>
+        <td>Command（命令）</td>
+        <td class="mono">agent_run_commands 表（工作队列）</td>
+        <td>驱动 Run 前进的最小单位：发起、审批唤醒、恢复续跑都是命令；带 attempt_count 与租约字段。</td>
+      </tr>
+      <tr>
+        <td>Thread（线程）</td>
+        <td class="mono">LangGraph checkpoint 的 thread_id</td>
+        <td>图状态的命名空间。注意：<strong>Thread ≠ Run</strong>——直接聊天可以把多个逻辑 Run 放在同一 Thread 上，群聊与后台 Run 则各自持有独立的 run_id Thread（见 <code>checkpointer.py</code> 的 <code>runtime_thread_config</code> 注释）。</td>
+      </tr>
+      <tr>
+        <td>Thread / Lane 锁</td>
+        <td class="mono">pg_try_advisory_lock（thread_lock.py）</td>
+        <td>按 thread_id 哈希取 Postgres 咨询锁，保证同一会话上下文不被两条 Run 并发改写；拿不到锁即放弃，不排队阻塞。</td>
+      </tr>
+      <tr>
+        <td>事件流</td>
+        <td class="mono">agent_run_events 表</td>
+        <td>运行过程的可观测投影：模型输出、工具调用、状态迁移按序落库，供 WS 推送与事后审计。</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>一条命令的旅程：从入队到 checkpoint，再到你的屏幕</h2>
+    <p>所有实现集中在 <code>backend/app/services/agent_runtime/</code> 目录。三张图分别回答：组件怎么分层、命令状态怎么流转、人怎么在半路接管。</p>
+  </div>
+
+  <div class="fig-t" id="fig-arch"><span class="fno">图 1</span><h3>运行时内部分层架构：入口统一成命令，命令驱动图，图每步落 checkpoint</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>入口层（多种触发源，同一出口）</h3><span class="need own">意图 → 命令</span></div>
+      <div class="boxes">
+        <div class="box"><b>chat_intake.py</b><small>Web 会话 / 群聊 @，来自 api/chat_sessions.py</small></div>
+        <div class="box"><b>trigger_completion.py</b><small>定时触发器到点触发</small></div>
+        <div class="box"><b>heartbeat_completion.py</b><small>心跳自省周期任务</small></div>
+        <div class="box"><b>a2a_completion.py</b><small>Agent-to-Agent 跨智能体调用</small></div>
+        <div class="box"><b>审批回调</b><small>人工批准后写入唤醒命令</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">统一建模：INSERT INTO agent_run_commands（status = pending）↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>命令队列（Postgres 表即队列）</h3><span class="need warn">租约 + 重试</span></div>
+      <div class="boxes">
+        <div class="box"><b>agent_run_commands</b><small>pending / running / done / retry / dead</small></div>
+        <div class="box"><b>FOR UPDATE SKIP LOCKED</b><small>多 worker 竞争认领，互不踩踏</small></div>
+        <div class="box"><b>claim TTL 60s · 续约 20s</b><small>崩溃命令租约过期后被他人回收</small></div>
+        <div class="box"><b>attempt_count ≤ 5</b><small>超限转 dead，Run 置 failed</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">command_worker.py 认领执行 · 单 worker 并发上限 10 · thread_lock 串行化同 thread ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>LangGraph 确定性控制流（graph.py 定义，langgraph_driver.py 驱动）</h3><span class="need own">内核</span></div>
+      <div class="boxes">
+        <div class="box"><b>control_guard</b><small>路由闸门：取消 / 等待 / 压缩 / 终态判断</small></div>
+        <div class="box"><b>model 节点</b><small>model_step_service.py：一次 LLM 决策</small></div>
+        <div class="box"><b>tool 节点</b><small>tool_step_service.py + tool_execution.py：工具执行，L3 命中即挂起</small></div>
+        <div class="box"><b>verify / wait / terminal</b><small>校验修复、interrupt 挂起、终态收敛</small></div>
+        <div class="box"><b>cycle_guard.py</b><small>委派环计数，上限 5 直接拒绝</small></div>
+        <div class="box"><b>run_compactor.py</b><small>上下文超阈值时运行压缩</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">每个节点提交后 checkpoint + 事件落库 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>持久化层（全部在同一个 Postgres）</h3><span class="need auto">事实源 + 投影</span></div>
+      <div class="boxes">
+        <div class="box"><b>langgraph_checkpoint schema</b><small>AsyncPostgresSaver + EncryptedSerializer 加密序列化</small></div>
+        <div class="box"><b>agent_run_events</b><small>事件流投影，payload 上限 16KB</small></div>
+        <div class="box"><b>agent_tool_executions</b><small>工具调用明细，行内结果上限 8KB</small></div>
+        <div class="box"><b>session_context_states</b><small>会话上下文版本化状态（version ≥ 1 约束）</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">事件流实时读出 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>输出层（流式体验）</h3><span class="need free">WebSocket 推送</span></div>
+      <div class="boxes">
+        <div class="box"><b>chat_stream.py / answer_stream.py</b><small>模型 token 级流式输出</small></div>
+        <div class="box"><b>event_stream.py</b><small>事件订阅与推送</small></div>
+        <div class="box"><b>AGENT_RUNTIME_WEB_STREAMING_ENABLED</b><small>Web 流式开关</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">架构的要点在「收窄」：入口再多也只产命令，状态再复杂也只进 checkpoint，输出再炫也只读事件流。三条边界让任何一层都可以独立替换或排障，而不牵连其他层。</p>
+
+  <div class="fig-t" id="fig-lifecycle"><span class="fno">图 2</span><h3>命令生命周期：租约认领、心跳续约、失败重试、超限死亡</h3></div>
+  <div class="flow">
+    <span class="chip dark">入口入队<br>pending</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">worker 认领<br>FOR UPDATE SKIP LOCKED</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">running<br>租约 TTL 60s</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">心跳续约<br>每 20s 一次</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">执行图<br>langgraph_driver</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">终态裁决</span>
+  </div>
+  <table class="tbl">
+    <thead><tr><th style="width:170px">终态分支</th><th>触发条件</th><th>后续动作</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="ok">done（成功）</td>
+        <td>图执行到达终态（completed / cancelled 等）</td>
+        <td>命令置 done，Run 状态同步收敛，事件流封口</td>
+      </tr>
+      <tr>
+        <td class="mut">retry（可重试失败）</td>
+        <td>可重试异常（如 <code>RetryableToolNodeError</code>）且 attempt_count &lt; 5</td>
+        <td>命令回 pending，等待下一次认领；checkpoint 仍在，续跑不从头开始</td>
+      </tr>
+      <tr>
+        <td class="no">dead（超限死亡）</td>
+        <td>attempt_count 达到 AGENT_RUNTIME_COMMAND_MAX_ATTEMPTS = 5</td>
+        <td>命令置 dead，Run 置 failed，错误摘要落库（「reconcile the command after repeated attempts」）</td>
+      </tr>
+      <tr>
+        <td class="mut">崩溃回收</td>
+        <td>worker 宕机，租约 60s 到期未续约</td>
+        <td>其他 worker 的认领查询命中「running 但租约过期」的记录，接管续跑——<strong>不需要外部看门狗</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="fig-note">租约参数有硬约束：续约间隔必须小于 TTL（<code>command_worker.py</code> 初始化时直接校验，违规抛 ValueError）。这把「续约比过期快」从运维纪律变成了代码不变量。</p>
+
+  <div class="fig-t" id="fig-approval"><span class="fno">图 3</span><h3>interrupt → 审批 → resume：人在环路的完整时序</h3></div>
+  <div class="flow">
+    <span class="chip">tool 节点<br>命中 L3 风险策略</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">wait 节点<br>interrupt(waiting_request)</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">图状态落 checkpoint<br>写 approval_requests</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">人工审批<br>批准 / 拒绝</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">唤醒命令入队<br>携带审批结论</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">从 checkpoint 恢复<br>resume 传回审批值</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">工具真正执行<br>或按拒绝收敛</span>
+  </div>
+  <p class="fig-note">关键点：挂起期间 <strong>worker 不占用任何执行资源</strong>——LangGraph 的 interrupt 把「等待什么」序列化进 checkpoint，图即退出；恢复时由一条全新命令重新进入图，从挂起点精确继续。审批因此可以跨小时、跨天、跨进程重启，语义始终一致。Run 状态在等待期间呈现为 waiting_user / waiting_external / waiting_agent 之一（graph.py 的 <code>_WAITING_STATUSES</code>）。</p>
+
+  <h3 class="sub">代码依据（已逐一核对上游源码）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th>功能点</th><th style="width:300px">关键文件</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>图定义</td>
+        <td class="kid">backend/app/services/agent_runtime/graph.py</td>
+        <td>StateGraph 确定性控制流：control_guard / model / tool / verify / wait / terminal 节点与条件边；wait 节点内调用 <code>interrupt()</code></td>
+      </tr>
+      <tr>
+        <td>状态持久化</td>
+        <td class="kid">backend/app/services/agent_runtime/checkpointer.py</td>
+        <td>AsyncPostgresSaver 落 <code>langgraph_checkpoint</code> schema；EncryptedSerializer（LANGGRAPH_AES_KEY）加密序列化；thread / command 的 checkpoint 身份构造</td>
+      </tr>
+      <tr>
+        <td>命令工作队列</td>
+        <td class="kid">backend/app/services/agent_runtime/command_worker.py</td>
+        <td>认领循环、TTL 校验（renew &lt; TTL）、心跳续约 <code>renew_command_claim</code>、重试 <code>begin_command_attempt</code>、超限转 dead</td>
+      </tr>
+      <tr>
+        <td>认领 SQL</td>
+        <td class="kid">backend/app/services/agent_runtime/persistence.py</td>
+        <td><code>with_for_update(skip_locked=True)</code> 实现竞争认领；Run 行锁、命令状态迁移的持久化原语</td>
+      </tr>
+      <tr>
+        <td>执行驱动</td>
+        <td class="kid">backend/app/services/agent_runtime/langgraph_driver.py</td>
+        <td>把命令翻译成图调用：装配 config（thread_id / run_id / command_id）、驱动执行、衔接事件流</td>
+      </tr>
+      <tr>
+        <td>模型步 / 工具步</td>
+        <td class="kid">backend/app/services/agent_runtime/model_step_service.py<br>tool_step_service.py · tool_execution.py</td>
+        <td>一次 LLM 决策与一轮工具执行交替推进；tool_step_service 内含 L3 风险判定与审批挂起逻辑；tool_execution 定义 RetryableToolNodeError</td>
+      </tr>
+      <tr>
+        <td>循环防护</td>
+        <td class="kid">backend/app/services/agent_runtime/cycle_guard.py</td>
+        <td>基于数据库委派边计算环计数，<code>MAX_AGENT_CYCLE_COUNT = 5</code>，超限抛 AgentCycleGuardError</td>
+      </tr>
+      <tr>
+        <td>串行化</td>
+        <td class="kid">backend/app/services/agent_runtime/thread_lock.py</td>
+        <td><code>pg_try_advisory_lock</code> / <code>pg_advisory_unlock</code>，按 thread_id 哈希取锁，失败即 ThreadLockNotAcquired</td>
+      </tr>
+      <tr>
+        <td>流式输出</td>
+        <td class="kid">backend/app/services/agent_runtime/chat_stream.py<br>answer_stream.py · event_stream.py</td>
+        <td>token 级流式、答案组装、事件订阅推送</td>
+      </tr>
+      <tr>
+        <td>运行压缩</td>
+        <td class="kid">backend/app/services/agent_runtime/run_compactor.py</td>
+        <td>上下文接近窗口阈值（SUMMARY_THRESHOLD_RATIO = 0.85）时压缩历史，保 Run 可继续</td>
+      </tr>
+      <tr>
+        <td>入口转换</td>
+        <td class="kid">chat_intake.py · trigger_completion.py<br>heartbeat_completion.py · a2a_completion.py</td>
+        <td>四类触发源统一把意图写成 agent_run_commands 记录</td>
+      </tr>
+      <tr>
+        <td>配置面</td>
+        <td class="kid">backend/app/config.py（AGENT_RUNTIME_* 段）</td>
+        <td>队列租约 / 重试 / 并发、压缩阈值、checkpoint 保留 30 天、事件 16KB、工具结果 8KB 等全部可调</td>
+      </tr>
+      <tr>
+        <td>数据模型</td>
+        <td class="kid">backend/app/models/agent_run.py · agent_run_command.py<br>agent_run_event.py · agent_tool_execution.py<br>session_context_state.py · audit.py（approval_requests）</td>
+        <td>Run / 命令 / 事件 / 工具执行 / 会话上下文五张运行时表 + 审批请求表，构成「队列 → 状态 → 观测」的完整投影</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="code">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：认领循环与图定义</h2>
+    <p>剥掉监控、优雅退出、配置装配之后，整个运行时的核心机制就浓缩在下面两段伪代码里：一段管「命令谁来跑、死了谁接」，一段管「图怎么转、在哪挂起」。</p>
+  </div>
+
+  <h3 class="sub">闭环一：command_worker 认领循环（租约 + 重试）</h3>
+  <div class="cb"><span class="tk-c"># command_worker.py 核心循环的最小骨架（真实代码含并发上限 10、退避与优雅退出）</span>
+<span class="tk-k">while</span> running:
+    <span class="tk-k">async with</span> db.<span class="tk-f">begin</span>():
+        row = <span class="tk-k">await</span> db.<span class="tk-f">execute</span>(<span class="tk-s">"""
+            SELECT * FROM agent_run_commands
+            WHERE status = 'pending'
+               OR (status = 'running' AND claim_expires_at &lt; now())  -- 崩溃回收
+            ORDER BY created_at
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED          -- 多 worker 互不踩踏
+        """</span>)
+        <span class="tk-k">if</span> row <span class="tk-k">is None</span>:
+            <span class="tk-k">break</span>                            <span class="tk-c"># 队列空了，睡一轮再来</span>
+        <span class="tk-k">await</span> <span class="tk-f">begin_command_attempt</span>(row)      <span class="tk-c"># status→running, attempt_count+1, 写 60s 租约</span>
+
+    <span class="tk-k">try</span>:
+        <span class="tk-k">async with</span> <span class="tk-f">heartbeat</span>(every=<span class="tk-n">20</span>):      <span class="tk-c"># 后台任务：每 20s renew_command_claim 续约</span>
+            <span class="tk-k">async with</span> <span class="tk-f">thread_lock</span>(row.thread_id):   <span class="tk-c"># pg_try_advisory_lock，拿不到即放弃</span>
+                <span class="tk-k">await</span> driver.<span class="tk-f">run</span>(row)           <span class="tk-c"># langgraph_driver 驱动图执行</span>
+        <span class="tk-k">await</span> <span class="tk-f">mark_done</span>(row)
+    <span class="tk-k">except</span> <span class="tk-t">RetryableToolNodeError</span>:
+        <span class="tk-k">if</span> row.attempt_count &lt; <span class="tk-n">5</span>:           <span class="tk-c"># AGENT_RUNTIME_COMMAND_MAX_ATTEMPTS</span>
+            <span class="tk-k">await</span> <span class="tk-f">mark_retry</span>(row)              <span class="tk-c"># 回 pending；checkpoint 还在，续跑不重来</span>
+        <span class="tk-k">else</span>:
+            <span class="tk-k">await</span> <span class="tk-f">mark_dead</span>(row)               <span class="tk-c"># dead + Run 置 failed</span></div>
+  <p class="fig-note">不变量由代码强制：<code>renew_seconds &lt; claim_ttl_seconds</code>，初始化即校验。worker 宕机时无需任何外部看门狗——租约过期本身就让命令重新变得「可认领」。</p>
+
+  <h3 class="sub">闭环二：LangGraph 图定义骨架（控制流 + 挂起点）</h3>
+  <div class="cb"><span class="tk-c"># graph.py 的结构性骨架（节点名与真实代码一致）</span>
+g = <span class="tk-f">StateGraph</span>(<span class="tk-t">RuntimeGraphState</span>)
+
+g.<span class="tk-f">add_node</span>(<span class="tk-s">"control_guard"</span>, control_guard)   <span class="tk-c"># 路由闸门：取消 / 等待 / 压缩 / 终态</span>
+g.<span class="tk-f">add_node</span>(<span class="tk-s">"model"</span>,         model_step)      <span class="tk-c"># 模型步：一次 LLM 决策</span>
+g.<span class="tk-f">add_node</span>(<span class="tk-s">"tool"</span>,          tool_step)       <span class="tk-c"># 工具步：执行 + L3 审批判定</span>
+g.<span class="tk-f">add_node</span>(<span class="tk-s">"wait"</span>,          wait_node)       <span class="tk-c"># resume_value = interrupt(waiting_request)</span>
+g.<span class="tk-f">add_node</span>(<span class="tk-s">"terminal"</span>,      terminal_node)   <span class="tk-c"># 终态收敛：completed / failed / cancelled</span>
+
+g.<span class="tk-f">add_edge</span>(<span class="tk-t">START</span>, <span class="tk-s">"control_guard"</span>)
+g.<span class="tk-f">add_conditional_edges</span>(<span class="tk-s">"control_guard"</span>, route, {
+    <span class="tk-s">"run_model"</span>: <span class="tk-s">"model"</span>,      <span class="tk-c"># 还有事要做 → 让模型决策</span>
+    <span class="tk-s">"wait"</span>:      <span class="tk-s">"wait"</span>,       <span class="tk-c"># 等人 / 等外部 / 等 Agent → 挂起</span>
+    <span class="tk-s">"done"</span>:      <span class="tk-s">"terminal"</span>,   <span class="tk-c"># 命中终态 → 收敛</span>
+})
+g.<span class="tk-f">add_conditional_edges</span>(<span class="tk-s">"model"</span>, after_model, {
+    <span class="tk-s">"has_tool_calls"</span>: <span class="tk-s">"tool"</span>,
+    <span class="tk-s">"final_answer"</span>:   <span class="tk-s">"terminal"</span>,
+})
+g.<span class="tk-f">add_edge</span>(<span class="tk-s">"tool"</span>, <span class="tk-s">"control_guard"</span>)          <span class="tk-c"># 工具结果回灌，进入下一轮循环</span>
+
+app = g.<span class="tk-f">compile</span>(
+    checkpointer=<span class="tk-f">AsyncPostgresSaver</span>(conn, serde=<span class="tk-f">EncryptedSerializer</span>(...)),
+)  <span class="tk-c"># 每个节点提交即落 checkpoint：崩溃后从最近快照精确恢复</span></div>
+  <p class="fig-note">「循环」在图里是显式的边（tool → control_guard），不是 while 循环——这让每一轮模型-工具交替都是一个可 checkpoint、可观测、可拦截的节点提交，cycle_guard 与 run_compactor 都挂在 control_guard 这个唯一闸门上。</p>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，从队列选型考到恢复语义</h2>
+    <p>以下回答全部结合音巢的实际实现，不是泛泛八股——每个答案都能在源码里指到具体位置。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 为什么用数据库表做工作队列，而不是 Redis Stream 或 Kafka？</div>
+    <p>三个理由，按重要性排序：<strong>① 事务一致性</strong>——命令状态迁移与 <code>agent_runs</code> / <code>agent_run_events</code> 在同一事务里提交，不存在「队列 ack 了但业务表没写」的两半状态；用外部 MQ 就得引入 outbox 模式或最终一致补偿，复杂度反而更高。<strong>② 少组件</strong>——音巢的部署面本来就强依赖 Postgres（业务数据 + checkpoint 都在里面），队列复用它意味着运维面零扩张，一个小团队不用养第三套中间件。<strong>③ 可观测性</strong>——队列积压、卡死命令、重试历史全部 SQL 可查，排障不需要学一套 MQ 专属工具。Postgres 的 <code>FOR UPDATE SKIP LOCKED</code>（见 <code>persistence.py</code>）让多 worker 竞争认领成为标准动作，这个语法本来就是为「表即队列」设计的。代价是吞吐天花板与轮询负载，但 Agent 执行的瓶颈在 LLM 调用时延，远不在队列。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · LangGraph checkpoint 的原理是什么？恢复语义到底保证什么？</div>
+    <p>LangGraph 把图执行建模为状态机：每个节点执行完提交一次，把当时的完整 state 以 checkpoint 形式写入存储，每个 checkpoint 有递增的 <code>checkpoint_id</code>，挂在 <code>thread_id</code> 命名空间下。音巢用 <code>AsyncPostgresSaver</code> 落到独立的 <code>langgraph_checkpoint</code> schema，并用 <code>EncryptedSerializer</code>（密钥 <code>LANGGRAPH_AES_KEY</code>）加密序列化内容。恢复语义是：<strong>从最近一个已提交 checkpoint 精确续跑，该节点之前的效果不重放</strong>。这意味着工具节点的幂等性压力集中在「当前正在执行的那个节点」上——如果崩溃恰好在工具执行中间，恢复后该工具可能重跑，所以音巢在工具层还有 <code>RetryableToolNodeError</code> 与安全读工具的重试次数（<code>SAFE_READ_MAX_ATTEMPTS</code>）等配套设计。另外音巢刻意不做业务表与 checkpoint 双写，checkpoint 是图状态的唯一事实源，业务表只是投影。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · interrupt / resume 在 LangGraph 里怎么实现？音巢怎么用它做审批？</div>
+    <p>LangGraph 的 <code>interrupt()</code> 在节点内被调用时，会把「等待什么」的负载序列化进 checkpoint，然后<strong>让整次图调用正常退出</strong>——它不是阻塞等待，而是一次带书签的返回。恢复时用 <code>Command(resume=...)</code> 重新调用图，执行从 interrupt 点继续，且 <code>interrupt()</code> 这次返回传入的 resume 值。音巢在 <code>graph.py</code> 的 wait 节点里做这件事（<code>resume_value = interrupt(waiting_request)</code>）：工具步命中 L3 风险策略时路由到 wait 节点挂起，同时写 <code>approval_requests</code> 表并推送审批通知；人批准后，审批回调把「审批结论」作为一条<strong>新命令</strong>写入 <code>agent_run_commands</code>，worker 认领后从 checkpoint 恢复图执行，审批值经 resume 传回图内，工具才真正执行。精妙之处在于：审批唤醒没有走任何特殊通道，<strong>它就是队列里一条普通命令</strong>——挂起期间 worker 零资源占用，审批可以跨天、跨进程重启。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · 如何防止 Agent 陷入工具调用死循环？</div>
+    <p>音巢有三层防线，由外到内：<strong>① 委派环防护（cycle_guard.py）</strong>——针对多 Agent 委派场景（A 委派 B、B 又委派 A），基于数据库里已发生的委派边计算环计数，候选委派会使环计数超过 <code>MAX_AGENT_CYCLE_COUNT = 5</code> 时直接抛 <code>AgentCycleGuardError</code>，把失控拦在图执行之前。<strong>② 图结构本身</strong>——模型-工具循环不是裸 while 循环，而是 <code>tool → control_guard → model</code> 的显式边，control_guard 是每轮必经的闸门，取消、终态、压缩都在这一处裁决，想加「最大轮数」这类策略只需改一个节点。<strong>③ 上下文压缩（run_compactor.py）</strong>——循环往往伴随上下文膨胀，当用量达到窗口的 85%（<code>AGENT_RUNTIME_SUMMARY_THRESHOLD_RATIO</code>）时压缩历史，避免长 Run 因 context 爆炸而行为退化。面试时要点出：防死循环不是单一阈值能解决的，而是「委派拓扑 + 控制流闸门 + 资源配额」的组合。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · worker 崩溃后，它手里的命令怎么被重新认领？</div>
+    <p>租约（lease）机制，不需要任何外部看门狗。命令被认领时写入 <code>claim_expires_at = now() + 60s</code>（<code>AGENT_RUNTIME_COMMAND_CLAIM_TTL_SECONDS</code>）；执行期间后台心跳任务每 20s 调 <code>renew_command_claim</code> 续期（<code>CLAIM_RENEW_SECONDS</code>）。认领查询的条件是 <code>status='pending' OR (status='running' AND claim_expires_at &lt; now())</code>——worker 崩溃后心跳停止，60s 后租约自然过期，命令对其他 worker 重新可见，被 <code>FOR UPDATE SKIP LOCKED</code> 认领续跑。恢复不重跑已完成的节点，因为 checkpoint 里已有进度。代码层面有个硬约束值得说：<code>command_worker.py</code> 初始化时校验 <code>renew &lt; TTL</code>，不满足直接抛 ValueError——把「续约必须比过期快」从运维约定变成启动期不变量。TTL 取 60s 是权衡：太短会因正常抖动误回收（同一命令被两个 worker 执行，虽 thread_lock 兜底但浪费）；太长则故障恢复慢。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · 「一个 Agent 同一时刻只跑一条 Run」的并发控制具体怎么做？</div>
+    <p>精确地说，音巢的粒度是 <strong>thread 级串行 + 全局并发配额</strong>，两层机制：<strong>① thread_lock（thread_lock.py）</strong>——把 thread_id 哈希成整数键，执行前 <code>SELECT pg_try_advisory_lock(lock_key)</code>，拿不到立刻抛 <code>ThreadLockNotAcquired</code>（不排队阻塞），结束 <code>pg_advisory_unlock</code>。Postgres 咨询锁的好处是跨进程、跨 worker 实例有效，且随数据库连接断开自动释放——worker 崩溃不会留死锁。由于直接聊天允许多个 Run 共享一个 Thread，锁在 thread 上恰好等于「同一会话上下文不被并发改写」。<strong>② 全局配额</strong>——<code>AGENT_RUNTIME_COMMAND_CONCURRENCY = 10</code> 限制单 worker 进程同时执行的命令数，thread/lane 锁负责冲突串行，配额负责总容量。这里有个值得展开的设计细节：advisory lock 用 try 而非阻塞获取，是因为队列模型下「拿不到锁」不等于失败——命令可以释放后让位给其他可执行的命令，worker 容量不被一条等锁的命令占住。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>把「不可靠的执行」关进「可靠的框架」</h2>
+    <p>LLM 本质上不可靠：会超时、会循环、会给出危险指令。音巢运行时的回答是承认这一点，然后用工程手段兜底——命令入表、状态落 checkpoint、危险动作过人、租约兜住崩溃。</p>
+    <p>每一个「兜底」都不是特殊通道：恢复是命令、审批是命令、重试还是命令。一条队列、一份 checkpoint、一个确定性控制流，撑起所有非常规路径。</p>
+    <p class="big">Durable 的真义不是「不出错」，而是「出错之后，系统知道自己在哪，并且能接着走」。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 会断点续跑的 Agent 内核：LangGraph 持久化运行时 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    上一篇 <a href="yinchao-00-architecture.html">yinchao-00-architecture.html</a> · 下一篇 <a href="yinchao-02-agent-lifecycle.html">yinchao-02-agent-lifecycle.html</a>
+  </div>
+</footer>
+
+</body>
+</html>

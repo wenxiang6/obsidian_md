@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一套平台多家公司：租户隔离与四级权限的设计 · 音巢设计分享 10/12</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 10/12 · 多租户与权限</div>
+    <h1>一套平台多家公司<br>租户隔离与四级权限的设计</h1>
+    <p class="sub">音巢（Clawith）从第一天就是 SaaS 形态：一个物理身份可以属于多家公司，每家公司的 Agent、成员、会话互不可见。本篇拆解它的管控底座——JWT 里的 tenant_id 如何经由 ContextVar 流进每一条 SQL，四级角色与三档 Agent 可见性如何叠加判定，以及 SSO 扫码登录如何与本地账号绑定。</p>
+    <div class="hero-meta">
+      <span>隔离模型 <b>共享库 · 行级隔离</b></span>
+      <span>身份体系 <b>Identity / User 双层</b></span>
+      <span>角色 <b>4 级 RBAC</b></span>
+      <span>Agent 可见性 <b>company / private / custom</b></span>
+      <span>SSO <b>飞书 · 钉钉 · 企微 · Google…</b></span>
+      <span>基于 <b>main · v1.11.5</b> 源码</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">场景与定位</a>
+    <a href="#design">功能设计</a>
+    <a href="#impl">实现方案</a>
+    <span class="sep">·</span>
+    <a href="#fig-arch">图 1 · 鉴权分层</a>
+    <a href="#fig-chain">图 2 · 鉴权链路</a>
+    <a href="#fig-sso">图 3 · SSO 时序</a>
+    <a href="#codemap">代码依据</a>
+    <span class="sep">·</span>
+    <a href="#pseudo">伪代码</a>
+    <a href="#qa">面试 QA</a>
+    <a href="#ending">结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-09-workspace-sandbox.html">上一篇</a>
+    <a href="yinchao-11-observability.html">下一篇</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>多租户不是「加个 company_id」，是一整套管控底座</h2>
+    <p>音巢 Agent 平台要让多家公司共用一套部署：A 公司的销售助理 Agent 绝不能被 B 公司的员工看见，平台运营方又要能横向管理所有租户。这一章解决的核心问题是：<strong>身份怎么来、数据怎么隔、权限怎么判</strong>。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">1→N</div><div class="l">一个 Identity 可加入 N 个租户（tenant_users）</div></div>
+    <div class="stat"><div class="n teal">4</div><div class="l">角色等级 member → platform_admin</div></div>
+    <div class="stat"><div class="n amber">3×2</div><div class="l">Agent 三档可见性 × 两档操作权</div></div>
+    <div class="stat"><div class="n green">7+</div><div class="l">SSO 身份源（飞书/钉钉/企微/Google/Teams…）</div></div>
+  </div>
+
+  <h3 class="sub">四类典型业务场景</h3>
+  <div class="values">
+    <div class="value">
+      <div class="no">①</div>
+      <h3>SaaS 多公司托管</h3>
+      <p>一套音巢部署服务多家公司：注册时按邮箱域名（tenants.sso_domain）或邀请码自动归入对应租户；所有业务表带 tenant_id，查询在 DAO 与 SQLAlchemy 事件层双重兜底隔离，数据互相不可见。</p>
+    </div>
+    <div class="value">
+      <div class="no">②</div>
+      <h3>企业 SSO 与扫码登录</h3>
+      <p>员工用飞书 / 钉钉 / 企业微信扫码或 OAuth 登录：sso_scan_sessions 承载扫码会话状态机，登录后按 provider_user_id / union_id 绑定到全局 Identity，再落到对应租户的 User 上——无需记第二套密码。</p>
+    </div>
+    <div class="value">
+      <div class="no">③</div>
+      <h3>部门-成员-Agent 细粒度授权</h3>
+      <p>财务 Agent 只对财务部可见可聊（custom 可见性 + agent_permissions 授权行）；谁能「用」（use）、谁能「改配置 / 删 Agent」（manage）分两档判定，创建者与管理员另有特权通道。</p>
+    </div>
+    <div class="value">
+      <div class="no">④</div>
+      <h3>平台方横向运营</h3>
+      <p>平台管理员（Identity.is_platform_admin）不属于任何租户，却能通过 api/admin.py 的横截面接口看所有公司、发邀请码、调配额——前端 PlatformDashboard / AdminCompanies / InvitationCodes 三个页面即为此服务。</p>
+    </div>
+  </div>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>把「你是谁、你属于哪家公司」在请求入口一次性解析，之后的每一层代码都不再需要、也不被允许自己判断租户。</h3>
+    <p>入口解析靠 JWT + ContextVar 中间件；隔离兜底靠 SQLAlchemy 的 do_orm_execute 全局事件；业务判定集中在 core/permissions.py。三个机制各司其职，任何一层失守都有下一层接住。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>四个关键决策：隔离粒度、身份分层、角色模型、资源授权</h2>
+    <p>多租户系统的每一个设计点都是取舍：隔离越强运维越贵，模型越细判定越慢。音巢的选择明显偏向「工程可落地 + 防呆兜底」。</p>
+  </div>
+
+  <div class="decision">
+    <h3>隔离粒度：行级隔离（shared schema）vs 库级隔离 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 每租户独立数据库 / schema，物理隔离<br>② 所有租户共享一套表，每行带 tenant_id，查询强制过滤</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>共享库行级隔离，但用三层机制防漏写 where</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>租户量级是「几十上百家公司」而非「几个巨型客户」，库级隔离的迁移、备份、跨租户统计成本不成比例。行级隔离的最大风险是开发漏写 tenant 条件——音巢用 TenantScopedBaseDAO 的 scoped 方法 + do_orm_execute 全局事件 + 业务层 tenant_id 比对三重兜底，把「人不可靠」当成设计前提。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>单点漏洞理论影响面是所有租户；热点表（agents、users）需为 tenant_id 建复合索引（如 ix_agents_active_tenant_created_at）；平台管理员的跨租户查询必须显式绕过（arch-guard 注释标记）。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>身份模型：Identity（自然人）与 User（租户成员）分层 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 每个租户一套独立账号体系<br>② 全局 Identity 表存登录凭证（邮箱/手机/密码哈希），User 表存「某人在某租户的角色与配额」，一对多</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>identities + users 双层，Identity 全局唯一</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>现实里一个人常服务多家公司（外包、集团多主体）。双层模型让 SSO 绑定、换公司、跨租户的平台管理员都自然成立：邮箱/手机是全局权威身份声明（registration_service 的安全注释明确「只有 email 和 phone 是权威身份声明」），角色、配额、display_name 则是租户内的属性。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>登录要两步解析（Identity → 当前租户的 User）；User 查询需要「查某身份的全部租户成员」这一受控例外（__identity_membership_tenant_bypass__），是全库唯一允许绕过租户过滤的口子。</p></div>
+    </div>
+  </div>
+
+  <h3 class="sub">四级角色与 Agent 权限模型</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">维度</th><th>取值</th><th>语义</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>用户角色 <span class="badge gray">user.role</span></td>
+        <td class="mono">member / agent_admin / org_admin / platform_admin</td>
+        <td>ROLE_HIERARCHY 升序定义在 core/security.py；接口用 require_role(&quot;org_admin&quot;, &quot;platform_admin&quot;) 这类依赖工厂做角色门禁，platform_admin 还可由 Identity.is_platform_admin 全局标记旁路</td>
+      </tr>
+      <tr>
+        <td>Agent 可见性 <span class="badge gray">access_mode</span></td>
+        <td class="mono">company / private / custom</td>
+        <td>company：全公司可用、进广场（Plaza）；private：仅创建者；custom：按 agent_permissions 授权行逐人判定，不进广场</td>
+      </tr>
+      <tr>
+        <td>授权范围 <span class="badge gray">scope_type</span></td>
+        <td class="mono">company / department / user</td>
+        <td>agent_permissions.scope_type 枚举；当前判定代码实际消费的是 user 维度行（scope_id = user_id），company/department 为模型预留</td>
+      </tr>
+      <tr>
+        <td>操作档位 <span class="badge gray">access_level</span></td>
+        <td class="mono">use / manage</td>
+        <td>use = 聊天/任务/工具/工作区；manage = 改配置、删 Agent、管授权。check_agent_access 返回 (agent, level) 二元组供上层区分</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="decision">
+    <h3>租户上下文传递：显式参数 vs ContextVar 隐式注入 <span class="badge brand">D3</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 每个 DAO 方法显式传 tenant_id 参数<br>② 中间件从 JWT 解出 tenant_id 写入 ContextVar，DAO 与事件层自动读取</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>ContextVar 隐式注入 + 显式 tenant_context() 兜底</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>显式传参的最大问题是「传错」和「漏传」都不会报错，只会静默查出别家数据。ContextVar 方案下，HTTP 请求由 TenantContextMiddleware 自动绑定；后台 worker / trigger daemon 没有请求上下文，必须显式 with tenant_context(tenant_id)——这条纪律直接写在 dao/base.py 的 docstring 里。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>隐式上下文在 async 任务泄漏场景下有风险（见面试 QA 第 2 题）；中间件只做轻量解码不做完整校验，若被误当成鉴权依据会出事故——所以 get_current_user 仍做完整校验，双层各司其职。</p></div>
+    </div>
+  </div>
+
+  <div class="co amber">
+    <div class="co-t">设计红线：租户隔离不靠「程序员记得」</div>
+    <p>音巢的多租户防线全部建立在「人会犯错」的假设上：业务代码可以漏写 where（事件层兜底）、可以传错 tenant_id（add_scoped 三处一致性校验直接 raise）、可以忘记鉴权（DAO scoped 方法在无上下文时拒绝服务或降级到安全默认）。<strong>可观测的安全，而不是约定俗成的安全。</strong></p>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>三层防线：中间件注入、业务判定、数据层兜底</h2>
+    <p>鉴权与隔离的实现横跨中间件、依赖注入、权限工具、DAO、SQLAlchemy 事件五个位置。先看分层全貌，再看两条动态链路（HTTP 请求鉴权、SSO 扫码登录），最后落到代码依据表。</p>
+  </div>
+
+  <div class="fig-t" id="fig-arch"><span class="fno">图 1</span><h3>鉴权与租户隔离的分层架构</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>边缘层 · 中间件（main.py 注册）</h3><span class="need auto">每请求自动执行</span></div>
+      <div class="boxes">
+        <div class="box"><b>TraceIdMiddleware</b><small>core/middleware.py · 注入 trace_id，打请求日志</small></div>
+        <div class="box"><b>TenantContextMiddleware</b><small>轻量解 JWT（不验过期）→ tenant_id 写入 _tenant_ctx ContextVar</small></div>
+        <div class="box"><b>CORSMiddleware</b><small>跨域白名单</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">Authorization: Bearer JWT ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>依赖注入层 · 认证与角色门禁</h3><span class="need own">core/security.py</span></div>
+      <div class="boxes">
+        <div class="box"><b>get_current_user</b><small>完整校验：验签 + 过期 + 查库确认 is_active</small></div>
+        <div class="box"><b>require_role(...)</b><small>角色门禁工厂 · 支持 Identity.is_platform_admin 旁路</small></div>
+        <div class="box"><b>get_current_admin</b><small>platform_admin / org_admin 快捷门禁</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">进入业务逻辑 ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>业务判定层 · 资源级权限</h3><span class="need own">core/permissions.py</span></div>
+      <div class="boxes">
+        <div class="box"><b>check_agent_access</b><small>返回 (agent, manage|use) · 跨租户直接 403</small></div>
+        <div class="box"><b>can_use_agent / can_manage_agent</b><small>creator → access_mode → admin → AgentPermission 逐级判定</small></div>
+        <div class="box"><b>build_visible_agents_query</b><small>列表页可见性 SQL：creator ∨ company ∨ custom+授权行</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">ORM 查询 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>数据层 · DAO 与全局事件双兜底</h3><span class="need warn">dao/base.py</span></div>
+      <div class="boxes">
+        <div class="box"><b>TenantScopedBaseDAO</b><small>get_scoped / list_scoped / add_scoped / delete_scoped 强制 tenant 条件</small></div>
+        <div class="box"><b>do_orm_execute 事件</b><small>with_loader_criteria 给所有租户表 SELECT 自动追加 tenant_id 谓词</small></div>
+        <div class="box"><b>tenant_context()</b><small>后台 worker / daemon 的显式绑定入口</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">PostgreSQL · 行级数据 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>存储层 · 关键表</h3><span class="need free">共享库 · 行级隔离</span></div>
+      <div class="boxes">
+        <div class="box"><b>tenants / tenant_settings</b><small>租户与租户级 KV 配置（配额、A2A、触发器限额默认值）</small></div>
+        <div class="box"><b>identities / users</b><small>全局自然人 × 租户成员，一对多</small></div>
+        <div class="box"><b>agent_permissions</b><small>custom 可见性的逐人授权行（use/manage）</small></div>
+        <div class="box"><b>identity_providers / sso_scan_sessions</b><small>SSO 身份源配置与扫码会话状态机</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">四道防线任何一道失守都有下一道接住：中间件只负责「注入上下文」不负责「认证」；认证在依赖注入层；资源级判定在 permissions.py；漏写 where 由数据层的两个机制接住。注意 User 表上存在全库唯一受控例外 __identity_membership_tenant_bypass__——仅用于「查某身份的所有租户成员」，且要求语句显式按 identity_id 约束。</p>
+
+  <div class="fig-t" id="fig-chain"><span class="fno">图 2</span><h3>HTTP 请求鉴权全链路：从 Bearer Token 到带租户条件的 SQL</h3></div>
+  <div class="flow">
+    <span class="chip dark">请求进入<br>Authorization: Bearer …</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">TenantContextMiddleware<br>轻量解 JWT → ContextVar.set(tenant_id)</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">get_current_user<br>验签 + 过期 + is_active</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">require_role / check_agent_access<br>角色门禁 + 资源级判定</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">DAO 查询<br>scoped 方法显式加 tenant_id</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">do_orm_execute<br>事件层自动追加租户谓词</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">返回数据<br>finally: ContextVar.reset</span>
+  </div>
+  <p class="fig-note">两个 gate 缺一不可：TenantContextMiddleware 用 <code>options={"verify_exp": False}</code> 做「非校验性解码」，只为提前拿到 tenant_id；真正的过期与签名校验由 get_current_user 完成。响应返回后中间件在 finally 中 reset ContextVar，防止同一协程上下文被后续请求复用时串租户。</p>
+
+  <h3 class="sub">四级角色 × Agent 可见性判定矩阵（can_use / can_manage 实际逻辑）</h3>
+  <table class="tbl">
+    <thead><tr><th style="width:150px">访问者身份</th><th>company 可见</th><th>private 可见</th><th>custom 可见</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>创建者 creator</td>
+        <td class="ok">use + manage（恒真）</td>
+        <td class="ok">use + manage</td>
+        <td class="ok">use + manage</td>
+      </tr>
+      <tr>
+        <td>platform_admin / org_admin</td>
+        <td class="ok">use + manage</td>
+        <td class="no">不可见（admin 也不能 manage private）</td>
+        <td class="ok">use + manage</td>
+      </tr>
+      <tr>
+        <td>普通成员（有授权行）</td>
+        <td class="ok">use（无需授权行）</td>
+        <td class="no">不可见</td>
+        <td class="ok">use 或 manage，按 access_level 定</td>
+      </tr>
+      <tr>
+        <td>普通成员（无授权行）</td>
+        <td class="ok">use</td>
+        <td class="no">不可见</td>
+        <td class="no">不可见（静态判定直接 False）</td>
+      </tr>
+      <tr>
+        <td>其他租户用户</td>
+        <td class="no">tenant_id 比对拦截，403</td>
+        <td class="no">403</td>
+        <td class="no">403</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="fig-note">矩阵对应 core/permissions.py 的判定顺序：先看 deleted_at / is_active / tenant_id 匹配（任一不过即拒），再看 creator，再看 access_mode，最后落到 agent_permissions 授权行。manage 恒强于 use：can_manage 通过即返回 "manage"，否则再试 can_use。</p>
+
+  <div class="fig-t" id="fig-sso"><span class="fno">图 3</span><h3>SSO 扫码登录时序：从二维码到租户内 JWT</h3></div>
+  <div class="flow">
+    <span class="chip dark">用户打开登录页<br>POST /sso/session 建扫码会话</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">手机扫码<br>身份源 App 内确认</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">PUT /sso/session/{sid}/scan<br>状态 pending → scanned → authorized</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">登录页轮询<br>GET /sso/session/{sid}/status</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">resolve_user_identity<br>按 union_id / provider_user_id 找已绑定身份</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">未绑定？<br>按邮箱匹配已有 Identity → link_identity；否则新建</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">按邮箱域名定位租户<br>tenants.sso_domain → tenant_id</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">签发 JWT<br>sub=user_id, role, tenant_id</span>
+  </div>
+  <p class="fig-note">sso_scan_sessions 是一个五态状态机（pending / scanned / authorized / expired / completed），带 expires_at 与一次性 access_token 字段。绑定策略的顺序很关键：<strong>先按 provider 侧稳定 ID（union_id 优先）精确命中，再退到邮箱匹配做账号合并</strong>——避免同一个人在飞书和邮箱注册出两个身份。租户的 sso_enabled / sso_domain 决定这个邮箱域名归哪家公司。</p>
+
+  <h3 class="sub" id="codemap">代码依据（已对上游 main 分支 v1.11.5 逐条核实）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:180px">功能点</th><th>关键文件</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>注册 / 登录 / 令牌签发</td><td class="kid">backend/app/api/auth.py</td><td>注册（首个用户自动成为 platform_admin 并建默认租户）、登录、签发带 tenant_id 的 JWT</td></tr>
+      <tr><td>JWT 与角色门禁</td><td class="kid">backend/app/core/security.py</td><td>create_access_token（python-jose，sub/role/exp/tenant_id）、get_current_user、require_role、ROLE_HIERARCHY</td></tr>
+      <tr><td>租户上下文中间件</td><td class="kid">backend/app/core/middleware.py</td><td>TenantContextMiddleware：轻量解 JWT 注入 _tenant_ctx；main.py:361-367 注册</td></tr>
+      <tr><td>租户隔离数据层</td><td class="kid">backend/app/dao/base.py</td><td>_tenant_ctx ContextVar、do_orm_execute 全局事件（with_loader_criteria）、TenantScopedBaseDAO、tenant_context()</td></tr>
+      <tr><td>Agent 资源级权限</td><td class="kid">backend/app/core/permissions.py</td><td>can_use_agent / can_manage_agent / check_agent_access / build_visible_agents_query</td></tr>
+      <tr><td>Agent 可见性与授权表</td><td class="kid">backend/app/models/agent.py</td><td>Agent.access_mode（company/private/custom）；AgentPermission（163-179 行）：scope_type × access_level</td></tr>
+      <tr><td>身份双层模型</td><td class="kid">backend/app/models/user.py</td><td>Identity（identities 表，全局自然人，is_platform_admin）与 User（users 表，租户成员，role 四档枚举）</td></tr>
+      <tr><td>SSO 身份源与扫码会话</td><td class="kid">backend/app/models/identity.py</td><td>identity_providers（sso_login_enabled 开关）、sso_scan_sessions 状态机</td></tr>
+      <tr><td>SSO API 与服务</td><td class="kid">backend/app/api/sso.py · backend/app/services/sso_service.py</td><td>扫码会话的创建/扫描/轮询接口；resolve_user_identity / link_identity 绑定逻辑</td></tr>
+      <tr><td>注册编排</td><td class="kid">backend/app/services/registration_service.py</td><td>邮箱域名定位租户、邀请码校验（used_count &lt; max_uses）、Identity 查重与创建、OrgMember 绑定</td></tr>
+      <tr><td>邀请码</td><td class="kid">backend/app/models/invitation_code.py</td><td>invitation_codes 表：max_uses / used_count / 归属租户；前端 InvitationCodes.tsx 管理</td></tr>
+      <tr><td>平台管理横截面</td><td class="kid">backend/app/api/admin.py</td><td>全部端点挂在 require_role(&quot;platform_admin&quot;) 下；前端 PlatformDashboard.tsx / AdminCompanies.tsx</td></tr>
+      <tr><td>租户与租户级配置</td><td class="kid">backend/app/models/tenant.py · tenant_setting.py</td><td>tenants：sso_domain、配额默认值（消息/Agent 数/LLM 调用）、a2a_async_enabled、触发器限额；tenant_settings 为稀疏 KV</td></tr>
+      <tr><td>密码与邮箱流程</td><td class="kid">backend/app/services/password_reset_service.py · email_verification_service.py</td><td>密码重置、邮箱验证；未配 SMTP 时自动视为已验证（注册即激活）</td></tr>
+      <tr><td>Agent 访问查询 DAO</td><td class="kid">backend/app/dao/agent_access_dao.py</td><td>AgentAccessDAO 继承 TenantScopedBaseDAO：list_permissions、按租户列活跃用户等</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudo">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：租户上下文的注入与消费、Agent 访问判定</h2>
+    <p>以下伪代码提炼自 core/middleware.py、dao/base.py 与 core/permissions.py 的真实结构，去掉工程细节后每个机制不超过四十行，但关键的防御分支一个不少。</p>
+  </div>
+
+  <h3 class="sub">闭环一：JWT → ContextVar → 自动租户谓词</h3>
+  <div class="cb"><span class="tk-c"># ── 入口：中间件（core/middleware.py）────────────────</span>
+<span class="tk-k">class</span> <span class="tk-t">TenantContextMiddleware</span>:
+    <span class="tk-k">def</span> <span class="tk-f">dispatch</span>(request, call_next):
+        tenant_id = <span class="tk-f">extract</span>(request)          <span class="tk-c"># 非校验性解码：验签名但 verify_exp=False</span>
+        <span class="tk-k">if</span> tenant_id <span class="tk-k">is not None</span>:
+            token = _tenant_ctx.<span class="tk-f">set</span>(tenant_id)  <span class="tk-c"># 绑定到当前协程上下文</span>
+            <span class="tk-k">try</span>:    <span class="tk-k">return</span> <span class="tk-k">await</span> <span class="tk-f">call_next</span>(request)
+            <span class="tk-k">finally</span>: _tenant_ctx.<span class="tk-f">reset</span>(token)    <span class="tk-c"># 必须复位，防协程复用串租户</span>
+        <span class="tk-k">return</span> <span class="tk-k">await</span> <span class="tk-f">call_next</span>(request)            <span class="tk-c"># 无 token：公共接口照常放行</span>
+
+<span class="tk-c"># ── 兜底：SQLAlchemy 全局事件（dao/base.py）──────────</span>
+<span class="tk-c"># @event.listens_for(Session, "do_orm_execute")</span>
+<span class="tk-k">def</span> <span class="tk-f">_inject_tenant_scope</span>(execute_state):
+    <span class="tk-k">if not</span> execute_state.is_select: <span class="tk-k">return</span>
+    tenant_id = _tenant_ctx.<span class="tk-f">get</span>()
+    <span class="tk-k">if</span> tenant_id <span class="tk-k">is None</span>: <span class="tk-k">return</span>              <span class="tk-c"># 无上下文（迁移/平台管理）不过滤</span>
+    <span class="tk-k">for</span> mapper <span class="tk-k">in</span> execute_state.all_mappers:
+        model = mapper.class_
+        <span class="tk-k">if</span> <span class="tk-f">is_identity_membership_bypass</span>(execute_state, model):
+            <span class="tk-k">continue</span>                          <span class="tk-c"># 唯一受控例外：按 identity_id 查全部成员</span>
+        <span class="tk-k">if</span> <span class="tk-f">_is_tenant_scoped_model</span>(model):      <span class="tk-c"># __tenant_scoped__ 或 tenant_id 非空列</span>
+            statement += <span class="tk-f">with_loader_criteria</span>(model, cls.tenant_id == tenant_id,
+                                            include_aliases=<span class="tk-n">True</span>)
+    execute_state.statement = statement
+
+<span class="tk-c"># ── 消费：scoped DAO 方法（写入路径三重校验）─────────</span>
+<span class="tk-k">class</span> <span class="tk-t">TenantScopedBaseDAO</span>:
+    <span class="tk-k">def</span> <span class="tk-f">add_scoped</span>(db, obj, tenant_id=<span class="tk-n">None</span>):
+        ctx = _tenant_ctx.<span class="tk-f">get</span>()
+        <span class="tk-k">if</span> tenant_id <span class="tk-k">and</span> ctx <span class="tk-k">and</span> tenant_id != ctx:
+            <span class="tk-k">raise</span> <span class="tk-e">RuntimeError</span>(<span class="tk-s">"explicit tenant != active context"</span>)
+        resolved = tenant_id <span class="tk-k">or</span> ctx
+        <span class="tk-k">if</span> resolved <span class="tk-k">is None</span>:
+            <span class="tk-k">raise</span> <span class="tk-e">RuntimeError</span>(<span class="tk-s">"tenant-scoped write needs tenant_id"</span>)
+        <span class="tk-k">if</span> obj.tenant_id <span class="tk-k">and</span> obj.tenant_id != resolved:
+            <span class="tk-k">raise</span> <span class="tk-e">RuntimeError</span>(<span class="tk-s">"object tenant mismatch"</span>)
+        obj.tenant_id = resolved; db.<span class="tk-f">add</span>(obj)
+
+<span class="tk-c"># ── 后台任务没有 HTTP 上下文：显式绑定 ──────────────</span>
+<span class="tk-k">with</span> <span class="tk-f">tenant_context</span>(agent.tenant_id):         <span class="tk-c"># worker / trigger daemon 纪律</span>
+    agents = <span class="tk-k">await</span> agent_dao.<span class="tk-f">list_scoped</span>()</div>
+  <p class="fig-note">三个细节值得记住：① 中间件的 finally-reset 是 async 服务防串租户的命门；② 事件层在「无上下文」时选择不过滤而不是报错——因为迁移脚本与平台管理员横查需要全量视角，但此时业务判定层（permissions.py 的 tenant_id 比对）仍然在岗；③ scoped 写入对「显式值、上下文值、对象值」三者做两两一致性校验，任何矛盾直接抛错，宁可中断请求也不写错租户。</p>
+
+  <h3 class="sub">闭环二：Agent 访问判定（use / manage）</h3>
+  <div class="cb"><span class="tk-c"># core/permissions.py —— 判定顺序即防线顺序</span>
+<span class="tk-k">async def</span> <span class="tk-f">check_agent_access</span>(user, agent_id) -&gt; (Agent, <span class="tk-t">str</span>):
+    agent = <span class="tk-k">await</span> agent_dao.<span class="tk-f">get_active</span>(agent_id)
+    <span class="tk-k">if not</span> agent: <span class="tk-k">raise</span> <span class="tk-e">404</span>(<span class="tk-s">"Agent not found"</span>)
+    <span class="tk-k">if</span> agent.tenant_id != user.tenant_id:
+        <span class="tk-k">raise</span> <span class="tk-e">403</span>(<span class="tk-s">"No access"</span>)              <span class="tk-c"># 第一道：跨租户一律拒</span>
+    <span class="tk-k">if</span> agent.creator_id == user.id:
+        <span class="tk-k">return</span> agent, <span class="tk-s">"manage"</span>             <span class="tk-c"># 第二道：创建者恒 manage</span>
+    <span class="tk-k">if await</span> <span class="tk-f">can_manage_agent</span>(user, agent):
+        <span class="tk-k">return</span> agent, <span class="tk-s">"manage"</span>
+    <span class="tk-k">if await</span> <span class="tk-f">can_use_agent</span>(user, agent):
+        <span class="tk-k">return</span> agent, <span class="tk-s">"use"</span>
+    <span class="tk-k">raise</span> <span class="tk-e">403</span>(<span class="tk-s">"No access"</span>)
+
+<span class="tk-k">async def</span> <span class="tk-f">can_use_agent</span>(user, agent) -&gt; <span class="tk-t">bool</span>:
+    <span class="tk-c"># 前置硬条件：未删除 ∧ 用户在职 ∧ 同租户 ∧ 创建者直接放行</span>
+    mode = agent.access_mode <span class="tk-k">or</span> <span class="tk-s">"company"</span>
+    <span class="tk-k">if</span> mode == <span class="tk-s">"company"</span>:  <span class="tk-k">return True</span>      <span class="tk-c"># 全公司可用</span>
+    <span class="tk-k">if</span> mode == <span class="tk-s">"private"</span>:  <span class="tk-k">return False</span>     <span class="tk-c"># 仅创建者（上面已放行）</span>
+    <span class="tk-c"># custom：管理员天然可用，否则查授权行</span>
+    <span class="tk-k">if</span> user.role <span class="tk-k">in</span> (<span class="tk-s">"platform_admin"</span>, <span class="tk-s">"org_admin"</span>): <span class="tk-k">return True</span>
+    perm = <span class="tk-k">await</span> agent_dao.<span class="tk-f">get_user_permission</span>(agent.id, user.id)
+    <span class="tk-k">return</span> perm <span class="tk-k">and</span> perm.access_level <span class="tk-k">in</span> (<span class="tk-s">"use"</span>, <span class="tk-s">"manage"</span>)
+
+<span class="tk-k">async def</span> <span class="tk-f">can_manage_agent</span>(user, agent) -&gt; <span class="tk-t">bool</span>:
+    <span class="tk-c"># 同前置；admin 对 private 也不放行（private 是创建者的自留地）</span>
+    <span class="tk-k">if</span> <span class="tk-f">is_admin</span>(user) <span class="tk-k">and</span> mode != <span class="tk-s">"private"</span>: <span class="tk-k">return True</span>
+    <span class="tk-k">if</span> mode == <span class="tk-s">"custom"</span>:
+        perm = <span class="tk-k">await</span> agent_dao.<span class="tk-f">get_user_permission</span>(agent.id, user.id)
+        <span class="tk-k">return</span> perm <span class="tk-k">and</span> perm.access_level == <span class="tk-s">"manage"</span>
+    <span class="tk-k">return False</span></div>
+  <p class="fig-note">注意一个反直觉的设计：<strong>管理员管不了别人的 private Agent</strong>——can_manage_agent 里 admin 分支显式排除 private 模式。这是「私人空间不受公司管理员穿透」的产品承诺在代码层的落地。另外 can_use_agent_static 是无 DB 命中的纯内存快判，用于列表页批量预过滤，查授权行的慢路径只在 custom 模式才走。</p>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，都对应代码里真实的坑</h2>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 行级隔离（shared schema）和库级隔离怎么选？音巢为什么选前者？</div>
+    <p>看租户画像：库级隔离适合「少量巨型客户 + 强合规」（银行外包、政企专有云），换来的是迁移脚本 × N、连接池 × N、跨租户统计要联邦查询。音巢的租户是「几十上百家中小公司」，单库行级隔离的运维成本低一个量级，且天然支持平台管理员的横截面运营（AdminCompanies 一页看所有租户）。代价是<strong>隔离正确性从「数据库保证」退化为「代码保证」</strong>——所以音巢把防线做成了三层：业务代码显式写、TenantScopedBaseDAO 强制带、do_orm_execute 事件兜底自动加，外加 add_scoped 写入时的三值一致性校验。选型结论不是「行级更好」，而是「行级 + 系统性防漏写机制」在这个租户量级下性价比最高。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · 用 ContextVar 传租户上下文，在 async 下有什么坑？音巢怎么处理？</div>
+    <p>三个经典坑：① <strong>忘记 reset</strong>——协程被连接池/任务队列复用时，上一个请求的 tenant_id 泄漏到下一个请求；音巢在中间件 dispatch 里用 try/finally 保证 reset。② <strong>上下文不跨任务传播方向错误</strong>——asyncio.create_task 会拷贝当前上下文（对的方向），但若在 ContextVar.set 之前就 spawn 了后台任务，任务里读到的是 None；所以后台 worker、trigger daemon 这类不走 HTTP 的代码被要求显式 <code>with tenant_context(tenant_id)</code>，这条纪律写在 dao/base.py 的 docstring 里。③ <strong>把中间件的轻量解码当鉴权</strong>——TenantContextMiddleware 用 verify_exp=False 解 JWT，只信任签名不信过期；若下游直接拿 ContextVar 当「已认证身份」就会放过过期 token。音巢的分工是：ContextVar 只用于数据隔离谓词，认证与过期校验永远由 get_current_user 完整执行。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · DAO 层强制租户条件如何真正防住「漏写 where」？</div>
+    <p>关键在 dao/base.py 注册在 SQLAlchemy <code>Session</code> 的 <code>do_orm_execute</code> 事件上（AsyncSession 的执行底座也是它，所以一条钩子覆盖全部 ORM 查询）：每次 SELECT 执行前，若 ContextVar 里有 tenant_id，就对所有「租户拥有的模型」追加 <code>with_loader_criteria(model, cls.tenant_id == tenant_id, include_aliases=True)</code>。include_aliases=True 保证 join 里的别名表也被约束。判定「租户拥有」的规则是 schema 级的：__tenant_scoped__ = True 或 tenant_id 列非空——<strong>不靠人肉登记清单</strong>。两个受控出口：平台管理员横查走 BaseDAO 原始方法并在代码里留 arch-guard 注释；「按 identity_id 查某人的全部租户成员」走 __identity_membership_tenant_bypass__ + execution_options 的显式声明，全库只有 User 表开这个口子。漏写 where 的查询会被事件层自动补上谓词，写错租户的新行会被 add_scoped 直接 raise。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · JWT 是无状态的，怎么实现「踢人下线」？</div>
+    <p>无状态令牌确实无法单独撤销，音巢的实际解法是<strong>把状态检查放回 get_current_user</strong>：它不只验签，还查库确认 User 存在且 is_active——管理员停用账号（is_active=False）后，该用户下一个请求就被 401，等效于踢下线，无需令牌黑名单。真正无法立即回收的是「令牌过期前的剩余窗口」，窗口长度由 JWT_ACCESS_TOKEN_EXPIRE_MINUTES 控制，是安全与体验的权衡参数。identity 层面同理：Identity.is_active=False 可全局封禁一个自然人（影响其在所有租户的 User）。如果业务需要秒级踢人，就要引入 Redis 令牌版本号或黑名单——那是另一个复杂度量级，音巢选择用「查库确认活跃」这个近似零成本的方案覆盖绝大多数场景。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · SSO 账号和本地账号怎么绑定？会不会一个人注册出两个身份？</div>
+    <p>registration_service.register_with_sso 的绑定顺序是设计好的防重复管线：① 先按 provider 侧稳定 ID（union_id 优先于 open_id，因为同一企业下 union_id 跨应用不变）调 resolve_user_identity 精确命中已有绑定；② 未命中再按邮箱在同租户内 match_user_by_email，命中则 link_identity 把 SSO 身份挂到既有账号上；③ 都没有才走 handle_sso_registration 新建 Identity + User。Identity 表上 email / phone / username 都是全局唯一索引，从 schema 层封死重复。安全上有一个明确的声明：find_or_create_identity 的注释写明「只有 email 和 phone 是权威身份声明」——用户名可改、显示名可撞，都不作为账号合并依据。租户归属由 tenants.sso_domain 按邮箱域名决定，员工换公司时同一 Identity 下新增一个 User，而不是迁移旧账号。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · 「首个注册用户自动成为平台管理员」是引导式体验还是安全隐患？</div>
+    <p>两者都是，音巢的处理值得拆解。引导价值：私有化部署零配置可用——api/auth.py 注册流程里 <code>is_first_user = await identity_dao.is_empty()</code>，首用户自动 role=platform_admin、is_active=True、并自动创建 default 租户，省去「初始化管理员」的部署脚本。风险也很实在：① <strong>竞争条件</strong>——两个并发注册都读到空表就成双管理员，生产上应由数据库约束或部署期锁兜底；② <strong>环境暴露</strong>——公网可注册的首部署窗口期谁先注册谁拿平台。缓解手段：平台管理员的横查接口全部挂在 require_role("platform_admin") 下且后续注册不受影响；正式环境通常配邀请码（invitation_codes，used_count &lt; max_uses 校验）收紧注册入口。面试时可以主动指出：这个设计把「部署易用性」和「首启动安全窗口」的矛盾显性化了，比藏在部署文档里一句「请先创建管理员」诚实得多。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q7 · custom 可见性的授权表怎么设计？查询性能如何保证？</div>
+    <p>agent_permissions 的表结构是三元组：(agent_id, scope_type, scope_id, access_level)，scope_type 枚举 company/department/user，scope_id 对 user 维度存 user_id。判定慢路径只在 custom 模式触发：can_use_agent 先走纯内存的 can_use_agent_static（同租户、创建者、company 直接判完），custom 才查 agent_dao.get_user_permission(agent_id, user_id)——单行主键级查询。列表页更不能逐 Agent 查授权：build_visible_agents_query 用 <code>EXISTS (agent_permissions WHERE agent_id = Agent.id AND scope_id = :user AND access_level IN ('use','manage'))</code> 子查询把可见性折叠进一条 SQL，配合 agents 表上的 ix_agents_active_tenant_created_at 复合索引（tenant_id + created_at + 软删除条件），分页查询走索引不扫全表。scope_type 里的 company/department 是模型预留——当前判定代码只消费 user 维度，这是「表结构先行、判定逻辑渐进」的典型演进策略。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>隔离的尽头是「默认安全」</h2>
+    <p>多租户做得好不好，不看文档里写了多少条纪律，而看一个疲惫的工程师在周五晚上漏写一个 where 时会发生什么。</p>
+    <p>音巢的答案是：什么都不会发生——事件层补上谓词，写入校验抛出异常，跨租户访问撞在 tenant_id 比对上。</p>
+    <p class="big">把安全做进默认路径，让正确成为阻力最小的方向——这就是组织级管控底座存在的意义。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 多租户、认证与权限 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    上一篇：<a href="yinchao-09-workspace-sandbox.html">09 · 工作区与沙箱</a> · 下一篇：<a href="yinchao-11-observability.html">11 · 可观测性</a>
+  </div>
+</footer>
+
+</body>
+</html>

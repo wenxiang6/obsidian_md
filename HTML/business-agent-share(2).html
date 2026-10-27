@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Agent — 任务型业务智能体架构分享</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.75;
+    font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;
+    padding:88px 0 72px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:720px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta a,.hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04);color:#c3cbec;text-decoration:none}
+  .hero-meta a:hover{border-color:#b8c2ff;color:#fff}
+
+  /* ===== TOC ===== */
+  .toc{
+    background:var(--card);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:20;
+  }
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:760px}
+
+  /* ===== Pain / cards ===== */
+  .pains{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .pain{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 22px 20px;box-shadow:var(--shadow);position:relative;
+  }
+  .pain::before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:3px;border-radius:3px;background:#d97706}
+  .pain h3{font-size:16px;font-weight:700;margin-bottom:8px;padding-left:10px}
+  .pain p{font-size:14px;color:var(--ink-soft);padding-left:10px}
+
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16.5px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:720px}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .tbl th,.tbl td{padding:14px 18px;font-size:14px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:13px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl td.old{color:var(--muted)}
+  .tbl td.new{color:var(--ink-soft);background:#fbfaff}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:800;color:var(--brand);white-space:nowrap}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:#b91c1c;font-weight:700}
+
+  /* ===== Capability hub ===== */
+  .hub{position:relative}
+  .cap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+  .cap{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);position:relative;
+  }
+  .cap .tagx{position:absolute;top:18px;right:18px;font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 9px}
+  .tagx.core-tag{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .tagx.ext-tag{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .cap .ico{
+    width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);margin-bottom:12px;
+  }
+  .cap h3{font-size:15.5px;font-weight:800;margin-bottom:6px}
+  .cap p{font-size:13.5px;color:var(--ink-soft)}
+
+  /* ===== Architecture layers ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{
+    border-radius:14px;padding:18px 22px;position:relative;
+    border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);
+  }
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+  .layer-head h3{font-size:15.5px;font-weight:800}
+  .layer-head .need{font-size:12.5px;font-weight:600;border-radius:999px;padding:3px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{
+    font-size:13.5px;border:1px solid var(--line);border-radius:10px;padding:8px 14px;
+    background:#fbfaf7;color:var(--ink-soft);
+  }
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:12px;color:var(--muted)}
+  .layer.kernel-layer{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  .rules4{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:14px;margin-top:24px}
+  @media(max-width:520px){.rules4{grid-template-columns:1fr}}
+  .rule{
+    display:flex;gap:14px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);
+  }
+  .rule .rn{
+    flex:none;width:34px;height:34px;border-radius:10px;color:#fff;font-weight:800;font-size:15px;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand-2));
+  }
+  .rule h4{font-size:14.5px;font-weight:800;margin-bottom:4px}
+  .rule p{font-size:13px;color:var(--ink-soft)}
+
+  /* ===== Pipeline ===== */
+  .pipeline{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);margin-bottom:34px;
+  }
+  .stage-chip{
+    font-size:13px;font-weight:600;border-radius:9px;padding:7px 12px;
+    background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap;
+  }
+  .stage-chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .stage-chip .g{
+    display:inline-block;margin-left:5px;font-size:10.5px;font-weight:700;
+    border-radius:5px;padding:1px 5px;background:var(--amber);color:#fff;vertical-align:1px;
+  }
+  .chev{color:#c3bcab;flex:none}
+  .legend{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+  .lg{display:inline-block;width:12px;height:12px;border-radius:4px;margin-left:10px}
+  .lg:first-child{margin-left:0}
+  .lg-auto{background:var(--teal-bg);border:1px solid #bfe3ea}
+  .lg-gate{background:var(--amber-bg);border:1px solid #f0d9b5}
+
+  .stages{display:flex;flex-direction:column;gap:14px;position:relative;padding-left:30px}
+  .stages::before{content:"";position:absolute;left:11px;top:14px;bottom:14px;width:2px;background:linear-gradient(#c7d2fe,#a5f3fc)}
+  .stage{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 24px;box-shadow:var(--shadow);position:relative;
+  }
+  .stage::before{
+    content:"";position:absolute;left:-26px;top:26px;width:12px;height:12px;border-radius:50%;
+    background:#fff;border:3px solid var(--brand);
+  }
+  .stage.gate-stage{border-color:#ecd3ab;background:linear-gradient(180deg,#fffdf8,#fff)}
+  .stage.gate-stage::before{border-color:var(--amber)}
+  .stage-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .stage-num{
+    font-size:12px;font-weight:800;color:#fff;background:var(--ink);border-radius:7px;
+    min-width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;
+  }
+  .stage-top h3{font-size:17px;font-weight:800}
+  .badge{font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 11px}
+  .badge.gate{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.auto{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.art{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+  .stage-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.stage-cols{grid-template-columns:1fr}}
+  .stage-cols h4{
+    font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:6px;
+  }
+  .stage-cols p,.stage-cols li{font-size:14px;color:var(--ink-soft)}
+  .stage-cols ul{padding-left:18px}
+  .stage-cols li{margin:3px 0}
+  .stage-cols .custom{border-right:1px dashed var(--line);padding-right:18px}
+  @media(max-width:720px){.stage-cols .custom{border-right:none;padding-right:0}}
+
+  /* ===== Instantiation phases ===== */
+  .phases{display:flex;flex-direction:column;gap:12px}
+  .iphase{
+    display:flex;gap:16px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:18px 22px;box-shadow:var(--shadow);align-items:flex-start;
+  }
+  .iphase .pl{
+    flex:none;font-size:12px;font-weight:800;color:#fff;background:var(--ink);
+    border-radius:8px;padding:4px 10px;margin-top:2px;
+  }
+  .iphase h3{font-size:15.5px;font-weight:800;margin-bottom:4px}
+  .iphase p{font-size:13.5px;color:var(--ink-soft)}
+  .iphase .done{margin-left:auto;flex:none;font-size:11px;font-weight:700;color:var(--muted);background:#f1efe9;border-radius:999px;padding:3px 10px;white-space:nowrap}
+
+  .relation{
+    margin-top:24px;border-radius:var(--radius);padding:26px 28px;
+    background:var(--card);border:1px solid #d9d3f6;box-shadow:var(--shadow);
+    background:linear-gradient(180deg,#fbfaff,#fff);
+  }
+  .relation h3{font-size:16.5px;font-weight:800;margin-bottom:10px}
+  .relation p{font-size:14px;color:var(--ink-soft);max-width:760px}
+  .rel-flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+  .rel-node{
+    font-size:13px;font-weight:700;border-radius:10px;padding:9px 15px;
+    border:1px solid var(--line);background:#fbfaf7;color:var(--ink-soft);
+  }
+  .rel-node b{color:var(--ink)}
+  .rel-node.hl{background:var(--brand-bg);border-color:#c3bdf0;color:var(--brand)}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;
+    scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:680px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+  footer a{color:var(--brand);text-decoration:none}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:11px 12px;font-size:13px}
+    .legend{margin-left:0;width:100%;justify-content:center;padding-top:6px}
+    .iphase .done{display:none}
+  }
+  @media print{
+    .toc{position:static}
+    .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">开源架构蓝图 · AI-Native 业务研发</div>
+    <h1>Business Agent<br>任务型业务智能体</h1>
+    <p class="sub">一套与具体业务、公司基建无关的任务型编码 Agent 架构：业务用自然语言提需求，Agent 在常驻 Host 上跑完全部流程，人只在决策点拍板。浏览器只是遥控器，关掉页面任务照跑。</p>
+    <div class="hero-meta">
+      <a href="https://github.com/melody-core/business-agent" target="_blank" rel="noopener">github.com/melody-core/business-agent</a>
+      <span>架构文档 × 15 篇</span>
+      <span>2026-10</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#why">问题背景</a>
+    <a href="#principles">产品原则</a>
+    <a href="#caps">能力全景</a>
+    <a href="#pipeline">迭代流水线</a>
+    <a href="#arch">系统架构</a>
+    <a href="#kernel">内核不变量</a>
+    <a href="#roles">角色与权限</a>
+    <a href="#instantiate">实例化</a>
+    <a href="#ending">结语</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 WHY ============ -->
+<section id="why">
+  <div class="sec-head">
+    <span class="sec-no">01 · 问题背景</span>
+    <h2>一条业务改动，需要三样东西同时在场</h2>
+    <p>看懂需求的人、能改已登记仓库的执行者、在方案和发布点拍板的人。把执行者只放在某个研发的本地 IDE 里，链条会在多处断开：</p>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr><th>能力</th><th>IDE 开着</th><th>IDE 关掉 / 机器休眠</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>读代码、改代码</td><td class="old"><span class="ok">有</span></td><td class="new"><span class="no">无</span></td></tr>
+      <tr><td>预览与验证</td><td class="old">占着本机</td><td class="new"><span class="no">无</span></td></tr>
+      <tr><td>过夜跑验证</td><td class="old">不稳定</td><td class="new"><span class="no">无</span></td></tr>
+      <tr><td>业务追问进度</td><td class="old">没有任务对象</td><td class="new"><span class="no">无</span></td></tr>
+      <tr><td>同时来两条需求</td><td class="old">靠人记住</td><td class="new"><span class="no">没有调度</span></td></tr>
+      <tr><td>换一台机器</td><td class="old">状态在本地磁盘</td><td class="new"><span class="no">上下文丢失</span></td></tr>
+    </tbody>
+  </table>
+  <div class="pains" style="margin-top:16px">
+    <div class="pain">
+      <h3>聊天窗口装不下任务</h3>
+      <p>一次改动要看方案全文、点同意、打开预览——消息卡片装不下。关掉窗口，任务就停了。</p>
+    </div>
+    <div class="pain">
+      <h3>即时通讯里会长出第二套状态机</h3>
+      <p>若在 IM 适配器里再做一套阶段推进，它会和真正改仓库的内核分叉，两处状态永远对不上。</p>
+    </div>
+    <div class="pain">
+      <h3>AI 的执行权没有边界</h3>
+      <p>未确认就改代码、模型自称"用户已同意"、随手推保护分支——没有内核级校验，这些都防不住。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 PRINCIPLES ============ -->
+<section id="principles">
+  <div class="sec-head">
+    <span class="sec-no">02 · 产品原则</span>
+    <h2>七条原则，定义"任务型 Web Agent"</h2>
+    <p>环境事先备在常驻 Host 上，提出人描述目标即可；研发仍负责审代码、处理权限与外部阻塞、执行受控发布。</p>
+  </div>
+  <div class="values">
+    <div class="value"><div class="no">1</div><h3>任务是一等公民</h3><p>一次需求对应一条可恢复的任务，而不是聊天记录的副作用。问候、咨询、讨论思路不创建任务。</p></div>
+    <div class="value"><div class="no">2</div><h3>人只在决策点出现</h3><p>需要拍板时给出确认卡。没有回执，功能开发不开始。其余时间 Agent 自主推进。</p></div>
+    <div class="value"><div class="no">3</div><h3>一个进行中</h3><p>已有未收口任务时，新需求进入队列并说清原因，绝不覆盖当前任务。</p></div>
+    <div class="value"><div class="no">4</div><h3>关页面不等于停工</h3><p>状态在 Host 的文件里。关掉浏览器，只是放下遥控器。</p></div>
+    <div class="value"><div class="no">5</div><h3>影响面由需求决定</h3><p>提出人不预选仓库。Agent 读领域文档后判断并写进方案，人可以纠正。</p></div>
+    <div class="value"><div class="no">6</div><h3>发布权留在人</h3><p>默认只生成发布交接。保护分支推送需要 operator 的显式确认。</p></div>
+    <div class="value"><div class="no">7</div><h3>维护必须有界</h3><p>长期优化与周期巡检写在文档里，只有已授权的具体实施才占用进行中通道。</p></div>
+  </div>
+  <div class="core">
+    <div class="tag">一句话架构</div>
+    <h3>Web 是遥控器，Host 是备好的环境，Kernel 是唯一能改世界的手</h3>
+    <p>浏览器、IDE 插件、IM 适配器都只是"通道"；真正建任务、拉分支、验证、发布的，只有经过内核校验的命令。界面给提出人讲业务语言——"方案等你确认"、"可以预览了"；仓库名、分支名、命令名留在研发旁路和审计文件里。</p>
+  </div>
+</section>
+
+<!-- ============ 03 CAPS ============ -->
+<section id="caps">
+  <div class="sec-head">
+    <span class="sec-no">03 · 能力全景</span>
+    <h2>一个工作台，装下业务的整个研发生命周期</h2>
+    <p>以"需求迭代"为核心通道，向外生长出运维、数据与日常业务能力。所有能力共享同一个内核与同一套闸门。</p>
+  </div>
+  <div class="hub">
+    <div class="cap-grid">
+      <div class="cap">
+        <span class="tagx core-tag">核心</span>
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
+        <h3>需求迭代</h3>
+        <p>对话 → 需求卡 → 五张确认卡 → 分支开发 → 验证 → 验收 → 发布交接，全流程可恢复。人只在决策点点"同意"或"要改"。</p>
+      </div>
+      <div class="cap">
+        <span class="tagx ext-tag">业务直达</span>
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <h3>业务助理</h3>
+        <p>不用进业务系统，对话即办理：查询、提单、审批。业务接口封装为受控工具后，操作直达并全程留痕。</p>
+      </div>
+      <div class="cap">
+        <span class="tagx ext-tag">排障</span>
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7 7.5l3.5 8M17 7.5l-3.5 8M7.5 6h9"/></svg></div>
+        <h3>日志链路排查</h3>
+        <p>按 traceId 串起跨服务调用链，trace 级根因定位，给出证据与修复建议。只读，不改服务。</p>
+      </div>
+      <div class="cap">
+        <span class="tagx ext-tag">数据</span>
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></div>
+        <h3>链路化数据 Mock</h3>
+        <p>一句话造出一条完整业务链路的测试数据（商品 → 订单 → 营销），外键自动对齐，一键写入沙箱。</p>
+      </div>
+      <div class="cap">
+        <span class="tagx ext-tag">运维</span>
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 0-10-10"/><path d="M2 12a10 10 0 0 1 10-10"/><path d="M12 6v6l4 2"/></svg></div>
+        <h3>巡检与维护</h3>
+        <p>有界维护：巡检不占进行中通道，只有已授权的具体实施才进入迭代流水线，已收口任务不被重开。</p>
+      </div>
+      <div class="cap">
+        <span class="tagx ext-tag">交付</span>
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2 0-2.8-.8-.7-2-.7-3 0z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.7 12.7 0 0 1 21.5 2.5c0 2.7-.8 7.5-5.6 10.5A22 22 0 0 1 12 15z"/></svg></div>
+        <h3>发布管理</h3>
+        <p>Agent 默认只生成交接计划：目标环境、提交、未执行的动作。保护分支推送必须 operator 显式确认。</p>
+      </div>
+      <div class="cap">
+        <span class="tagx ext-tag">治理</span>
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>审计与权限</h3>
+        <p>确认回执、版本指纹、操作留痕；四级角色分工，任何人口头说明都不能豁免闸门。</p>
+      </div>
+      <div class="cap">
+        <span class="tagx ext-tag">沉淀</span>
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+        <h3>知识库与文档</h3>
+        <p>领域文档驱动影响面判断；外部阻塞显式登记、写明要谁处理，绝不静默跳过。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 PIPELINE ============ -->
+<section id="pipeline">
+  <div class="sec-head">
+    <span class="sec-no">04 · 迭代流水线</span>
+    <h2>一条需求，从对话到收口的完整旅程</h2>
+    <p>每个确认卡都绑定产物版本：<strong>上游一变，下游授权全部作废</strong>，从对应阶段重走。开发只使用最新确认的快照。</p>
+  </div>
+
+  <div class="pipeline">
+    <span class="stage-chip">对话澄清</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">需求卡<span class="g">确认</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">排队 / 开工检查</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">拉功能分支</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">产品方案<span class="g">确认</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">界面方案<span class="g">确认</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">技术方案<span class="g">确认</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">测试用例<span class="g">确认</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">实施方案<span class="g">确认</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">开发</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">配置化验证</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">业务验收<span class="g">确认</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">交付提交</span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip gate">发布交接<span class="g">确认</span></span>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="stage-chip">收口释放通道</span>
+    <span class="legend"><i class="lg lg-auto"></i>Agent 自动推进<i class="lg lg-gate"></i>人工确认卡点</span>
+  </div>
+
+  <div class="stages">
+    <div class="stage gate-stage">
+      <div class="stage-top">
+        <span class="stage-num">A</span><h3>对话与需求卡</h3>
+        <span class="badge gate">确认后入队</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>机制设计</h4>
+          <ul>
+            <li>AI 整理目标、范围、验收标准、影响仓库、是否涉及界面；有关键缺口才追问</li>
+            <li>提出人确认的是<strong>当前版本</strong>需求卡，确认即写入持久化队列</li>
+            <li>问候与咨询停在对话里，不建任务、不占通道</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>提出人不用选仓库、选模型、选模式，用自己的语言说清楚"谁在用、想改变什么、怎样算做完"就够了。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">B</span><h3>排队与开工检查</h3>
+        <span class="badge auto">单一通道</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>机制设计</h4>
+          <ul>
+            <li>同一时刻至多一条进行中任务；忙碌时入队并说明占用原因与下一步，不编造等待时长</li>
+            <li>check 区分工作台层与业务层；可自动修复项交给 init，权限/凭证类外部条件升级给人</li>
+            <li>取消进行中任务是破坏性动作：两次主动确认，默认按钮是"返回继续"</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>排队原因人话可读，环境状态分钟级可知；提出人永远知道"卡在哪、要谁处理"。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage gate-stage">
+      <div class="stage-top">
+        <span class="stage-num">C</span><h3>五张确认卡</h3>
+        <span class="badge gate">人审 × 5</span><span class="badge art">产品 · 界面 · 技术 · 用例 · 实施</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>机制设计</h4>
+          <ul>
+            <li>每个阶段读取需求快照与全部前序产物，不只读上一阶段摘要</li>
+            <li>技术方案必须引用实际读过的源码位置与版本；没读到的行为写"未知"，不补造</li>
+            <li>实施方案列出允许改的路径、明确不改的路径、将用的验证命令（来自配置而非模型现编）</li>
+            <li>密钥、依赖清单、发布清单默认不在自动写入范围内，除非逐项列出并获确认</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>AI 的自由度被精确限定在执行层：方案一层比一层具体，人在每一层都有否决权，而不用盯全程。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-top">
+        <span class="stage-num">D</span><h3>开发与验证</h3>
+        <span class="badge auto">受控执行</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>机制设计</h4>
+          <ul>
+            <li>业务改动从该仓刚 fetch 的主干创建新功能分支，不复用旧分支</li>
+            <li>编码运行时只按已确认清单改允许的文件；验证命令来自业务绑定配置</li>
+            <li>验证失败自动修复有上限（默认 2 轮），相同源码相同失败即停止，不空转</li>
+            <li>执行器未就绪时停在"等待研发接管"，不伪装成正在改代码</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>改动可复现、可回滚、可审计； Host 重启后从文件恢复继续，模型上下文丢了也不怕。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage gate-stage">
+      <div class="stage-top">
+        <span class="stage-num">E</span><h3>验收与发布交接</h3>
+        <span class="badge gate">确认 × 2</span>
+      </div>
+      <div class="stage-cols">
+        <div class="custom">
+          <h4>机制设计</h4>
+          <ul>
+            <li>提出人逐项验收，通过才保存本地交付提交</li>
+            <li>发布默认只生成交接计划：目标环境、仓库、提交、尚未执行的动作</li>
+            <li>保护分支推送必须 operator/admin 的通道身份确认，模型不能自签</li>
+            <li>验收时若要调需求：旧授权全部失效，从产品方案重走</li>
+          </ul>
+        </div>
+        <div>
+          <h4>价值</h4>
+          <p>对外可见的动作零意外——发布权永远在人手里，且有据可查。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 ARCH ============ -->
+<section id="arch">
+  <div class="sec-head">
+    <span class="sec-no">05 · 系统架构</span>
+    <h2>五层架构：通道可以很多，手只有一只</h2>
+    <p>研发 IDE 与 Web 调用同一套 Kernel——页面上的任务和 <code>iterations/&lt;id&gt;/</code> 目录是同一件事。</p>
+  </div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head">
+        <h3>通道层 Channel</h3>
+        <span class="need free">只读状态 · 不碰 Git</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>Web 工作台</b><small>任务列表 · 时间线 · 确认卡 · 预览入口</small></div>
+        <div class="box"><b>研发 IDE</b><small>审代码 · 接管写锁</small></div>
+        <div class="box"><b>可选适配器</b><small>IM 通知等，不实现第二套阶段机</small></div>
+      </div>
+    </div>
+    <div class="arrow-down"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg></div>
+    <div class="layer">
+      <div class="layer-head">
+        <h3>会话层 Session</h3>
+        <span class="need auto">身份与任务绑定</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>鉴权</b><small>访问凭证 · 四级角色</small></div>
+        <div class="box"><b>确认回执投递</b><small>决定落盘为可核对回执</small></div>
+      </div>
+    </div>
+    <div class="arrow-down"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg></div>
+    <div class="layer">
+      <div class="layer-head">
+        <h3>编排层 Orchestrator</h3>
+        <span class="need auto">状态不只在内存</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>队列 · 单任务锁</b><small>新消息归类：当前任务 / 排队 / 拒绝</small></div>
+        <div class="box"><b>阶段机 · 心跳与恢复</b><small>重启后从文件继续</small></div>
+      </div>
+    </div>
+    <div class="arrow-down"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg></div>
+    <div class="layer kernel-layer">
+      <div class="layer-head">
+        <h3>内核 Kernel —— 唯一能改世界的手</h3>
+        <span class="need own">不变量 · 确认 · 验证 · 发布</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>check / init</b><small>环境检查与有限修复</small></div>
+        <div class="box"><b>new-iteration / checkout</b><small>任务与分支纪律</small></div>
+        <div class="box"><b>confirm</b><small>回执落盘，口头不算数</small></div>
+        <div class="box"><b>dev / test / complete</b><small>受控开发与验证</small></div>
+        <div class="box"><b>publish</b><small>默认只交接，确认才推送</small></div>
+      </div>
+    </div>
+    <div class="arrow-down"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v14"/><path d="M6 12l6 7 6-7"/></svg></div>
+    <div class="layer">
+      <div class="layer-head">
+        <h3>执行层 Runtime</h3>
+        <span class="need auto">受控工具面</span>
+      </div>
+      <div class="boxes">
+        <div class="box"><b>编码模型</b><small>只通过受控工具改已登记仓库</small></div>
+        <div class="box"><b>Agent 仓库</b><small>命令 · 规则 · 领域文档 · 迭代档案（提交 Git，不含业务源码）</small></div>
+        <div class="box"><b>target-repos/&lt;key&gt;</b><small>业务仓独立 clone，提交只发生在各仓自己的历史</small></div>
+        <div class="box"><b>runtime/</b><small>锁 · 队列 · 心跳 · 事件 · 密钥（不进 Git）</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rules4">
+    <div class="rule">
+      <div class="rn">1</div>
+      <div><h4>通道只通过 Kernel 改变世界</h4><p>浏览器、IDE 插件、IM 适配器都不直接 git 写业务仓。</p></div>
+    </div>
+    <div class="rule">
+      <div class="rn">2</div>
+      <div><h4>编码模型不绕过 Kernel</h4><p>建任务、拉分支、完成、发布、写业务文件，都要经过命令校验。</p></div>
+    </div>
+    <div class="rule">
+      <div class="rn">3</div>
+      <div><h4>文件是状态源</h4><p>可恢复的事实在 iterations/ 与 runtime/。模型上下文和聊天历史不是状态源。</p></div>
+    </div>
+    <div class="rule">
+      <div class="rn">4</div>
+      <div><h4>一份可写副本</h4><p>每个已登记仓库全环境只有一份可写工作区；研发要改代码时显式接管写锁。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 KERNEL ============ -->
+<section id="kernel">
+  <div class="sec-head">
+    <span class="sec-no">06 · 内核不变量</span>
+    <h2>K1 – K10：写进命令里的纪律，不靠提示词自觉</h2>
+    <p>任何通道、任何模型、任何运行时都必须满足。违反时命令失败并留下证据——<strong>不允许"警告后继续"</strong>。</p>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr><th style="width:56px">ID</th><th>不变量</th><th>违反时</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="kid">K1</td><td>全局至多一条进行中 / 阻塞的迭代</td><td class="old">拒绝新建，并打印当前任务与收口方式</td></tr>
+      <tr><td class="kid">K2</td><td>业务改动从刚 fetch 的主干创建新功能分支</td><td class="old">仓库缺失、fetch 失败、同名分支，均失败</td></tr>
+      <tr><td class="kid">K3</td><td>脏工作区不得切分支</td><td class="old">列出 git status，等人处理</td></tr>
+      <tr><td class="kid">K4</td><td>业务提交只发生在业务仓自己的 Git 历史</td><td class="old">Agent 仓库拒绝暂存 target-repos/</td></tr>
+      <tr><td class="kid">K5</td><td>已登记仓库必须是独立 clone</td><td class="old">发现符号链接即 check 失败</td></tr>
+      <tr><td class="kid">K6</td><td>密钥不写入档案、日志、页面与模型上下文</td><td class="old">命中密钥材料拒绝落盘，只记事件类型</td></tr>
+      <tr><td class="kid">K7</td><td>必须确认的阶段，没有回执不得进入下游</td><td class="old">聊天里的"好的"不算数，超时不自动批准</td></tr>
+      <tr><td class="kid">K8</td><td>dev 必须指定一个已登记仓库且分支正确</td><td class="old">缺仓库、多仓库、分支不符都拒绝</td></tr>
+      <tr><td class="kid">K9</td><td>保护分支只有带人工确认的 publish 才能推送</td><td class="old">其他 push 拒绝；默认发布只写交接计划</td></tr>
+      <tr><td class="kid">K10</td><td>编码运行时与人不得同时可写同一仓库</td><td class="old">锁持有者唯一；心跳过期只告警，不抢锁</td></tr>
+    </tbody>
+  </table>
+  <div class="core" style="margin-top:24px">
+    <div class="tag">确认回执 · K7 的灵魂</div>
+    <h3>超时不自动批准；模型自签无效；下游执行前重新核对回执与产物版本</h3>
+    <p>每张确认卡落盘为一条结构化回执：confirmation_id、阶段、产物版本、决定（approve / reject / comment）、操作者角色、时间。需求卡或任何前序产物一变，下游授权即刻失效——旧全文与旧回执保留供审计，但不再放行任何动作。</p>
+  </div>
+</section>
+
+<!-- ============ 07 ROLES ============ -->
+<section id="roles">
+  <div class="sec-head">
+    <span class="sec-no">07 · 角色与权限</span>
+    <h2>四级角色：谁能做什么，写死在边界上</h2>
+    <p>同一个人可以兼多个角色，但任何人口头说明都不能豁免闸门。默认界面按提出人设计。</p>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr><th style="width:120px">角色</th><th>能做</th><th>不能做</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>viewer</td>
+        <td class="new">看自己可见的任务状态</td>
+        <td class="old">提需求、确认、改代码</td>
+      </tr>
+      <tr>
+        <td>requester · 提出人</td>
+        <td class="new">提需求、追问、确认或退回方案、验收、取消当前任务、移出未开始的排队项</td>
+        <td class="old">推送保护分支、清除写锁、读取密钥、改写他人任务</td>
+      </tr>
+      <tr>
+        <td>operator · 操作员</td>
+        <td class="new">提出人全部能力，加上审代码、接管写锁、发布确认、完成任务</td>
+        <td class="old">代替模型跳过确认去改未授权文件</td>
+      </tr>
+      <tr>
+        <td>admin</td>
+        <td class="new">放弃任务、在显式操作下切换活动迭代</td>
+        <td class="old">用口头说明豁免闸门</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 08 INSTANTIATE ============ -->
+<section id="instantiate">
+  <div class="sec-head">
+    <span class="sec-no">08 · 实例化</span>
+    <h2>蓝图 → 任意业务的专属 Agent</h2>
+    <p>蓝图本身不含任何公司的仓库地址、身份系统与业务规则。把蓝图交给实施 AI，按实例化协议读完并填空，即可搭出该业务自己的 Agent。每个实例只服务一个业务、一组已登记仓库。</p>
+  </div>
+  <div class="phases">
+    <div class="iphase">
+      <span class="pl">阶段 A</span>
+      <div>
+        <h3>绑定 Binding</h3>
+        <p>只读勘察候选仓库（主干、构建、测试、保护分支），起草绑定配置与领域文档；列未知项向人提问，人确认前停止。</p>
+      </div>
+      <span class="done">产物：实例目录</span>
+    </div>
+    <div class="iphase">
+      <span class="pl">阶段 B</span>
+      <div>
+        <h3>内核 Kernel</h3>
+        <p>先写闸门测试再实现命令：并发拒绝、脏工作区、无回执不放行、未确认 publish 只出计划……全部在临时 Git 仓通过，不碰真实远端。</p>
+      </div>
+      <span class="done">闸门测试先行</span>
+    </div>
+    <div class="iphase">
+      <span class="pl">阶段 C</span>
+      <div>
+        <h3>对话、队列与 Host</h3>
+        <p>访问口令、需求卡版本、确认入队、K1 忙碌时的人话原因；关掉客户端再查询，任务仍在。</p>
+      </div>
+      <span class="done">可恢复</span>
+    </div>
+    <div class="iphase">
+      <span class="pl">阶段 D</span>
+      <div>
+        <h3>编码与验收</h3>
+        <p>接入编码模型，工具面只有合同允许的内核操作；临时样板跑通后，再对一个低风险真实任务由人确认执行。自动编码开关由人显式打开。</p>
+      </div>
+      <span class="done">渐进放权</span>
+    </div>
+    <div class="iphase">
+      <span class="pl">阶段 E</span>
+      <div>
+        <h3>可选项</h3>
+        <p>证据源、统一登录反代、IM 适配器、风险归档——主路径可用后单独加，每一项都不得新增状态机或放宽 K1–K10。</p>
+      </div>
+      <span class="done">不放宽不变量</span>
+    </div>
+  </div>
+
+  <div class="relation">
+    <h3>与本工作台实践的关系</h3>
+    <p>当前的 ai-dev-proxy 工作台，正是这套蓝图在 mall 电商业务上的一次单机实战雏形：十阶段流水线、三处人审卡点、铁律与迭代档案，都能在蓝图中找到对应的抽象。蓝图把这些经验提炼为业务无关的架构与协议，使同一模式可复制到任何业务线。</p>
+    <div class="rel-flow">
+      <span class="rel-node"><b>蓝图</b> business-agent（业务无关架构）</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="rel-node"><b>实例化协议</b> 绑定 · 内核 · Host · 编码 · 可选</span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="rel-node hl"><b>实例</b> ai-dev-proxy（mall 电商）· 更多业务…</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ENDING ============ -->
+<div class="ending" id="ending">
+  <h2>写在最后</h2>
+  <p>聊天窗口是短会话的容器，任务是长工作的容器。当 AI 开始真正改仓库、跑验证、碰发布，"任务"就必须从聊天记录里毕业，成为有状态、有闸门、有回执的一等公民。</p>
+  <p class="big">关掉页面，任务照跑；该人拍板的地方，一张确认卡都不会少。</p>
+</div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Business Agent · 任务型业务智能体架构分享 · 基于开源蓝图 <a href="https://github.com/melody-core/business-agent" target="_blank" rel="noopener">melody-core/business-agent</a> · 2026-10<br>
+    配套交互演示见同目录 <code>business-agent-demo.html</code> · 本页不含任何账号、密钥与内部配置
+  </div>
+</footer>
+
+</body>
+</html>

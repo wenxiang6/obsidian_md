@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音巢（Clawith）设计分享系列 · 总导航</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  section{padding:56px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  .series{display:flex;flex-direction:column;gap:0}
+  .chapter{
+    display:block;text-decoration:none;color:inherit;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px 22px;margin-bottom:16px;
+    display:flex;gap:18px;align-items:flex-start;
+    transition:transform .12s ease,border-color .12s ease;
+  }
+  .chapter:hover{transform:translateY(-2px);border-color:#c9c2ee}
+  .chapter .num{
+    width:42px;height:42px;border-radius:11px;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:16px;font-weight:800;
+  }
+  .chapter.hot .num{background:linear-gradient(135deg,#3b2a86,#5b21b6);color:#fff}
+  .chapter h3{font-size:16.5px;font-weight:800;margin-bottom:4px;color:var(--ink)}
+  .chapter h3 small{font-size:12.5px;font-weight:700;color:var(--muted);margin-left:8px}
+  .chapter p{font-size:13.5px;color:var(--ink-soft)}
+  .chapter .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chapter .tags span{font-size:11px;font-weight:700;border-radius:999px;padding:1px 9px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+  footer a{color:var(--brand);text-decoration:none}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:40px 0 4px}
+    .sec-head h2{font-size:22px}
+    .chapter{flex-direction:column;gap:8px}
+  }
+  @media print{
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢（Clawith）设计分享系列 · 总导航</div>
+    <h1>把 AI Agent 当数字员工运营的平台<br>一次看懂，十二篇讲透</h1>
+    <p class="sub">从 LangGraph 持久化运行时到 Aware 自主意识，从多租户权限到 Agent 活动可观测性——每个模块一页：场景、设计、实现、架构图与流程图、最小伪代码、面试 QA。内容全部基于上游源码（main 分支 v1.11.5）逐一核实。</p>
+    <div class="hero-meta">
+      <span>系列 <b>12</b> 篇</span>
+      <span>风格参考 <b>mall-kb-plan</b></span>
+      <span>每篇 <b>2~6</b> 张架构/流程图</span>
+      <span>每篇 <b>5~7</b> 道面试 QA</span>
+      <span>基于上游源码 <b>main · v1.11.5</b></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="about">
+  <div class="sec-head">
+    <span class="sec-no">系列说明</span>
+    <h2>这套分享是怎么组织的</h2>
+    <p>建议按 00 → 11 的顺序阅读：00 是全局总纲，01–09 按「Agent 的一生」展开内核、入职、自主意识、协作、能力供给、IM 渠道、组织 OKR、记忆与工作区，10–11 收口到平台级管控（多租户权限）与运营（可观测性）。</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n">46</div><div class="l">后端 API 路由模块</div></div>
+    <div class="stat"><div class="n teal">≈60</div><div class="l">数据表（约数）</div></div>
+    <div class="stat"><div class="n amber">110</div><div class="l">内置工具（约数）</div></div>
+    <div class="stat"><div class="n green">6</div><div class="l">进程角色 × 4 种</div></div>
+    <div class="stat"><div class="n">7</div><div class="l">IM 渠道</div></div>
+  </div>
+  <div class="core">
+    <div class="tag">一句话读懂音巢</div>
+    <h3>音巢不是又一个聊天机器人框架，它把 Agent 定义为「数字员工」：持久身份（soul.md）、长期记忆（memory.md）、私有工作区、自主意识（Focus + 触发器）、可被组织管（RBAC/OKR/审批/配额）、可被观测（运行事件流）。</h3>
+    <p>LLM 推理走外部 API，平台负责把「人 + Agent + 组织」装进同一套工程底座：FastAPI 单体 + LangGraph 持久化运行时 + 数据库表做工作队列。</p>
+  </div>
+</section>
+
+<section id="series">
+  <div class="sec-head">
+    <span class="sec-no">目录 · 12 篇</span>
+    <h2>从内核到治理，逐篇深入</h2>
+  </div>
+  <div class="series">
+    <a class="chapter hot" href="yinchao-00-architecture.html">
+      <div class="num">00</div>
+      <div>
+        <h3>整体架构设计 <small>总纲 · 建议先读</small></h3>
+        <p>把 AI Agent 当数字员工运营的平台底座：分层结构、四种进程角色、租户隔离、Durable Runtime 总览与部署形态。</p>
+        <div class="tags"><span>FastAPI 单体</span><span>PROCESS_ROLE</span><span>LangGraph</span><span>WS + Redis</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-01-agent-runtime.html">
+      <div class="num">01</div>
+      <div>
+        <h3>Agent 运行时内核 <small>Durable Agent Runtime V2</small></h3>
+        <p>会断点续跑的 Agent 内核：LangGraph StateGraph + Postgres Checkpointer，数据库表当工作队列（TTL 认领/重试），interrupt 挂起等审批再 resume。</p>
+        <div class="tags"><span>StateGraph</span><span>Checkpointer</span><span>命令队列</span><span>中断恢复</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-02-agent-lifecycle.html">
+      <div class="num">02</div>
+      <div>
+        <h3>数字员工管理 <small>全生命周期</small></h3>
+        <p>从人才市场一键「招聘」到配额管控：22 个职业模板、文件+数据库双轨定义、L1/L2/L3 自主策略与审批、token 限额、心跳与入职仪式。</p>
+        <div class="tags"><span>模板市场</span><span>soul.md</span><span>自主分级</span><span>配额</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-03-aware.html">
+      <div class="num">03</div>
+      <div>
+        <h3>Aware 自主意识 <small>Focus + 触发器</small></h3>
+        <p>让 Agent 自己醒过来：Focus Items 关注点、6 种触发器（cron/once/interval/poll/on_message/webhook）、Focus-Trigger 绑定与限额防滥用。</p>
+        <div class="tags"><span>Focus Items</span><span>触发器运行时</span><span>Webhook</span><span>心跳</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-04-collaboration.html">
+      <div class="num">04</div>
+      <div>
+        <h3>对话与协作 <small>群聊 / A2A / 任务 / Plaza</small></h3>
+        <p>不止单聊：多 Agent 群聊与 @提及、handoff 交接、Agent 间 A2A 消息（consult/notify/task_delegate）、任务系统、日程与 Plaza 广场。</p>
+        <div class="tags"><span>群聊</span><span>Handoff</span><span>A2A</span><span>Plaza</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-05-tools-skills-mcp.html">
+      <div class="num">05</div>
+      <div>
+        <h3>工具、技能与 MCP <small>能力供给侧</small></h3>
+        <p>约 110 个内置工具之外：从 Smithery/ModelScope 运行时导入 MCP Server、ClawHub 技能市场、skill-creator 元技能让 Agent 自我进化。</p>
+        <div class="tags"><span>内置工具</span><span>MCP 发现导入</span><span>技能系统</span><span>自我进化</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-06-im-channels.html">
+      <div class="num">06</div>
+      <div>
+        <h3>IM 渠道集成 <small>7 渠道 · 每个 Agent 一个机器人身份</small></h3>
+        <p>把 Agent 装进每一个工作群：飞书/钉钉/企微/微信/Slack/Discord/Teams，长连接管理器统一归一化消息，connector 进程角色独立部署。</p>
+        <div class="tags"><span>长连接</span><span>消息归一化</span><span>去重投递</span><span>代理适配</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-07-org-okr.html">
+      <div class="num">07</div>
+      <div>
+        <h3>组织与 OKR <small>把 Agent 编入组织</small></h3>
+        <p>数字员工也要背 OKR：组织架构同步、Agent 关系图谱、OKR 全流程（O/KR/对齐/进度/日报/月报）、专属 OKR Agent 每日催收。</p>
+        <div class="tags"><span>组织架构</span><span>关系图谱</span><span>OKR 8 表</span><span>自动催收</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-08-memory-experience.html">
+      <div class="num">08</div>
+      <div>
+        <h3>记忆与经验库 <small>长期主义</small></h3>
+        <p>Agent 的长期主义：soul/memory 文件式记忆、经验条目沉淀复用闭环、会话上下文压缩、每日自我复盘报告。</p>
+        <div class="tags"><span>文件式记忆</span><span>经验沉淀</span><span>Compaction</span><span>日报</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-09-workspace-sandbox.html">
+      <div class="num">09</div>
+      <div>
+        <h3>工作区、文件与沙箱 <small>手脚与保险柜</small></h3>
+        <p>每个 Agent 一台电脑：私有文件系统（版本化+编辑锁）、S3 可插拔存储、产出物公开短链发布、bubblewrap/Docker/E2B/AgentBay 多后端沙箱。</p>
+        <div class="tags"><span>私有文件系统</span><span>编辑锁/版本化</span><span>沙箱矩阵</span><span>页面发布</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-10-multitenancy.html">
+      <div class="num">10</div>
+      <div>
+        <h3>多租户、认证与权限 <small>一套平台多家公司</small></h3>
+        <p>租户隔离与四级权限：TenantContextMiddleware + ContextVar、DAO 层自动注入租户条件、SSO/邀请码、Agent 的 use/manage 访问矩阵。</p>
+        <div class="tags"><span>行级隔离</span><span>ContextVar</span><span>RBAC</span><span>SSO</span></div>
+      </div>
+    </a>
+    <a class="chapter" href="yinchao-11-observability.html">
+      <div class="num">11</div>
+      <div>
+        <h3>Agent 活动可观测性与治理 <small>追加专题</small></h3>
+        <p>看见 Agent 在想什么：运行事件流（agent_run_events）、Mind 内心独白视图、token 计量与配额熔断、审计日志与活动日志、坏答案逐帧溯源。</p>
+        <div class="tags"><span>事件流</span><span>Mind 视图</span><span>成本归因</span><span>审计</span></div>
+      </div>
+    </a>
+    <a class="chapter hot" href="yinchao-12-open-design.html">
+      <div class="num">★</div>
+      <div>
+        <h3>OpenDesign 独立分享 <small>打通 Agent 与设计稿平台</small></h3>
+        <p>OpenDesign 三件套（daemon 服务 / web / MCP）的关系、两个进程与两条引擎链路、调用链路与端到端工作流；从零搭建到四种网络场景的 MCP 配置全照抄，音巢接入作为实例附后。</p>
+        <div class="tags"><span>OpenDesign</span><span>daemon / web / MCP</span><span>引擎双链路</span><span>实践实录</span></div>
+      </div>
+    </a>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">阅读姿势建议</div>
+    <p>面试备战：优先 01（运行时）、03（自主意识）、10（租户权限）、11（可观测性）四篇，QA 部分单独过一遍即可上台。<br>
+    方案评审：每篇的「02 功能设计」决策块（选项/决定/原因/代价）可直接引用为自己的方案论证框架。</p>
+  </div>
+  <div class="co amber">
+    <div class="co-t">内容口径声明</div>
+    <p>所有「代码依据」均基于上游源码仓库 /Users/wxy/clawith（dataelement/Clawith，main 分支 v1.11.5）逐一核实；个别简报与源码不符的细节已按源码修正（如 cycle_guard 实为委派环防护、identities 表位于 models/user.py 等），以页面表述为准。</p>
+  </div>
+</section>
+
+<section id="ending">
+  <div class="ending">
+    <h2>从「能跑的 Demo」到「能运营的组织」</h2>
+    <p>单 Agent 对话谁都会写，难的是把身份、记忆、自主意识、协作、权限、观测全部做成工程闭环。</p>
+    <p>音巢的价值恰在于此：它不是演示能力的合集，而是一套让数字员工「入职、干活、被管、被看见」的完整操作系统。</p>
+    <p class="big">建议从 00 开始，按顺序读完 12 篇——你会得到一套完整的 Agent 平台设计决策库。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 总导航 · 基于上游 main 分支 v1.11.5 源码分析 · 2026-10<br>
+    单文件 HTML · 风格参考 mall-kb-plan · 无外部依赖可直接浏览器打开 · 文档不含任何真实密钥
+  </div>
+</footer>
+
+</body>
+</html>

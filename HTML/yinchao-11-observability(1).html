@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>看见 Agent 在想什么 · 运行事件流、内心独白与成本归因 · 音巢设计分享</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 11/12 · 可观测性与治理</div>
+    <h1>看见 Agent 在想什么<br>运行事件流、内心独白与成本归因</h1>
+    <p class="sub">传统系统的可观测性回答「服务健不健康」，Agent 系统的可观测性要回答一个更难的问题：「它刚才为什么这么做」。音巢 Agent 平台把每一次运行拆成 run → command → event 三层可回溯数据，把 token 计量做成配额闸门的输入，把审计与审批留痕做成一等公民——让 Agent 的行为可看、可查、可归因、可熔断。</p>
+    <div class="hero-meta">
+      <span>运行追踪 <b>agent_runs / commands / events</b></span>
+      <span>事件类型 <b>13 种</b> 落库即审计</span>
+      <span>token 计量 <b>token_tracker → daily_token_usage</b></span>
+      <span>配额闸门 <b>quota_guard.py</b></span>
+      <span>实时推送 <b>WebSocket + Redis pub/sub</b></span>
+      <span>源码基线 <b>上游 main · v1.11.5</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">场景与定位</a>
+    <a href="#design">功能设计</a>
+    <a href="#impl">实现方案</a>
+    <span class="sep">·</span>
+    <a href="#fig-dataflow">图 1 · 观测数据流</a>
+    <a href="#fig-trace">图 2 · 坏答案溯源</a>
+    <a href="#fig-cost">图 3 · 成本归因链</a>
+    <span class="sep">·</span>
+    <a href="#pseudocode">伪代码</a>
+    <a href="#qa">面试 QA</a>
+    <a href="#ending">结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-10-multitenancy.html">上一篇 · 多租户</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>Agent 是黑盒，可观测性就是开盒器</h2>
+    <p>一个 7×24 自主运行的 Agent 平台，最怕的不是它犯错，而是它犯了错却没有人知道、没有人知道为什么、也没有人知道花了多少钱。音巢的可观测性体系围绕四个真实追问展开。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">3 层</div><div class="l">运行数据模型：run → command → event</div></div>
+    <div class="stat"><div class="n teal">13</div><div class="l">agent_run_events 事件类型（CheckConstraint 约束）</div></div>
+    <div class="stat"><div class="n amber">2 路</div><div class="l">事件消费：WS 实时推送 + 离线统计聚合</div></div>
+    <div class="stat"><div class="n green">4 类</div><div class="l">配额闸门：会话 / LLM 调用 / 建 Agent / 有效期</div></div>
+  </div>
+
+  <h3 class="sub">四个每天都要回答的追问</h3>
+  <div class="values">
+    <div class="value">
+      <div class="no">①</div>
+      <h3>「这个 Agent 今天干了啥、花了多少钱？」</h3>
+      <p>管理者的成本追问。<code>daily_token_usage</code> 按 租户 × Agent × 日期 聚合 token 用量（含缓存读写分列），Agent 详情页直接展示日/月/累计用量——成本归因到具体 Agent，有据可查。</p>
+    </div>
+    <div class="value">
+      <div class="no">②</div>
+      <h3>「它为什么给出这么离谱的答案？」</h3>
+      <p>坏答案回溯。从用户反馈定位到 chat_session → agent_run → 该 run 的全部事件与工具执行记录，逐帧回放模型步与工具步，定位到具体哪一次模型输出或哪一次工具调用翻车。</p>
+    </div>
+    <div class="value">
+      <div class="no">③</div>
+      <h3>「危险操作谁批准的？能审计吗？」</h3>
+      <p>合规追问。<code>audit_logs</code> 全量记录敏感动作，<code>approval_requests</code> 留存审批链（前端 AgentDetail 有独立的 ApprovalsTab），危险操作审批留痕、可全量审计。</p>
+    </div>
+    <div class="value">
+      <div class="no">④</div>
+      <h3>「它现在是不是在正常运行？」</h3>
+      <p>运维追问。<code>/api/health</code> 与 <code>/api/version</code> 端点供探活与版本核对；前端 Aware 视图实时展示 Agent 自主触发的「内心独白」（Reflections），让人直观看到它在想什么。</p>
+    </div>
+  </div>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>把 Agent 的每一次「思考—行动—交付」变成结构化、可查询、可推送的数据资产，而不是一堆没人翻的日志文件。</h3>
+    <p>这是音巢与传统后端可观测性的根本分歧点：日志是给人排障用的副产品，而 agent_run_events 是产品功能本身的数据底座——前端实时视图、成本统计、审计合规全部长在同一张事件表上。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>四个设计决策，一条主线：观测数据是一等公民</h2>
+    <p>可观测性不是事后补的监控面板，而是和数据模型一起长出来的。音巢的每个决策都在回答同一个问题：这份数据以后要被谁、以什么方式消费？</p>
+  </div>
+
+  <div class="decision">
+    <h3>推理过程：打日志 vs 建成结构化事件表 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 传统做法：运行时往日志文件打 INFO 行，排障时 grep<br>② 音巢做法：run 生命周期的每个关键节点落成 agent_run_events 行（event_type + summary + JSONB payload + artifact_refs）</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>建成 append-only 的结构化事件表，日志（loguru）只留工程级调试信息</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>事件要被三种消费者用：前端实时渲染（WS 推送）、离线统计（按 tenant_id + event_type + created_at 索引检索）、审计回溯。日志做不到 SQL 可查、做不到幂等重放（事件表有 run_id + idempotency_key 唯一约束）、做不到级联删除（tenant 删除时 CASCADE 清理）。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>每次状态跃迁都多一次数据库写入；事件类型被 CheckConstraint 锁死在 13 种，新增类型要走迁移。换来的是「可查询、可重建、可推送」三个能力。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>token 计量：实时流式估算 vs 最终以 usage 为准 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 只在 LLM 响应结束时记录 usage（简单，但流式中断就丢账）<br>② 流式期间按字符估算，结束时以真实 usage 校准</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>两者结合：token_tracker 提供 estimate_tokens_from_chars（约 3 字符 ≈ 1 token）做兜底估算，extract_token_usage 兼容 OpenAI / Anthropic / Gemini 三种 usage 格式做精确结算</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>流式响应中断、供应商不回传 usage 都是常态；完全没有估算会让成本统计出现系统性低估。而估算必须有标记——TokenUsage 里 estimated_tokens 单列，不与真实量混淆。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>计量口径双轨制，对账时要区分 estimated 与真实值；但避免了「中断即丢账」的成本黑洞。</p></div>
+    </div>
+  </div>
+
+  <h3 class="sub">观测数据的四层模型</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">层</th><th>表 / 模型</th><th>回答的问题</th><th>消费者</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>运行实例</td>
+        <td class="mono">agent_runs</td>
+        <td>这次运行的整体状态、归属哪个租户哪个 Agent</td>
+        <td>运行列表、状态机</td>
+      </tr>
+      <tr>
+        <td>控制指令</td>
+        <td class="mono">agent_run_commands</td>
+        <td>谁在什么时间让它 start / resume / cancel（command_type 被约束为这三种）</td>
+        <td>command_worker 调度、操作审计</td>
+      </tr>
+      <tr>
+        <td>生命周期事件</td>
+        <td class="mono">agent_run_events</td>
+        <td>运行中发生了什么：run_created / status_changed / waiting_started / resumed / evidence_added / verification_updated / run_completed / run_failed / run_cancelled / delivery_* 等 13 类</td>
+        <td>前端实时视图、统计、溯源 <span class="badge rd">核心</span></td>
+      </tr>
+      <tr>
+        <td>工具执行</td>
+        <td class="mono">agent_tool_executions</td>
+        <td>每次工具调用的输入输出与成败</td>
+        <td>坏答案回溯、工具质量分析</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">治理数据的三张侧表</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">能力</th><th>表 / 模型</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>审计留痕</td><td class="mono">audit_logs + approval_requests</td><td>敏感动作全量审计；危险操作审批链留痕（前端 ApprovalsTab 消费）</td></tr>
+      <tr><td>活动与用量</td><td class="mono">agent_activity_logs + daily_token_usage</td><td>Agent 活动流水；token 日聚合（tenant × agent × date，upsert 累加）</td></tr>
+      <tr><td>通知触达</td><td class="mono">notifications</td><td>观测到异常/待办后的人肉触达通道（通知中心）</td></tr>
+    </tbody>
+  </table>
+
+  <div class="co teal">
+    <div class="co-t">设计主线</div>
+    <p>所有观测数据都带 <code>tenant_id</code> 且外键级联——多租户隔离从数据模型层就锁死；所有事件写入都幂等——<code>(run_id, idempotency_key)</code> 唯一约束保证重试不产生重复事件；所有计量都可区分真伪——estimated 与真实 usage 分列。<strong>观测系统的可信度，是靠约束而不是靠纪律保证的。</strong></p>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>一条事件流，两路消费；一条计量链，一道闸门</h2>
+    <p>观测体系的核心链路只有两条：事件从 Runtime 节点流出，一路实时推给前端，一路沉淀做统计；token 从 LLM 响应流出，累加进日聚合表，喂给配额闸门。下面是三张图和完整的代码依据。</p>
+  </div>
+
+  <div class="fig-t" id="fig-dataflow"><span class="fno">图 1</span><h3>观测数据流架构：一次落库，两路消费</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>Runtime 事件产生层（agent_runtime/）</h3><span class="need own">LangGraph 驱动</span></div>
+      <div class="boxes">
+        <div class="box"><b>node_executor / model_step_service</b><small>模型步执行：prompt 组装、LLM 调用、usage 提取</small></div>
+        <div class="box"><b>tool_step_service / tool_execution</b><small>工具步执行：调用、结果落 agent_tool_executions</small></div>
+        <div class="box"><b>checkpointer</b><small>LangGraph checkpoint：逐步状态的细粒度现场</small></div>
+        <div class="box"><b>trigger_completion</b><small>触发器 run 收尾：追加终态「内心独白」反思消息</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">事件投影：checkpoint → 产品事件（幂等落库，idempotency_key 去重）↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>事件存储层（PostgreSQL）</h3><span class="need own">append-only</span></div>
+      <div class="boxes">
+        <div class="box"><b>agent_run_events</b><small>13 类生命周期事件 · JSONB payload · 租户级索引</small></div>
+        <div class="box"><b>agent_runs / agent_run_commands</b><small>运行实例 + start/resume/cancel 指令流水</small></div>
+        <div class="box"><b>audit_logs / approval_requests</b><small>治理侧：审计与审批</small></div>
+        <div class="box"><b>daily_token_usage</b><small>token 日聚合（upsert 累加）</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">两路消费 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>实时消费路：WebSocket 推送</h3><span class="need auto">多实例经 Redis pub/sub 扇出</span></div>
+      <div class="boxes">
+        <div class="box"><b>realtime_runtime/router.py</b><small>连接注册进 Redis；publish 到 instance 频道扇出到正确实例</small></div>
+        <div class="box"><b>api/websocket.py</b><small>/ws/chat/{agent_id} 连接管理与会话级投递</small></div>
+        <div class="box"><b>前端 Aware 视图</b><small>AgentDetailPage 实时展示运行状态与 Reflections 内心独白</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">离线消费路 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>离线统计路：计量与聚合</h3><span class="need warn">配额闸门的数据源</span></div>
+      <div class="boxes">
+        <div class="box"><b>token_tracker.record_token_usage</b><small>双写：agents 表计数器 + daily_token_usage upsert</small></div>
+        <div class="box"><b>quota_guard</b><small>LLM 日调用数 / 会话配额 / 建 Agent 上限 / 有效期检查</small></div>
+        <div class="box"><b>前端 LlmTab / 企业设置</b><small>模型管理与用量展示</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">要点：事件只写一次（事件存储层是唯一事实源），实时路与统计路互不阻塞——WS 推送失败不影响落库，统计聚合失败不影响推送。多实例部署时，Redis pub/sub 按 instance 频道把事件路由到持有目标 WebSocket 连接的那个后端实例。</p>
+
+  <div class="fig-t" id="fig-trace"><span class="fno">图 2</span><h3>一次坏答案的溯源流程：从用户吐槽到具体翻车的那一步</h3></div>
+  <div class="flow">
+    <span class="chip dark">用户反馈<br>「这答案不对」</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">定位 chat_session<br>消息 → 会话</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">找到 agent_run<br>delivery_succeeded 事件反查</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">回放 agent_run_events<br>状态跃迁时间线</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">核对 agent_tool_executions<br>每次工具调用的输入/返回</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">对照 checkpoint<br>细粒度模型步现场</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">定位翻车点<br>prompt / 模型输出 / 工具返回</span>
+  </div>
+  <p class="fig-note">三级钻取的精度分工：agent_run_events 给出「哪个阶段出了问题」的时间线（等待、恢复、交付失败都有独立事件类型）；agent_tool_executions 给出「哪次工具调用返回了脏数据」；LangGraph checkpoint 保存逐步消息现场，给出「模型当时看到的上下文是什么」。三层各管一段，任何一层都不需要翻日志。</p>
+
+  <div class="fig-t" id="fig-cost"><span class="fno">图 3</span><h3>成本归因链：从一次 LLM 调用到配额闸门</h3></div>
+  <div class="flow">
+    <span class="chip dark">LLM 响应<br>usage 字段</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">extract_token_usage<br>兼容 OpenAI / Anthropic / Gemini</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">record_token_usage<br>agents 表三档计数器累加</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">daily_token_usage upsert<br>agent_id + date 冲突即累加</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">quota_guard 闸门<br>超阈抛 QuotaExceeded</span>
+  </div>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:170px">闸门</th><th>检查逻辑</th><th>超阈行为</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>LLM 日调用数</td>
+        <td class="mono">agent.llm_calls_today vs max_llm_calls_per_day，跨天自动清零（llm_calls_reset_at）</td>
+        <td>抛 <code>QuotaExceeded(quota_type="agent_llm")</code>，Agent 当日不再调用模型</td>
+      </tr>
+      <tr>
+        <td>用户会话配额</td>
+        <td class="mono">user.quota_messages_used vs quota_message_limit，按 daily/weekly/monthly/permanent 周期重置</td>
+        <td>拒绝新消息；platform_admin / org_admin 豁免</td>
+      </tr>
+      <tr>
+        <td>Agent 创建上限</td>
+        <td class="mono">用户名下未过期 Agent 计数 vs quota_max_agents</td>
+        <td>拒绝创建新 Agent</td>
+      </tr>
+      <tr>
+        <td>Agent 有效期</td>
+        <td class="mono">now &gt;= agent.expires_at 时标记 is_expired 并停心跳</td>
+        <td>过期 Agent 对外回复固定致歉文案，不再消耗资源</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="fig-note">注意一个诚实的口径：quota_guard 的闸门是<strong>调用次数</strong>维度而非 token 金额维度——token 计量（daily_token_usage）负责「算清账」，调用次数闸门负责「踩住刹车」。两者组合覆盖成本治理的两端：事后可归因，事前可兜底。计量用独立 DB session 落账（避免污染调用方事务），失败只记 warning 不打断主流程——<strong>观测绝不能拖垮业务</strong>。</p>
+
+  <h3 class="sub">代码依据（全部基于上游 main 分支 v1.11.5 核实）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:160px">功能点</th><th>关键路径</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>运行事件模型</td>
+        <td class="mono">backend/app/models/agent_run_event.py</td>
+        <td>agent_run_events 表：13 类事件 CheckConstraint、(run_id, idempotency_key) 幂等唯一、租户级索引、CASCADE 清理</td>
+      </tr>
+      <tr>
+        <td>事件流读取</td>
+        <td class="mono">backend/app/services/agent_runtime/event_stream.py</td>
+        <td>DatabaseRuntimeEventStream.stream_run：把事件表投影成 RuntimeEvent 流供消费</td>
+      </tr>
+      <tr>
+        <td>运行与指令模型</td>
+        <td class="mono">backend/app/models/agent_run.py<br>backend/app/models/agent_run_command.py</td>
+        <td>agent_runs 运行实例；agent_run_commands 指令流水（start / resume / cancel）</td>
+      </tr>
+      <tr>
+        <td>工具执行记录</td>
+        <td class="mono">backend/app/models/agent_tool_execution.py</td>
+        <td>agent_tool_executions 表：每次工具调用的留痕</td>
+      </tr>
+      <tr>
+        <td>token 计量</td>
+        <td class="mono">backend/app/services/token_tracker.py</td>
+        <td>三种供应商 usage 格式归一化；字符估算兜底；双写 agents 计数器 + daily_token_usage（on_conflict 累加）</td>
+      </tr>
+      <tr>
+        <td>日聚合表</td>
+        <td class="mono">backend/app/models/activity_log.py</td>
+        <td>DailyTokenUsage（daily_token_usage）与 AgentActivityLog（agent_activity_logs）同文件定义</td>
+      </tr>
+      <tr>
+        <td>配额闸门</td>
+        <td class="mono">backend/app/services/quota_guard.py</td>
+        <td>check_agent_llm_quota / check_conversation_quota / check_agent_creation_quota / check_agent_expired / enforce_heartbeat_floor</td>
+      </tr>
+      <tr>
+        <td>审计与审批</td>
+        <td class="mono">backend/app/models/audit.py<br>backend/app/services/audit_logger.py</td>
+        <td>audit_logs + approval_requests 模型；write_audit_log 裸 SQL INSERT 写入</td>
+      </tr>
+      <tr>
+        <td>实时推送</td>
+        <td class="mono">backend/app/api/websocket.py<br>backend/app/services/realtime_runtime/router.py</td>
+        <td>/ws/chat/{agent_id} 连接管理；Redis 连接注册表 + instance 频道 pub/sub 多实例扇出</td>
+      </tr>
+      <tr>
+        <td>内心独白</td>
+        <td class="mono">backend/app/services/agent_runtime/trigger_completion.py<br>frontend/src/pages/agent-detail/AgentDetailPage.tsx</td>
+        <td>触发器 run 终态追加 reflection 消息；前端 Aware 视图按会话加载展示（reflection-sessions）</td>
+      </tr>
+      <tr>
+        <td>活动 / 通知 / 设置 API</td>
+        <td class="mono">backend/app/api/activity.py<br>backend/app/api/notification.py<br>backend/app/api/advanced.py</td>
+        <td>Agent 活动流水查询；通知中心；系统设置（models/system_settings.py）</td>
+      </tr>
+      <tr>
+        <td>模型管理</td>
+        <td class="mono">backend/app/models/llm.py<br>frontend/src/pages/enterprise-settings/tabs/LlmTab.tsx</td>
+        <td>llm_models 表；前端企业设置的模型管理页</td>
+      </tr>
+      <tr>
+        <td>健康与版本</td>
+        <td class="mono">backend/app/main.py（480–518 行）</td>
+        <td>/api/health 探活；/api/version 返回版本与 commit hash（启动时加载并缓存）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="co amber">
+    <div class="co-t">一处与直觉不符的核实结论</div>
+    <p>前端 <code>MindTab.tsx</code> 并不是「内心独白」视图——它是 Agent 灵魂文件的浏览器（soul.md / memory/ / HEARTBEAT.md）。真正的 Reflections 展示在 <strong>AgentDetailPage 的 Aware 侧栏</strong>：数据来自触发器自主运行产生的会话（trigger_completion 在 run 收尾时写入终态反思消息）。写文档、做分享时以源码为准，不要望文生义。</p>
+  </div>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudocode">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：事件怎么流出去，token 怎么变成闸门</h2>
+    <p>伪代码提炼自上游实现，省略错误处理与多租户样板，只保留机制主干。</p>
+  </div>
+
+  <h3 class="sub">闭环一：事件埋点 → 落库 → 实时推送</h3>
+  <div class="cb"><span class="tk-c"># ── 节点执行时埋点：事件是唯一事实源，推送只是投影 ──</span>
+<span class="tk-k">async def</span> <span class="tk-f">emit_run_event</span>(run, event_type, summary, payload={}):
+    event = <span class="tk-t">AgentRunEvent</span>(
+        run_id=run.id, tenant_id=run.tenant_id, agent_id=run.agent_id,
+        event_type=event_type,          <span class="tk-c"># 13 类之一，CheckConstraint 兜底</span>
+        summary=summary, payload=payload,
+        idempotency_key=<span class="tk-s">f"</span><span class="tk-k">{</span>run.id<span class="tk-k">}</span><span class="tk-s">:</span><span class="tk-k">{</span>event_type<span class="tk-k">}</span><span class="tk-s">:</span><span class="tk-k">{</span>checkpoint_id<span class="tk-k">}</span><span class="tk-s">"</span>,
+        source_checkpoint_id=checkpoint_id,
+    )
+    <span class="tk-k">await</span> db.<span class="tk-f">execute</span>(
+        <span class="tk-f">insert</span>(<span class="tk-t">AgentRunEvent</span>).values(...)
+        .<span class="tk-f">on_conflict_do_nothing</span>()   <span class="tk-c"># 重试幂等：同一 checkpoint 不重复成事件</span>
+    )
+    <span class="tk-k">await</span> db.<span class="tk-f">commit</span>()
+    <span class="tk-c"># 落库成功后才推送——推送失败不影响事实源</span>
+    <span class="tk-k">await</span> realtime.<span class="tk-f">publish_to_agent</span>(run.agent_id, {
+        <span class="tk-s">"type"</span>: <span class="tk-s">"run_event"</span>, <span class="tk-s">"event"</span>: <span class="tk-f">to_dict</span>(event),
+    })
+
+<span class="tk-c"># ── 多实例扇出：事件路由到持有 WS 连接的那个实例 ──</span>
+<span class="tk-k">async def</span> <span class="tk-f">publish_to_agent</span>(agent_id, message):
+    redis = <span class="tk-k">await</span> <span class="tk-f">get_redis</span>()
+    conn_ids = <span class="tk-k">await</span> redis.<span class="tk-f">smembers</span>(agent_index_key(agent_id))
+    <span class="tk-k">for</span> cid <span class="tk-k">in</span> conn_ids:
+        conn = <span class="tk-k">await</span> redis.<span class="tk-f">hgetall</span>(connection_key(cid))
+        <span class="tk-k">if</span> conn[<span class="tk-s">"instance"</span>] == MY_INSTANCE_ID:
+            ws_manager.<span class="tk-f">deliver_local</span>(cid, message)      <span class="tk-c"># 本实例直投</span>
+        <span class="tk-k">else</span>:
+            <span class="tk-k">await</span> redis.<span class="tk-f">publish</span>(                    <span class="tk-c"># 跨实例走 pub/sub</span>
+                <span class="tk-s">f"realtime:instance:</span><span class="tk-k">{</span>conn[<span class="tk-s">'instance'</span>]<span class="tk-k">}</span><span class="tk-s">"</span>, envelope)
+
+<span class="tk-c"># ── 前端订阅：事件驱动 UI 刷新（Aware 视图 / 运行状态）──</span>
+ws = <span class="tk-k">new</span> <span class="tk-f">WebSocket</span>(<span class="tk-s">`/ws/chat/</span><span class="tk-k">${</span>agentId<span class="tk-k">}</span><span class="tk-s">`</span>)
+ws.onmessage = (frame) =&gt; {
+    <span class="tk-k">if</span> (frame.type === <span class="tk-s">"run_event"</span>) <span class="tk-f">renderTimeline</span>(frame.event)
+}</div>
+
+  <h3 class="sub">闭环二：LLM usage → 日聚合 → 配额闸门</h3>
+  <div class="cb"><span class="tk-c"># ── 计量：usage 归一化 → 双写（计数器 + 日聚合）──</span>
+<span class="tk-k">async def</span> <span class="tk-f">after_llm_response</span>(agent_id, response):
+    usage = <span class="tk-f">extract_token_usage</span>(response.usage)   <span class="tk-c"># OpenAI / Anthropic / Gemini 通吃</span>
+    <span class="tk-k">if</span> usage <span class="tk-k">is</span> <span class="tk-t">None</span>:                       <span class="tk-c"># 流式中断 / 供应商不回传</span>
+        usage = <span class="tk-f">estimate_token_usage_from_chars</span>(total_chars)  <span class="tk-c"># ~3 字符 ≈ 1 token</span>
+    <span class="tk-k">if</span> usage.total_tokens &lt;= <span class="tk-n">0</span>:
+        <span class="tk-k">return</span>
+    <span class="tk-k">async with</span> <span class="tk-f">independent_session</span>() <span class="tk-k">as</span> db:  <span class="tk-c"># 独立事务：记账失败不拖垮主流程</span>
+        agent = <span class="tk-k">await</span> db.<span class="tk-f">get</span>(<span class="tk-t">Agent</span>, agent_id)
+        agent.tokens_used_today += usage.total_tokens    <span class="tk-c"># 日 / 月 / 累计三档</span>
+        agent.tokens_used_month += usage.total_tokens
+        agent.tokens_used_total += usage.total_tokens    <span class="tk-c"># 缓存读写 token 同理分列</span>
+        <span class="tk-k">await</span> db.<span class="tk-f">execute</span>(
+            <span class="tk-f">insert</span>(<span class="tk-t">DailyTokenUsage</span>).values(
+                tenant_id=agent.tenant_id, agent_id=agent.id,
+                date=<span class="tk-f">utc_today</span>(), tokens_used=usage.total_tokens, ...)
+            .<span class="tk-f">on_conflict_do_update</span>(           <span class="tk-c"># (agent_id, date) 冲突即累加</span>
+                index_elements=[<span class="tk-s">"agent_id"</span>, <span class="tk-s">"date"</span>],
+                set_={<span class="tk-s">"tokens_used"</span>: <span class="tk-t">DailyTokenUsage</span>.tokens_used + usage.total_tokens, ...})
+        )
+        <span class="tk-k">await</span> db.<span class="tk-f">commit</span>()
+
+<span class="tk-c"># ── 闸门：每次调模型前先过检 ──</span>
+<span class="tk-k">async def</span> <span class="tk-f">before_llm_call</span>(agent_id):
+    agent = <span class="tk-k">await</span> <span class="tk-f">load_agent</span>(agent_id)
+    <span class="tk-k">if</span> agent.is_expired <span class="tk-k">or</span> <span class="tk-f">utcnow</span>() &gt;= agent.expires_at:
+        <span class="tk-k">raise</span> <span class="tk-t">AgentExpired</span>(agent.name)          <span class="tk-c"># 有效期闸</span>
+    <span class="tk-k">if</span> <span class="tk-f">utcnow</span>().date() &gt; agent.llm_calls_reset_at.date():
+        agent.llm_calls_today = <span class="tk-n">0</span>                  <span class="tk-c"># 跨天清零</span>
+    <span class="tk-k">if</span> agent.llm_calls_today &gt;= agent.max_llm_calls_per_day:
+        <span class="tk-k">raise</span> <span class="tk-t">QuotaExceeded</span>(quota_type=<span class="tk-s">"agent_llm"</span>)  <span class="tk-c"># 调用数闸</span>
+    agent.llm_calls_today += <span class="tk-n">1</span></div>
+
+  <p class="fig-note">两个闭环共同的设计纪律：<strong>事实源优先</strong>（事件先落库再推送，token 先记真账再估算兜底）、<strong>失败隔离</strong>（推送失败、记账失败都只降级不打断）、<strong>幂等兜底</strong>（事件靠 idempotency_key，日聚合靠 upsert，重试安全）。</p>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，考察的是「Agent 系统观」而不是八股</h2>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 传统可观测性三支柱（logs / metrics / traces）在 Agent 系统里如何映射？</div>
+    <p>音巢给出了一个具体答案：<strong>logs → agent_run_events</strong>（但不是「日志搬家」，而是把非确定性的推理过程结构化成 13 类可查询事件）；<strong>metrics → daily_token_usage + agents 表三档计数器</strong>（成本是这个系统最重要的指标，没有之一）；<strong>traces → agent_runs → agent_run_commands → agent_run_events → agent_tool_executions 的四层钻取</strong>（一次 run 就是一条 trace，checkpoint 提供 span 级现场）。差异在于：传统 trace 的 span 是确定的函数调用，Agent trace 的「span」是一次模型推理——内容本身就是要观测的对象，所以 payload 必须是 JSONB 结构化存储，而不是一行文本。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · 为什么把推理过程做成一等公民数据（agent_run_events 表），而不是打日志？</div>
+    <p>因为它有三种日志满足不了的消费者：① <strong>产品功能</strong>——前端要实时渲染运行状态与内心独白，日志没法被前端订阅；② <strong>统计分析</strong>——按 tenant_id + event_type + created_at 的复合索引做 SQL 聚合，日志做不了；③ <strong>审计合规</strong>——事件随租户 CASCADE 删除、靠 (run_id, idempotency_key) 幂等，日志两者都做不到。本质判断标准是：<strong>这份数据是「副产品」还是「产品」</strong>。在 Agent 平台里，可观测性数据就是产品功能本身（Mind/Aware 视图、成本报表都长在它上面），所以它必须进数据库、必须有约束、必须有索引。loguru 日志在音巢里只剩一个角色：工程级调试。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 流式 token 计量与最终 usage 不一致怎么处理？</div>
+    <p>音巢的策略是「双轨 + 标记」：流式期间或供应商不回传 usage 时，用 estimate_tokens_from_chars（约 3 字符 ≈ 1 token）估算，估算值记入 TokenUsage 的 <strong>estimated_tokens 独立字段</strong>，与真实 input/output 分列落 daily_token_usage——对账时永远分得清哪部分是估的。拿到真实 usage 后（extract_token_usage 兼容 OpenAI 的 prompt_tokens、Anthropic 的 input_tokens、Gemini 的 promptTokenCount 三种格式，连 prompt cache 的读写都单列），以真实值为准结算。工程上还有两个细节：计量走独立 DB session，记账失败只 warning 不打断对话；total_tokens ≤ 0 直接丢弃，避免脏数据污染聚合。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · 审计日志的写入性能与合规保留怎么平衡？</div>
+    <p>音巢 audit_logger 的选择是<strong>裸 SQL INSERT</strong>（write_audit_log 直接拼 INSERT INTO audit_logs）——绕过 ORM 的对象构造与变更追踪开销，审计写入是高频旁路操作，越轻越好。合规侧的设计是「分层留痕」：危险操作不只写 audit_logs，还生成 approval_requests 审批单（前端有独立 ApprovalsTab），审批链是显式数据而不是日志里的暗文。性能与合规真正的矛盾点在「全量 vs 抽样」——音巢的做法是审计动作分类（AuditAction 枚举），写操作全量、读操作按需，避免审计表被查询流量打爆。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · 如何向非技术管理者解释 Agent 的行为？观测数据的产品价值在哪？</div>
+    <p>这是音巢把「内心独白」（Reflections）做成前端功能的动机。触发器自主运行的 Agent 在收尾时会写一条终态反思消息（trigger_completion 追加 reflection），前端 Aware 视图把这些反思按会话展示成时间线——管理者看到的不是「CPU 利用率」，而是「它今天主动巡检了什么、得出了什么结论、为什么决定不打扰你」。<strong>观测数据从运维工具升维成信任工具</strong>：用户敢不敢让 Agent 自主干活，取决于他能不能随时看到 Agent 在想什么。技术上这条链路零额外成本——反思就是 chat 会话里的消息，复用全部既有管道，产品价值却极高。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · 观测数据本身的存储膨胀怎么治理？</div>
+    <p>先澄清一个容易混淆的点：上游的 run_compactor.py 压缩的不是观测数据，而是 LangGraph 线程上下文（在 token 预算高水位时压缩消息历史，保持原子工具调用边界）——它是「控制未来产生多少观测数据」的上游手段。对已落库的观测数据，音巢的治理靠三层：① <strong>事件类型收敛</strong>——CheckConstraint 把事件锁死在 13 种生命周期节点，不允许把每条模型输出都塞成事件（细粒度现场留在 checkpoint 里，事件表只存「产品级」跃迁），从源头控制行数；② <strong>级联清理</strong>——tenant / run 删除时事件 CASCADE 跟着走，不留孤儿数据；③ <strong>聚合替代明细</strong>——成本维度只保留 daily_token_usage 日聚合，明细用完即弃。经验法则是：<strong>观测系统的存储设计，从第一天就要回答「什么数据活得比它的消费者久」。</strong></p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>观测 Agent，就是观测「不确定性」本身</h2>
+    <p>传统后端的行为是代码决定的，看日志就够了；Agent 的行为是模型在运行时决定的，每一次推理都是一次新的决策。</p>
+    <p>所以音巢把推理过程建成事件表、把成本建成日聚合、把审批建成数据单——不是为了监控，而是为了信任。</p>
+    <p class="big">看得见，才敢放手。可观测性不是 Agent 平台的附属功能，它是自主性的前提。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 看见 Agent 在想什么：运行事件流、内心独白与成本归因 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    <a href="yinchao-10-multitenancy.html">上一篇 · 多租户与隔离</a> · 文中所有代码路径均经上游仓库逐一核实
+  </div>
+</footer>
+
+</body>
+</html>

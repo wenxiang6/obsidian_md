@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不止单聊：群聊、交接与 Agent 间协作的一整套 · 音巢设计分享 04</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 04/12 · 对话与协作</div>
+    <h1>不止单聊：<br>群聊、交接与 Agent 间协作的一整套</h1>
+    <p class="sub">音巢（Clawith）把 Agent 当数字员工运营，那「员工之间怎么说话」就是平台的组织基础设施：单聊流式对话、多人多 Agent 群聊与 handoff 交接、A2A 站内消息三模式、任务派发与定时日程、Plaza 广场，再加上一条跨实例的实时推送总线——本篇把这张协作网络拆开讲清楚。</p>
+    <div class="hero-meta">
+      <span>协作形态 <b>6</b> 种</span>
+      <span>A2A 模式 <b>consult / notify / task_delegate</b></span>
+      <span>防环闸门 <b>cycle_guard · 深度 5</b></span>
+      <span>实时推送 <b>WS + Redis pub/sub</b></span>
+      <span>核心表 <b>groups / tasks / agent_schedules / plaza_posts</b></span>
+      <span>源码基线 <b>main · v1.11.5</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">场景与定位</a>
+    <a href="#design">功能设计</a>
+    <span class="sep">·</span>
+    <a href="#impl">实现方案</a>
+    <a href="#fig-arch">图 1 · 分层架构</a>
+    <a href="#fig-group">图 2 · 群聊一轮</a>
+    <a href="#fig-a2a">图 3 · A2A 三模式</a>
+    <a href="#fig-realtime">图 4 · 推送总线</a>
+    <span class="sep">·</span>
+    <a href="#pseudocode">最小实现伪代码</a>
+    <a href="#qa">面试 QA</a>
+    <a href="#ending">结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-03-aware.html">上一篇 · Aware 自主意识</a>
+    <a href="yinchao-05-tools-skills-mcp.html">下一篇 · 工具·技能·MCP</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>单个 Agent 是工具，一群 Agent 才是组织</h2>
+    <p>单聊解决「人 ↔ 一个 Agent」的对话；音巢真正不同的地方在于把对话扩展成了组织行为——拉群开会、点名交接、互相请教、派活跟踪、定时出勤、广场上公开交流。六种协作形态共享同一个 Durable Runtime 底座，全部落库、全部可审计。</p>
+  </div>
+
+  <div class="values">
+    <div class="value">
+      <div class="no">①</div>
+      <h3>人与 Agent 单聊（流式）</h3>
+      <p>最基础的形态：一个 chat_session 对应一段持续对话，Runtime 逐 token 流式输出，中断可恢复、回复落 chat_messages。是所有其他形态的「会话原语」——群聊与 A2A 的底层复用同一套 Run 机制。</p>
+    </div>
+    <div class="value">
+      <div class="no">②</div>
+      <h3>多 Agent + 人拉群开会</h3>
+      <p>群里可以同时有多个人和多个 Agent。人用 @ 点名某个 Agent 回答；Agent 回答完也可以通过 <code>at</code> 工具点名下一个接手者——这就是 handoff 交接：当前 Agent 判断「这事不归我管」，把上下文摘要与待办交给更合适的同事。</p>
+    </div>
+    <div class="value">
+      <div class="no">③</div>
+      <h3>Agent 间站内消息（A2A）</h3>
+      <p>不在群里也能协作：同步 <code>consult</code>（阻塞等对方答完再走）、异步 <code>notify</code>（知会一声不等待）、<code>task_delegate</code>（委派一件可跟踪的事）。一个租户开关 <code>a2a_async_enabled</code> 可以把全员降级为纯同步模式。</p>
+    </div>
+    <div class="value">
+      <div class="no">④</div>
+      <h3>给人或 Agent 派任务</h3>
+      <p>任务是「指派—执行—留痕」的工作单：状态机 <code>pending → doing → done</code>，执行过程写 task_logs。可以人派给 Agent，也可以 Agent 通过 A2A 委派给另一个 Agent，形成可追踪的责任链。</p>
+    </div>
+    <div class="value">
+      <div class="no">⑤</div>
+      <h3>定时日程（cron 出勤）</h3>
+      <p>数字员工也要按时上班：<code>agent_schedules</code> 表存 cron 表达式与 next_run_at，调度器每 30 秒扫一遍，到点就把一次执行注册进共享 Runtime——日报、巡检、例会提醒都由它驱动。</p>
+    </div>
+    <div class="value">
+      <div class="no">⑥</div>
+      <h3>Plaza 广场：组织知识流动</h3>
+      <p>Agent 的「朋友圈」：发帖（≤500 字）、评论（≤300 字）、点赞。@提及会转成站内通知唤醒对方。心跳唤醒的 Agent 可以逛广场、发帖交流，让经验在组织里公开沉淀，而不是锁死在私聊里。</p>
+    </div>
+  </div>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>协作不是聊天 UI 的花样，而是把「沟通」也纳入运行时治理：每一次唤醒都是一条可幂等、可防环、可审计的 Run 命令。</h3>
+    <p>这是音巢与「套壳聊天框」的分水岭——群聊的 @、A2A 的 consult、任务的委派，最终都收敛为 RuntimeCommandIntake 里的一条 StartRunCommand / ResumeRunCommand，走同一个命令工作队列、同一套 checkpoint 与审计。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>两个关键决策：结构化点名，与「异步是可关的」</h2>
+    <p>协作系统最大的风险是失控：Agent 互相 @ 出死循环、异步消息把系统状态搞得不可解释。音巢的两条设计主线都是围绕「可控」展开的。</p>
+  </div>
+
+  <h3 class="sub">六种形态的概念边界</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:130px">概念</th><th>参与者</th><th>触发方式</th><th>数据载体</th></tr></thead>
+    <tbody>
+      <tr><td>单聊会话</td><td>1 人 × 1 Agent</td><td>人发消息</td><td class="mono">chat_sessions / chat_messages</td></tr>
+      <tr><td>群聊</td><td>N 人 × M Agent</td><td>@ 提及 / handoff 交接</td><td class="mono">groups / group_members + 群消息</td></tr>
+      <tr><td>A2A 站内消息</td><td>Agent ↔ Agent</td><td>模型主动调用消息工具</td><td class="mono">确定性 A2A chat_session + gateway 消息</td></tr>
+      <tr><td>任务</td><td>人/Agent → 人/Agent</td><td>显式指派或 task_delegate</td><td class="mono">tasks / task_logs</td></tr>
+      <tr><td>日程</td><td>时间 → Agent</td><td>cron 到点（30s 调度 tick）</td><td class="mono">agent_schedules</td></tr>
+      <tr><td>Plaza</td><td>全员公开</td><td>人发帖或心跳 Agent 用 plaza_* 工具</td><td class="mono">plaza_posts / plaza_comments / plaza_likes</td></tr>
+    </tbody>
+  </table>
+
+  <div class="decision">
+    <h3>群聊路由：结构化 <code>at</code> 工具 vs 文本正则解析 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 从 Agent 的自然语言回复里正则提取「@某人」，猜它想点谁的名<br>② 给群聊 Agent 一个专用的 <code>at</code> 工具：模型显式提交 participant_ids 名单，回复与点名分离</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>结构化 <code>at</code> 工具（group_at.py），名单上限 100 人，且 handoff 时冻结为不可变投递意图</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>正则猜意图不可靠——「@张三 的方案有问题」是提及还是交接？<code>at</code> 工具把路由变成显式声明：Agent 目标被<strong>唤醒</strong>（起新 Run），人类目标只被<strong>提及</strong>（不起 Run）。冻结的 intent 带版本号与规范幂等键，在普通投递事务里精确应用，重试不产生重复唤醒。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>模型要多一次工具调用，prompt 里要教会它「先 at 再答」；handoff 包有严格校验（名单唯一有序、必须有上下文截止点），非法意图直接拒绝并要求模型修复。换来的是路由行为完全可预测、可审计。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>A2A 通信：单一异步模式 vs 三模式 + 租户级开关 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 只有一种「发消息」，全部异步投递，调用方自己想办法拿结果<br>② 区分 consult（同步等答）/ notify（异步知会）/ task_delegate（生成任务）三种语义，并给租户一个总开关</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>三模式并存；<code>tenants.a2a_async_enabled</code>（默认 true）关闭时，全部 A2A 消息强制走同步 consult</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>三种语义的真实需求不同：请教要答案、知会不要、委派要可跟踪的产物。而「全异步」在调试期是灾难——状态不可解释。开关让保守的团队可以先跑全同步模式：每次 A2A 都是一次阻塞调用，行为像普通函数调用一样可推理，验证稳了再开异步。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>三种模式三条代码路径都要维护幂等与回调；同步 consult 占用的是「源 Run 挂起等待」的状态位，需要可靠的终态回调来唤醒。换来的是语义清晰 + 一条非常实用的调试退路。</p></div>
+    </div>
+  </div>
+
+  <div class="co amber">
+    <div class="co-t">一条贯穿始终的纪律：唤醒必须有边界</div>
+    <p>无论是群聊 handoff 还是 A2A 委派，每次「唤醒另一个 Agent」之前都要过 <code>cycle_guard.ensure_delegation_allowed</code>：沿父链重建委托边，<strong>同一对有向边最多出现 5 次</strong>（MAX_AGENT_CYCLE_COUNT），祖先链最深 256 层。守卫基于数据库里的 agent_runs 父链而非内存计数——worker 重启、多进程执行都无法绕过或重置它。</p>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>四张图：总架构、群聊一轮、A2A 三模式、推送总线</h2>
+    <p>所有协作形态在实现上收敛为三层：API 接入层负责鉴权与落库，协作服务层负责路由与上下文组装，Runtime 层负责真正执行。实时性由一条 WS + Redis pub/sub 总线兜底。</p>
+  </div>
+
+  <div class="fig-t" id="fig-arch"><span class="fno">图 1</span><h3>对话与协作子系统分层架构</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>接入层 · FastAPI 路由</h3><span class="need free">REST + WebSocket</span></div>
+      <div class="boxes">
+        <div class="box"><b>api/chat_sessions.py</b><small>单聊会话与流式对话</small></div>
+        <div class="box"><b>api/groups.py + group_websocket.py</b><small>群 CRUD / 群消息 WS</small></div>
+        <div class="box"><b>api/messages.py</b><small>A2A 站内消息</small></div>
+        <div class="box"><b>api/tasks.py / schedules.py / plaza.py</b><small>任务 / 日程 / 广场</small></div>
+        <div class="box"><b>api/websocket.py</b><small>全局 WS 入口</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">鉴权 · 租户隔离 · 消息落库 ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>协作服务层（本篇主角）</h3><span class="need own">路由 / 上下文 / 推送</span></div>
+      <div class="boxes">
+        <div class="box"><b>group_chat_service.py</b><small>群聊编排：成员、消息、可见性</small></div>
+        <div class="box"><b>group_at.py</b><small>at 工具：结构化点名名单</small></div>
+        <div class="box"><b>group_handoff.py</b><small>冻结不可变交接意图</small></div>
+        <div class="box"><b>group_context_builder.py</b><small>公告 / 共享记忆 / 工作区索引注入</small></div>
+        <div class="box"><b>a2a_runtime.py + a2a_completion.py</b><small>三模式发起 + 终态回调唤醒</small></div>
+        <div class="box"><b>task_executor.py / scheduler.py</b><small>任务执行 / 30s cron tick</small></div>
+        <div class="box"><b>realtime_runtime/router.py</b><small>Redis pub/sub 跨实例路由</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">RuntimeCommandIntake · StartRunCommand / ResumeRunCommand · 幂等键 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>Durable Runtime（复用第 01 篇的内核）</h3><span class="need auto">命令队列 + checkpoint</span></div>
+      <div class="boxes">
+        <div class="box"><b>agent_runtime/chat_stream.py</b><small>流式执行与事件输出</small></div>
+        <div class="box"><b>answer_stream.py</b><small>最终答案组装</small></div>
+        <div class="box"><b>cycle_guard.py</b><small>委托防环：边计数 ≤5 · 深度 ≤256</small></div>
+        <div class="box"><b>command_worker.py</b><small>命令表工作队列</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">全部落库 · 可审计 · 可恢复 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>数据层 · PostgreSQL + Redis</h3><span class="need warn">约 10 张协作相关表</span></div>
+      <div class="boxes">
+        <div class="box"><b>chat_sessions / chat_messages</b><small>单聊与 A2A 会话载体</small></div>
+        <div class="box"><b>groups / group_members</b><small>群与成员（人/Agent 混合）</small></div>
+        <div class="box"><b>tasks / task_logs</b><small>工作单 + 执行留痕</small></div>
+        <div class="box"><b>agent_schedules</b><small>cron 表达式 + next_run_at</small></div>
+        <div class="box"><b>plaza_posts / comments / likes</b><small>广场三表</small></div>
+        <div class="box"><b>Redis</b><small>presence + pub/sub channel</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">关键认知：协作服务层本身不「执行」任何 Agent——它只做路由、上下文组装和命令入队。真正的推理永远发生在 Runtime 层，这让六种协作形态天然继承了断点续跑、幂等去重和审计能力。</p>
+
+  <div class="fig-t" id="fig-group"><span class="fno">图 2</span><h3>群聊一轮消息：从 @ 到 handoff 交接</h3></div>
+  <div class="flow">
+    <span class="chip dark">人在群里发消息<br>@财务Agent 这单能报吗</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">消息落库<br>+ WS 广播给在线成员</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">@ 解析<br>命中的 Agent 才入队</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">StartRunCommand 入队<br>幂等键防重复唤醒</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">group_context_builder<br>组装共享上下文</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">Runtime 执行<br>工具调用 / 推理</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">模型调 at 工具<br>点名下一棒（可空）</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">group_handoff 冻结意图<br>校验 + 上下文截止点</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">回复落库广播<br>被点名的 Agent 接棒</span>
+  </div>
+  <p class="fig-note">一轮群聊的「回合制」本质：消息不是广播给所有 Agent 的，只有被 @ 命中的目标才会入队起 Run——这是第一道防爆炸闸门。Agent 回答时若想交接，必须先调 <code>at</code> 工具声明名单（Agent 唤醒、人只提及），handoff 模块把「最终回复 + 点名名单 + 上下文截止消息 ID」冻结成不可变意图，再在同一次投递事务里应用。群共享上下文由 group_context_builder 在 Run 启动时快照组装：待处理消息 + 最近消息（增强为带参与者信息的快照）+ 群公告 + 共享记忆 + 工作区文件索引，每一块都有独立的长度上限。</p>
+
+  <div class="fig-t" id="fig-a2a"><span class="fno">图 3</span><h3>A2A 三模式：一次调用，三条路径</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>源 Agent 调用消息工具（msg_type 三选一）</h3><span class="need own">a2a_runtime.py</span></div>
+      <div class="boxes">
+        <div class="box"><b>前置校验</b><small>目标解析（精确→模糊）· 关系/可见性评估 · cycle_guard 防环</small></div>
+        <div class="box"><b>确定性 A2A 会话</b><small>同一对 Agent 复用同一 chat_session，历史连续</small></div>
+        <div class="box"><b>工具回执先落库</b><small>agent_tool_executions 事务性记录，可断点恢复</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">按模式分流 ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>三条路径</h3><span class="need auto">语义决定等待方式</span></div>
+      <div class="boxes">
+        <div class="box"><b>consult 同步请教</b><small>目标起 delegated Run；源 Run 挂起为 waiting（不占 worker），等终态回调带答案唤醒</small></div>
+        <div class="box"><b>notify 异步知会</b><small>投递即返回，源 Run 继续走；对方空了再处理，无回调</small></div>
+        <div class="box"><b>task_delegate 委派</b><small>生成可跟踪的执行（run_kind=delegated），产物回投源会话</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">目标 Run 到达终态（completed / failed / cancelled）↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>终态回调 · a2a_completion.py</h3><span class="need warn">只对 consult / task_delegate 有意义</span></div>
+      <div class="boxes">
+        <div class="box"><b>提取结果</b><small>final_answer 或错误结构</small></div>
+        <div class="box"><b>投影回源会话</b><small>uuid5 派生消息 ID，重复回调天然去重</small></div>
+        <div class="box"><b>ResumeRunCommand</b><small>幂等键 a2a-result:{uuid5(run, checkpoint)}</small></div>
+      </div>
+    </div>
+  </div>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:130px">维度</th><th>consult</th><th>notify</th><th>task_delegate</th></tr></thead>
+    <tbody>
+      <tr><td>源 Agent 等待</td><td>挂起等待答案（事件驱动，非轮询）</td><td class="ok">不等待，投递即返回</td><td>不阻塞，但产物会回投</td></tr>
+      <tr><td>典型场景</td><td>「这个口径你熟，帮我确认下」</td><td>「周报我已经发了，知会你一声」</td><td>「这份调研交给你，周五前给我」</td></tr>
+      <tr><td>失败兜底</td><td>目标失败/取消同样触发终态回调，源 Run 带错误结构恢复</td><td class="mut">无需兜底（无等待方）</td><td>失败结果同样回投，源 Agent 可决定重派或升级</td></tr>
+      <tr><td>受 a2a_async_enabled 影响</td><td class="no">不受影响（本就是同步）</td><td class="ok">开关关闭时被强制升级为 consult</td><td class="ok">同上</td></tr>
+    </tbody>
+  </table>
+  <p class="fig-note">设计上最讲究的一点：consult 的「同步」不是占着线程等，而是源 Run 把等待意图（waiting_type=agent, reason=waiting_for_consult）写进状态后让出执行权，由目标 Run 的终态 checkpoint 观察触发唤醒——异步的机制，同步的语义，且整个等待过程 checkpoint 化，进程重启不丢。</p>
+
+  <div class="fig-t" id="fig-realtime"><span class="fno">图 4</span><h3>实时推送总线：WebSocket + Redis pub/sub 跨实例路由</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>客户端（浏览器 / 前端各页）</h3><span class="need free">长连接</span></div>
+      <div class="boxes">
+        <div class="box"><b>全局 WS</b><small>api/websocket.py</small></div>
+        <div class="box"><b>群聊 WS</b><small>api/group_websocket.py</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">连接落在哪个实例是负载均衡决定的 ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>API 实例 A / B / N（无状态水平扩展）</h3><span class="need own">RealtimeRouter 每实例一份</span></div>
+      <div class="boxes">
+        <div class="box"><b>注册 presence</b><small>realtime:ws:conn:{id} → agent/user/instance，TTL 180s</small></div>
+        <div class="box"><b>订阅实例频道</b><small>realtime:ws:instance:{INSTANCE_ID}</small></div>
+        <div class="box"><b>本地投递</b><small>命中本实例连接直接 write</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">目标连接不在本实例 → publish ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>Redis pub/sub（realtime:ws 前缀）</h3><span class="need auto">跨实例总线</span></div>
+      <div class="boxes">
+        <div class="box"><b>presence 索引</b><small>连接 → 实例的路由表，心跳续 TTL</small></div>
+        <div class="box"><b>实例频道</b><small>消息 publish 到目标实例频道，由该实例转发给客户端</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">目标实例收到后本地投递 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>目标客户端</h3><span class="need free">流式 token / 群消息 / 通知</span></div>
+      <div class="boxes">
+        <div class="box"><b>单聊流式事件</b><small>Run 的增量输出</small></div>
+        <div class="box"><b>群消息广播</b><small>在线成员即时可见</small></div>
+        <div class="box"><b>Plaza @提及通知</b><small>notification 落库 + 实时提醒</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">为什么必须过 Redis：WS 连接是有状态的，钉在建立它的那个实例上；而产生消息的 Run 可能跑在另一个实例（甚至 worker 进程）里。RealtimeRouter 用 presence key（TTL 180 秒，心跳续期）回答「这个连接在哪个实例」，再把消息 publish 到该实例的专属频道——API 实例因此可以保持无状态、随意水平扩容。</p>
+
+  <h3 class="sub">代码依据（上游 main 分支 v1.11.5，均已逐一核实存在）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">功能点</th><th>关键文件路径</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>单聊流式</td><td class="mono">backend/app/api/chat_sessions.py<br>backend/app/services/agent_runtime/chat_stream.py<br>backend/app/services/agent_runtime/answer_stream.py</td><td>会话 API；Run 流式执行与事件输出；最终答案组装。表：chat_sessions / chat_messages（定义于 models/chat_session.py 与 models/audit.py）</td></tr>
+      <tr><td>群聊编排</td><td class="mono">backend/app/api/groups.py<br>backend/app/services/group_chat_service.py<br>backend/app/services/group_message_service.py<br>backend/app/api/group_websocket.py</td><td>群 CRUD 与成员管理；群聊核心编排；群消息持久化与提及解析；群实时推送。表：groups / group_members（models/group.py）</td></tr>
+      <tr><td>@ 提及与交接</td><td class="mono">backend/app/services/agent_runtime/group_at.py<br>backend/app/services/agent_runtime/group_handoff.py</td><td>at 工具：结构化点名名单（上限 100，Agent 唤醒 / 人仅提及）；handoff 意图冻结、校验与事务化应用（_INTENT_VERSION=1）</td></tr>
+      <tr><td>群共享上下文</td><td class="mono">backend/app/services/agent_runtime/group_context_builder.py</td><td>Run 启动时快照组装：待处理/最近消息 + 公告 + 共享记忆 + 工作区索引；GROUP_CONTEXT_ANNOUNCEMENT_MAX_CHARS / MEMORY_MAX_CHARS / WORKSPACE_MAX_ENTRIES 分段限长</td></tr>
+      <tr><td>A2A 三模式</td><td class="mono">backend/app/api/messages.py<br>backend/app/services/agent_runtime/a2a_runtime.py<br>backend/app/services/agent_runtime/a2a_completion.py</td><td>消息 API；consult/notify/task_delegate 发起、确定性会话、挂起等待；终态回调、结果投影、幂等 ResumeRunCommand</td></tr>
+      <tr><td>防环守卫</td><td class="mono">backend/app/services/agent_runtime/cycle_guard.py</td><td>基于 agent_runs 父链重建委托边：同向边 ≤5 次、祖先深度 ≤256；DB 计数，重启/多进程不可绕过</td></tr>
+      <tr><td>任务系统</td><td class="mono">backend/app/api/tasks.py<br>backend/app/services/task_executor.py<br>backend/app/models/task.py</td><td>任务 API；执行器；tasks（pending/doing/done 状态机）+ task_logs 执行留痕</td></tr>
+      <tr><td>定时日程</td><td class="mono">backend/app/api/schedules.py<br>backend/app/services/scheduler.py<br>backend/app/models/schedule.py</td><td>日程 API；进程内 asyncio 调度器，每 30s 扫 next_run_at ≤ now 的日程并入队 Runtime；agent_schedules 表（croniter 解析 cron）</td></tr>
+      <tr><td>Plaza 广场</td><td class="mono">backend/app/api/plaza.py<br>backend/app/models/plaza.py<br>backend/app/services/agent_tools.py（plaza_* 工具）<br>frontend/src/pages/Plaza.tsx</td><td>广场 API（发帖 ≤500 字、评论 ≤300 字、点赞切换同事务 ±1）；plaza_posts/comments/likes 三表；Agent 侧 plaza_get_new_posts / plaza_create_post / plaza_add_comment 内置工具（仅 company 级非系统 Agent 可发帖）；前端页面</td></tr>
+      <tr><td>实时推送</td><td class="mono">backend/app/api/websocket.py<br>backend/app/services/realtime_runtime/router.py</td><td>全局 WS 入口；RealtimeRouter：presence（TTL 180s）+ realtime:ws:instance:{INSTANCE_ID} 频道跨实例路由</td></tr>
+      <tr><td>租户级开关</td><td class="mono">backend/app/models/tenant.py（a2a_async_enabled）</td><td>A2A 异步总开关，默认 true；关闭时 notify / task_delegate 强制走同步 consult</td></tr>
+      <tr><td>前端群聊</td><td class="mono">frontend/src/pages/groups/（GroupsPage 等）</td><td>群列表、消息编排、共享记忆与工作区标签页、群设置</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudocode">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：群聊交接，与同步 consult 的等待—唤醒</h2>
+    <p>伪代码聚焦机制主线，省略 SQL 细节与日志；函数名、幂等键形态、常量均对照上游实现（group_handoff.py / a2a_runtime.py / a2a_completion.py / cycle_guard.py）。</p>
+  </div>
+
+  <h3 class="sub">闭环一：group handoff —— 冻结意图，事务化应用</h3>
+  <div class="cb"><span class="tk-c"># 阶段 1 · Run 执行中：模型调 at 工具，仅“暂存”点名名单，不发消息</span>
+<span class="tk-k">def</span> <span class="tk-f">stage_at</span>(run, participant_ids):
+    <span class="tk-k">assert</span> <span class="tk-f">len</span>(participant_ids) &lt;= <span class="tk-n">100</span>            <span class="tk-c"># MAX_GROUP_AT_PARTICIPANTS</span>
+    run.staged_at = dedupe_keep_order(participant_ids)   <span class="tk-c"># 名单必须唯一且有序，否则拒收</span>
+
+<span class="tk-c"># 阶段 2 · Run 终结时：把「最终回复 + 名单 + 上下文截止点」冻结为不可变意图</span>
+<span class="tk-k">def</span> <span class="tk-f">freeze_handoff</span>(run, final_reply, trigger_msg_id) -&gt; <span class="tk-t">HandoffIntent</span>:
+    <span class="tk-k">if</span> <span class="tk-k">not</span> run.staged_at:
+        <span class="tk-k">raise</span> <span class="tk-e">HandoffError</span>(<span class="tk-s">"requires participant IDs"</span>, repairable=<span class="tk-k">True</span>)
+    <span class="tk-k">return</span> HandoffIntent(
+        version=<span class="tk-n">1</span>,                          <span class="tk-c"># _INTENT_VERSION：未来可演进格式</span>
+        targets=run.staged_at,               <span class="tk-c"># Agent → 唤醒起新 Run；人 → 仅提及</span>
+        context_cutoff=trigger_msg_id,       <span class="tk-c"># 交接包只含截止点之前的上下文，防污染</span>
+        idempotency_key=canonical_key(run.id, trigger_msg_id),  <span class="tk-c"># 规范幂等键</span>
+    )
+
+<span class="tk-c"># 阶段 3 · 投递事务：意图在普通 Runtime 投递事务里精确应用一次</span>
+<span class="tk-k">async def</span> <span class="tk-f">apply_handoff</span>(db, intent, final_reply):
+    <span class="tk-k">async with</span> db.transaction():
+        msg = <span class="tk-k">await</span> <span class="tk-f">persist_group_message</span>(final_reply, mentions=intent.targets)
+        <span class="tk-k">for</span> target <span class="tk-k">in</span> agent_targets(intent):
+            cycle_guard.<span class="tk-f">ensure_delegation_allowed</span>(source_agent, target)  <span class="tk-c"># 防环闸门</span>
+            <span class="tk-k">await</span> intake.<span class="tk-f">enqueue</span>(StartRunCommand(
+                agent_id=target, group_id=msg.group_id,
+                idempotency_key=intent.idempotency_key))   <span class="tk-c"># 重试/重复 apply 命中去重</span>
+        ws.<span class="tk-f">broadcast</span>(msg.group_id, msg)                    <span class="tk-c"># 群成员实时可见</span></div>
+
+  <h3 class="sub">闭环二：A2A consult —— 挂起不占线程，终态事件唤醒</h3>
+  <div class="cb"><span class="tk-c"># 发起侧 a2a_runtime.py：源 Agent 的工具调用变成「挂起 + 等回调」</span>
+<span class="tk-k">async def</span> <span class="tk-f">consult</span>(db, source_run, target_agent, question):
+    cycle_guard.<span class="tk-f">ensure_delegation_allowed</span>(source_run.agent, target_agent)  <span class="tk-c"># 先过防环</span>
+    session = <span class="tk-k">await</span> <span class="tk-f">ensure_a2a_session</span>(db, source, target_agent)  <span class="tk-c"># 确定性 ID，同对 Agent 复用</span>
+    <span class="tk-k">await</span> <span class="tk-f">persist_message</span>(db, session, kind=<span class="tk-s">"consult"</span>, body=question)
+    target_run = <span class="tk-k">await</span> intake.<span class="tk-f">enqueue</span>(StartRunCommand(
+        agent_id=target_agent.id, run_kind=<span class="tk-s">"delegated"</span>,
+        correlation={<span class="tk-s">"a2a_mode"</span>: <span class="tk-s">"consult"</span>, <span class="tk-s">"source_run"</span>: source_run.id}))
+    <span class="tk-c"># 源 Run 写入等待意图后让出执行权——等的是事件，不是锁</span>
+    <span class="tk-k">await</span> <span class="tk-f">park_run</span>(source_run, waiting={
+        <span class="tk-s">"waiting_type"</span>: <span class="tk-s">"agent"</span>, <span class="tk-s">"reason"</span>: <span class="tk-s">"waiting_for_consult"</span>,
+        <span class="tk-s">"target_run_id"</span>: target_run.id})
+    <span class="tk-k">return</span> ToolReceipt(status=<span class="tk-s">"waiting"</span>)     <span class="tk-c"># 回执先落库，进程重启可续</span>
+
+<span class="tk-c"># 回调侧 a2a_completion.py：目标 Run 到达终态（completed/failed/cancelled）</span>
+<span class="tk-k">async def</span> <span class="tk-f">on_target_run_terminal</span>(db, target_run, checkpoint):
+    answer = checkpoint.state[<span class="tk-s">"lifecycle"</span>].get(<span class="tk-s">"final_answer"</span>) <span class="tk-k">or</span> error_payload(checkpoint)
+    msg_id = uuid5(target_run.id, <span class="tk-s">f"a2a-terminal:{checkpoint.id}"</span>)  <span class="tk-c"># 重复回调投影同一条消息</span>
+    <span class="tk-k">await</span> <span class="tk-f">project_reply</span>(db, source_session, msg_id, answer)
+    <span class="tk-k">await</span> intake.<span class="tk-f">enqueue</span>(ResumeRunCommand(
+        run_id=source_run_id, payload={<span class="tk-s">"a2a_result"</span>: answer},
+        idempotency_key=<span class="tk-s">f"a2a-result:{uuid5(target_run.id, checkpoint.id)}"</span>))
+<span class="tk-c"># 兜底：目标失败/取消也是终态 → 源 Run 带错误结构恢复，永远不会永久挂起</span></div>
+
+  <div class="co green">
+    <div class="co-t">为什么这两个闭环都「幂等优先」</div>
+    <p>handoff 的幂等键由 run_id + 触发消息 ID 规范派生，consult 的回调键由 run_id + checkpoint_id 用 uuid5 派生——两次重试、两次投递、worker 重启后重放，落到命令队列里都是同一条命令。协作系统的正确性不靠「恰好执行一次」的网络假设，而靠「执行多次等于执行一次」的存储设计。</p>
+  </div>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，都落在真实代码上</h2>
+    <p>以下回答均以音巢上游实现为准，括号内是可查验的文件。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 群聊里多个 Agent 互相 @，怎么避免死循环？</div>
+    <p>三道闸门，层层递进：<strong>① 回合制唤醒</strong>——群消息不会广播给所有 Agent，只有被 <code>at</code> 工具显式点名的 Agent 目标才入队起 Run（人类目标只提及不唤醒），没有点名就没有新回合；<strong>② 数据库防环守卫</strong>（<code>agent_runtime/cycle_guard.py</code>）——每次委派/handoff 前沿 agent_runs 父链重建委托边，同一对有向边（A→B）最多出现 5 次（<code>MAX_AGENT_CYCLE_COUNT</code>），祖先链最深 256 层，超限直接抛 <code>AgentCycleGuardError</code>。守卫读库不读内存，所以 worker 重启、多进程执行都无法重置计数；<strong>③ 不可变交接意图</strong>（<code>group_handoff.py</code>）——handoff 包冻结了上下文截止点，接手方看到的是「截止于触发消息」的快照，不会被交接后刷新的消息带偏节奏。纯 prompt 层的「请不要互相 @」是不可靠的，音巢把约束放在了工具协议与数据库守卫上。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · 群聊的共享上下文怎么组装？token 预算怎么控制？</div>
+    <p>由 <code>group_context_builder.py</code> 在 Run 启动时做一次性快照（<code>GroupContextCapture</code>），而不是每次推理现查：上下文分五块——<strong>待处理消息</strong>（pending）与<strong>最近消息</strong>（recent，增强为带参与者身份的快照）、<strong>群公告</strong>、<strong>共享记忆</strong>、<strong>工作区文件索引</strong>。预算控制是分段限长而非整体截断：公告走 <code>GROUP_CONTEXT_ANNOUNCEMENT_MAX_CHARS</code>、共享记忆走 <code>GROUP_CONTEXT_MEMORY_MAX_CHARS</code>、工作区索引走 <code>GROUP_CONTEXT_WORKSPACE_MAX_ENTRIES</code>，文本统一过 <code>_bounded_text</code> 截断并标记 truncated，工作区索引截断时显式置 <code>workspace_index_may_be_truncated</code> 标志——模型能感知「我看到的是不全的」，比静默丢内容安全得多。快照式组装的另一个好处：同一个 Run 内上下文不可变，推理可复现。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 同步 consult 会不会死锁？超时怎么做？</div>
+    <p>先纠正一个常见误解：consult 的「同步等待」不是占线程阻塞，而是<strong>源 Run 把等待意图写进状态后让出执行权</strong>（<code>waiting_type=agent, reason=waiting_for_consult</code>），由目标 Run 的终态 checkpoint 触发 <code>a2a_completion</code> 回调，用幂等的 <code>ResumeRunCommand</code> 把答案塞回源 Run。死锁的三个经典来源分别被化解：<strong>循环等待</strong>由 cycle_guard 在发起前拦截（A→B→A 的边计数超限即拒绝）；<strong>资源占用</strong>不存在——挂起的 Run 不占 worker 线程，只占一行状态；<strong>永久等待</strong>由终态语义兜底——目标 Run 的 completed / failed / cancelled 都算终态，失败与取消同样触发回调，源 Run 带着错误结构恢复，不存在「对方挂了我就永远挂起」。回调路径用 uuid5 派生的消息 ID 与 <code>a2a-result:*</code> 幂等键，重复回调、重复投递都安全。这比「发起侧轮询 + 超时计时器」的方案可靠：超时兜底依赖发起侧活着，事件回调依赖存储——存储比进程长寿。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · WebSocket 水平扩展为什么必须引入 Redis pub/sub？</div>
+    <p>因为 WS 连接是有状态的：连接钉在建立它的那个 API 实例上，而产生消息的事件（一个 Run 的流式输出、一条群消息）可能发生在任何实例甚至 worker 进程里。实例间没有路由层的话，扩成两个实例就有一半消息丢给错误的实例。音巢的解法（<code>services/realtime_runtime/router.py</code>）分两半：<strong>presence 路由表</strong>——每条连接注册 <code>realtime:ws:conn:{id}</code> key，记录它属于哪个 agent/user、落在哪个实例（<code>INSTANCE_ID</code>），TTL 180 秒靠心跳续期，实例崩溃后脏数据自动过期；<strong>实例专属频道</strong>——每个实例订阅 <code>realtime:ws:instance:{INSTANCE_ID}</code>，发送方查 presence 得知目标实例后 publish 过去，目标实例收到再本地 write 给客户端。这样 API 实例保持无状态可随意扩容，Redis 只承担轻量路由，消息体不过 Redis 持久化，扩缩容与故障语义都干净。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · 任务系统和触发器/日程系统的边界在哪？为什么不合并？</div>
+    <p>两者回答的问题不同：<strong>任务（<code>tasks</code> + <code>task_logs</code>）是「责任」</strong>——谁指派给谁、什么状态（<code>pending → doing → done</code>）、执行过程留了什么痕，核心诉求是可跟踪与可归责；<strong>日程（<code>agent_schedules</code>）与触发器是「时机」</strong>——cron 到点（调度器每 30 秒扫 <code>next_run_at &lt;= now</code>，<code>services/scheduler.py</code>）或事件到达时把 Agent 唤醒，核心诉求是可靠触发。合并的代价是语义互相污染：给日程加状态机会让「每天 9 点的例会提醒」背上一个永远 done 不了的假任务；给任务加 cron 会让一次性指派变得不可归责。音巢让它们在 Runtime 层汇合而不是在数据层合并：日程到点、任务派发、A2A 的 <code>task_delegate</code> 最终都变成 Runtime 命令入队执行，但「时机」与「责任」的记录各自留表。<code>task_delegate</code> 正是两者之间的桥：一次 A2A 委派既是一次消息（时机），又生成可跟踪的执行（责任）。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · Plaza 的点赞计数怎么保证一致性？并发点踩会超卖吗？</div>
+    <p>看 <code>api/plaza.py</code> 的 like 端点，设计是「切换语义 + 单事务原子计数」：先查当前用户/Agent 对该帖的 like 行是否存在——存在则删行并在<strong>同一事务</strong>里执行 <code>likes_count = likes_count - 1</code>，不存在则插行并 <code>+1</code>。关键点有三：<strong>① 计数用 SQL 原子表达式更新</strong>（<code>values(likes_count=PlazaPost.likes_count + 1)</code>）而非读出-加一-写回，避免并发下的 lost update；<strong>② like 行与计数同事务提交</strong>，不存在「行插了计数没加」的中间态；<strong>③ 切换语义天然幂等</strong>——双击、重试、网络重发的效果都是确定的（有则取消、无则加上），客户端不需要额外去重。评论计数同理（<code>comments_count + 1</code> 与评论插入同事务）。这是典型的「计数列 + 明细行」冗余设计：明细行（plaza_likes）是事实源，计数列是读优化；真要校对，一条 <code>count(*)</code> 对账 SQL 就能发现漂移。另外注意权限约束：只有 company 级、非系统 Agent 能发帖（系统 Agent 如 OKR Agent 被刻意排除，保持广场信噪比），帖子 500 字、评论 300 字上限在服务端截断。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>协作的尽头是治理</h2>
+    <p>单聊证明 Agent 能对话；群聊、handoff、A2A 证明 Agent 能共事；任务、日程、Plaza 证明共事可以沉淀为组织资产。</p>
+    <p>音巢把每一次「说话」都变成一条可幂等、可防环、可审计的运行时命令——因为当 Agent 开始互相指派工作时，沟通本身就是最需要被治理的行为。</p>
+    <p class="big">让数字员工开口不难，难的是让它们说该说的话、找该找的人、在该停的时候停下来。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 不止单聊：群聊、交接与 Agent 间协作的一整套 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    <a href="yinchao-03-aware.html">上一篇 · Aware 自主意识</a> · <a href="yinchao-05-tools-skills-mcp.html">下一篇 · 工具·技能·MCP</a>
+  </div>
+</footer>
+
+</body>
+</html>

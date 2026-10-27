@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字员工的一生：从模板市场入职到配额管控 · 音巢设计分享 02</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 02/12 · 数字员工管理</div>
+    <h1>数字员工的一生<br>从模板市场入职到配额管控</h1>
+    <p class="sub">音巢（Clawith）把 Agent 当作「数字员工」来管理：从人才市场一键招聘，到人格文件入职、L1–L3 自主权限分级、危险操作人工审批、token 配额防烧钱，再到远程 OpenClaw 机器人纳管——本篇讲清一个 Agent 从创建到退役的完整生命周期及其背后的治理设计。</p>
+    <div class="hero-meta">
+      <span>内置职业模板 <b>22</b> 个</span>
+      <span>受管控操作 <b>10</b> 类</span>
+      <span>自主策略 <b>L1 / L2 / L3</b></span>
+      <span>Agent 类型 <b>native / openclaw</b></span>
+      <span>生命周期 <b>5</b> 态状态机</span>
+      <span>基于上游 <b>main v1.11.5</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">场景与定位</a>
+    <a href="#design">功能设计</a>
+    <a href="#impl">实现方案</a>
+    <span class="sep">·</span>
+    <a href="#fig1">图 1 · 双轨架构</a>
+    <a href="#fig2">图 2 · 生命周期</a>
+    <a href="#fig3">图 3 · 自主判定</a>
+    <a href="#codemap">代码依据</a>
+    <span class="sep">·</span>
+    <a href="#pseudocode">伪代码</a>
+    <a href="#qa">面试 QA</a>
+    <a href="#ending">结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-01-agent-runtime.html">上一篇 · Agent 运行时</a>
+    <a href="yinchao-03-aware.html">下一篇 · Aware 自主意识</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>把 Agent 当员工管，而不是当脚本跑</h2>
+    <p>大多数 Agent 框架只回答「怎么让 LLM 调工具」，音巢 Agent 平台回答的是另一个问题：<strong>当平台上有几十上百个 Agent 长期运行时，怎么管它们</strong>——谁能创建、能做什么、花多少钱、出了事谁审批。这就是数字员工管理的定位。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">22</div><div class="l">内置职业模板（人才市场开箱可招）</div></div>
+    <div class="stat"><div class="n teal">10</div><div class="l">类受自主策略管控的操作</div></div>
+    <div class="stat"><div class="n amber">L1–L3</div><div class="l">三级自主权限，危险操作人工审批</div></div>
+    <div class="stat"><div class="n green">5</div><div class="l">生命周期状态 creating→error</div></div>
+  </div>
+
+  <h3 class="sub">五类真实业务场景</h3>
+  <div class="values">
+    <div class="value">
+      <div class="no">①</div>
+      <h3>人才市场一键「招聘」</h3>
+      <p>运营同学打开人才市场（TalentMarketModal），从 22 个内置职业模板里挑一个「Backend Architect」或「SEO Specialist」，填个名字就完成创建——人格、技能、默认 MCP 工具、自主策略全部由模板预置，零提示词工程门槛。</p>
+    </div>
+    <div class="value">
+      <div class="no">②</div>
+      <h3>危险操作要人批</h3>
+      <p>Agent 自主工作时想「发外部消息」「修改自己的人格文件」「做财务操作」，这些动作默认落在 L3：执行被挂起，审批单进入 ApprovalsTab，创建者点「批准」后才真正执行。自主不等于放任。</p>
+    </div>
+    <div class="value">
+      <div class="no">③</div>
+      <h3>给 Agent 限额，防止 token 烧钱</h3>
+      <p>一个跑飞了的自主 Agent 一晚上能烧掉惊人的 token。音巢给每个 Agent 配了 token 日/月限额、LLM 日调用上限（默认 1000 次）、存活 TTL（expires_at）与触发器限额——超限时同步拦截，而不是事后看账单。</p>
+    </div>
+    <div class="value">
+      <div class="no">④</div>
+      <h3>远程 OpenClaw 机器人纳管</h3>
+      <p>跑在用户自己机器上的 OpenClaw 机器人，通过 API Key + 网关轮询（/gateway/poll）接入平台，和平台托管的 native Agent 一样被分配任务、收发消息、接受配额与状态管理——混合舰队，一套治理。</p>
+    </div>
+    <div class="value">
+      <div class="no">⑤</div>
+      <h3>新员工入职仪式</h3>
+      <p>用户第一次打开某个 Agent 的对话时，触发 onboarding：Agent 主动问候、自我介绍、通过一轮真实对话校准对用户偏好的理解并写下工作笔记——按 (agent, user) 记录入职状态，不重复打扰。</p>
+    </div>
+  </div>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>Agent 生命周期管理 = HR 系统 + 权限系统 + 财务管控，只不过管理对象是数字员工。</h3>
+    <p>模板市场是「招聘渠道」，agents 表是「员工档案」，自主策略是「授权手册」，配额是「预算科目」，审批流是「签批制度」。理解了这层类比，本篇的每个设计决策都不难推导。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>三个关键决策：双轨定义、分级授权、文件即人格</h2>
+    <p>数字员工管理的核心矛盾是「开箱即用的便利」与「长期运行的可控」之间的张力。音巢用三个决策回应它。</p>
+  </div>
+
+  <h3 class="sub">关键概念速览</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:160px">概念</th><th>取值 / 载体</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>双轨定义</td>
+        <td class="mono">backend/agent_template/ + agent_templates/*/meta.yaml + agents 表</td>
+        <td>文件侧是「原型」（人格、心跳、记忆骨架），模板侧是「职业说明书」（能力、默认技能/MCP/策略），库侧是「员工档案」（模型绑定、配额、状态）。三者各司其职，创建时合流。</td>
+      </tr>
+      <tr>
+        <td>agent_type</td>
+        <td class="mono">native / openclaw</td>
+        <td>native 由平台托管运行（容器 + 平台 LLM 配置）；openclaw 是远程机器人，凭 API Key 轮询网关收派消息。两种类型同表同状态机，治理口径一致。</td>
+      </tr>
+      <tr>
+        <td>access_mode</td>
+        <td class="mono">company / private / custom</td>
+        <td>company：全员可用且进 Plaza 广场；private：仅创建者可用可管；custom：全员可用、显式授权行授予 manage 权限，不进 Plaza。</td>
+      </tr>
+      <tr>
+        <td>生命周期状态</td>
+        <td class="mono">creating / running / idle / stopped / error</td>
+        <td>agents.status 枚举，创建默认 creating，由运行时与容器状态推进。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="decision">
+    <h3>人格与记忆：文件系统 vs 数据库字段 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 人格 prompt、记忆、技能全部存数据库字段 / 向量库<br>② 以目录树承载：soul.md、HEARTBEAT.md、memory/、skills/、workspace/、state.json，实例化时拷贝到 agent_data/&lt;uuid&gt;/</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>文件即人格：每个 Agent 一个目录，数据库只存档案与治理字段</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>人格与记忆本质是「给 LLM 读的上下文」，文件天然可被 LLM 直接读写、可被人审阅 diff、可被 Git 化备份；且 openclaw 远程机器人需要把整套目录同步到本地运行——文件是唯一两端同构的载体。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>失去数据库的事务与查询能力：跨 Agent 检索记忆要靠额外索引（经验库补齐），并发写要靠工作区锁。换来的是可读性、可移植性与 LLM 原生可操作性。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>自主权限：全局开关 vs 按操作分级 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 一个「全自动 / 全人工」总开关<br>② 按操作类型分级：10 类操作各自标 L1（自动执行）/ L2（执行并通知）/ L3（人工审批后才执行）</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>按操作分级 L1/L2/L3，模板可为每类操作预置默认值，Agent 创建后可逐类调整</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>真实授权从来不是二元的：读文件该放手（L1），写工作区文件执行后告知即可（L2），发外部消息、改人格、财务操作必须人批（L3）。分级让「自主权」成为可逐项授予的资产，与 Human-in-the-loop 天然兼容。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>每次工具调用都要过一次 autonomy_service 判定；L3 挂起需要审批单、通知与恢复执行的完整链路。换来的是自主 Agent 敢真正放权运行。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>模板与实例：运行时引用 vs 创建时拷贝 <span class="badge brand">D3</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 实例运行时直接引用模板文件，省存储<br>② 创建时把模板目录渲染 + 拷贝成实例私有目录，从此各自演化</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>创建时一次性拷贝（含 {{agent_name}} 等占位符渲染），实例独立演化</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>数字员工入职后要「成长」：记忆、工作区产物、甚至人格都会被运行过程改写。若共享模板文件，一个 Agent 的学习会污染所有同模板实例；拷贝让模板只影响「出厂配置」。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>模板升级无法自动传导到存量实例（需要显式重建或迁移）；存储随实例数线性增长。换来实例间的彻底隔离。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>双轨定义合流于创建，治理挂载于运行</h2>
+    <p>本章用三张图覆盖数字员工管理的全部静态结构与动态行为：Agent 怎么被定义与实例化、状态机怎么流转、每次工具调用怎么过自主策略这一关。</p>
+  </div>
+
+  <div class="fig-t" id="fig1"><span class="fno">图 1</span><h3>Agent 定义双轨架构：模板层 → 实例化 → 运行挂载</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>模板层（出厂配置的两条轨道）</h3><span class="need own">文件 + 库 双轨</span></div>
+      <div class="boxes">
+        <div class="box"><b>backend/agent_template/</b> 文件原型<small>soul.md（人格，带 {{agent_name}} 占位符）/ HEARTBEAT.md / memory/ / skills/ / workspace/ / state.json</small></div>
+        <div class="box"><b>backend/agent_templates/*/meta.yaml</b> ×22<small>职业说明书：名称 / capability_bullets / default_skills / default_mcp_servers / default_autonomy_policy</small></div>
+        <div class="box"><b>services/template_seeder.py</b><small>seed_agent_templates() 把文件夹模板合并入库 agent_templates 表</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">创建 Agent（api/agents.py → agent_manager.initialize_agent_files）↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>实例化（拷贝即独立）</h3><span class="need warn">渲染 → 拷贝 → 建档</span></div>
+      <div class="boxes">
+        <div class="box"><b>渲染占位符</b><small>_render_soul_template：{{agent_name}} / {{creator_name}} / {{created_at}}</small></div>
+        <div class="box"><b>拷贝目录</b><small>agent_data/&lt;uuid&gt;/：soul.md / memory/ / skills/ / workspace/ / state.json</small></div>
+        <div class="box"><b>INSERT agents 行</b><small>状态 creating；绑定模板 default_autonomy_policy、默认技能与 MCP</small></div>
+        <div class="box"><b>Smithery 自动导入</b><small>default_mcp_servers 逐个 import_mcp_from_smithery，幂等绑定 AgentTool</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">运行时挂载（每次 Agent Run 组装）↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>运行挂载（agents 表即治理面板）</h3><span class="need auto">档案字段 → 运行时行为</span></div>
+      <div class="boxes">
+        <div class="box"><b>主备 LLM</b><small>primary_model_id / fallback_model_id</small></div>
+        <div class="box"><b>自主策略</b><small>autonomy_policy JSON：10 类操作 × L1/L2/L3</small></div>
+        <div class="box"><b>配额</b><small>token 日/月限额、max_llm_calls_per_day=1000、max_tool_rounds=50、context_window_size=100</small></div>
+        <div class="box"><b>心跳</b><small>heartbeat_enabled / 240 分钟 / 活跃时段 09:00-18:00</small></div>
+        <div class="box"><b>触发器限额</b><small>max_triggers=20 / min_poll_interval_min=5 / webhook_rate_limit=5</small></div>
+        <div class="box"><b>访问模式</b><small>access_mode：company / private / custom</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">双轨的分工：文件轨决定 Agent「是谁、记得什么、会什么」，库轨决定 Agent「用什么模型、能自主到什么程度、能花多少钱」。创建是两轨唯一的合流点，之后实例目录独立演化，agents 表持续承担治理职责。</p>
+
+  <div class="fig-t" id="fig2"><span class="fno">图 2</span><h3>生命周期状态机：creating → running → idle → stopped / error</h3></div>
+  <div class="flow">
+    <span class="chip dark">创建请求<br>api/agents.py</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">creating<br>渲染+拷贝+建档中</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">running<br>Agent Run 执行中</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">idle<br>待命（可收消息/心跳唤醒）</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">stopped<br>停用 / 过期 expires_at</span>
+  </div>
+  <div class="flow">
+    <span class="chip dark">异常分支</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">初始化失败 / 容器异常 / Run 崩溃</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">error<br>保留现场，可人工修复后重启</span>
+  </div>
+  <p class="fig-note">状态定义在 models/agent.py 的 agent_status_enum，默认 creating。running 与 idle 的切换由 Agent Run 的起止驱动；stopped 区分「人工停用」与「过期自动失效」（check_agent_expired 在配额防线内同步拦截）；error 是兜底态，不让异常 Agent 静默消失。删除走软删除（deleted_at），系统 Agent（is_system）禁止用户删除。</p>
+
+  <div class="fig-t" id="fig3"><span class="fno">图 3</span><h3>自主策略判定：每次工具调用过一次 L1/L2/L3 闸门</h3></div>
+  <div class="flow">
+    <span class="chip dark">工具调用<br>action_type + details</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">autonomy_service<br>.check_and_enforce()</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">查 autonomy_policy<br>未知操作默认 L2</span>
+  </div>
+  <table class="tbl">
+    <thead><tr><th style="width:130px">判定级别</th><th>链路行为</th><th>默认命中的典型操作</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="ok">L1 · 自动执行</td>
+        <td>直接放行执行，记录日志</td>
+        <td class="mono">read_files（读文件）</td>
+      </tr>
+      <tr>
+        <td class="rd" style="color:var(--teal);font-weight:700">L2 · 执行 + 通知</td>
+        <td>执行后通知创建者（既不放任也不打断）</td>
+        <td class="mono">write_workspace_files、send_feishu_message、access_business_system_read、create_calendar_event</td>
+      </tr>
+      <tr>
+        <td class="no">L3 · 人工审批</td>
+        <td>生成 approval_requests 单（确定性 UUID5 关联），运行挂起等待批准；批准后恢复执行，拒绝/超时则终止该动作</td>
+        <td class="mono">send_external_message、modify_soul、delete_files、access_business_system_write、financial_operations</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="fig-note">关键工程细节：L3 审批单的 ID 用 <code>uuid5("runtime-approval:{action_type}:{tool_call_id}")</code> 确定性生成——同一次工具调用重试不会产生重复审批单；审批单恢复执行时会校验「请求的动作与当初登记的动作一致」，防止审批被重放到另一个操作上。未知操作类型默认 L2 而非 L1：新能力默认收敛到「执行但告知」，是典型的安全默认值设计。</p>
+
+  <h3 class="sub" id="codemap">代码依据（路径均来自上游仓库 main 分支 v1.11.5）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">功能点</th><th>关键文件路径</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>文件侧原型</td>
+        <td class="kid">backend/agent_template/</td>
+        <td>soul.md（人格模板，含 {{agent_name}} 占位符）、HEARTBEAT.md（心跳指令）、memory/、skills/、workspace/、state.json——实例化时的拷贝源</td>
+      </tr>
+      <tr>
+        <td>职业模板市场</td>
+        <td class="kid">backend/agent_templates/*/meta.yaml<br>backend/app/services/template_seeder.py<br>frontend/src/components/TalentMarketModal.tsx</td>
+        <td>22 个内置职业模板；seeder 合并文件夹模板入 agent_templates 表；前端人才市场选模板一键创建</td>
+      </tr>
+      <tr>
+        <td>员工档案与状态机</td>
+        <td class="kid">backend/app/models/agent.py<br>backend/app/services/agent_manager.py<br>backend/app/api/agents.py</td>
+        <td>agents 表：状态枚举、主备模型、自主策略、配额、心跳、访问模式；agent_manager 负责目录初始化与容器生命周期；api 层承接 CRUD</td>
+      </tr>
+      <tr>
+        <td>自主策略 L1–L3</td>
+        <td class="kid">backend/app/services/autonomy_service.py</td>
+        <td>check_and_enforce 按 action_type 分级；L3 生成确定性审批单并挂起执行</td>
+      </tr>
+      <tr>
+        <td>审批工作流</td>
+        <td class="kid">backend/app/models/audit.py<br>frontend/src/pages/agent-detail/tabs/ApprovalsTab.tsx</td>
+        <td>approval_requests 表持久化审批单；前端审批台供创建者批准/拒绝</td>
+      </tr>
+      <tr>
+        <td>用量与配额防线</td>
+        <td class="kid">backend/app/services/quota_guard.py<br>backend/app/services/token_tracker.py</td>
+        <td>check_agent_llm_quota / check_agent_expired 同步拦截；token_tracker 异步归集 token 用量</td>
+      </tr>
+      <tr>
+        <td>心跳机制</td>
+        <td class="kid">backend/app/services/heartbeat.py<br>backend/app/services/heartbeat_runtime.py<br>backend/agent_template/HEARTBEAT.md</td>
+        <td>周期性自我感知（任务、Plaza 等），活跃时段与间隔可控，心跳指令随模板下发</td>
+      </tr>
+      <tr>
+        <td>远程机器人纳管</td>
+        <td class="kid">backend/app/api/gateway.py<br>backend/app/api/agentbay_control.py</td>
+        <td>OpenClaw 网关：API Key 鉴权、GET /gateway/poll 拉消息、POST /report 回执、/send-message 跨成员投递</td>
+      </tr>
+      <tr>
+        <td>凭证托管</td>
+        <td class="kid">backend/app/api/agent_credentials.py<br>backend/app/models/agent_credential.py</td>
+        <td>Agent 访问外部系统所需凭证的托管与分发</td>
+      </tr>
+      <tr>
+        <td>入职仪式</td>
+        <td class="kid">backend/app/api/onboarding.py<br>backend/app/models/agent.py（AgentUserOnboarding）</td>
+        <td>按 (agent, user) 记录入职问候与校准阶段（phase），不重复触发</td>
+      </tr>
+      <tr>
+        <td>访问权限</td>
+        <td class="kid">backend/app/models/agent.py（AgentPermission）<br>backend/app/dao/agent_access_dao.py</td>
+        <td>company/department/user 三级 scope × use/manage 两级权限</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudocode">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：创建即独立，调用必过闸</h2>
+    <p>伪代码刻意省略事务、异常与日志细节，只保留机制骨架——对照上游实现（agent_manager.initialize_agent_files、autonomy_service.check_and_enforce）可读。</p>
+  </div>
+
+  <h3 class="sub">闭环一：创建 Agent（渲染 → 拷贝 → 建档 → 绑定默认能力）</h3>
+  <div class="cb"><span class="tk-c"># 最小创建流程：模板双轨合流为一个独立实例</span>
+<span class="tk-k">async def</span> <span class="tk-f">create_agent</span>(db, user, req):
+    tpl = <span class="tk-k">await</span> <span class="tk-f">get_template</span>(db, req.template_id)          <span class="tk-c"># agent_templates 表（seeder 从 meta.yaml 灌入）</span>
+
+    agent = <span class="tk-t">Agent</span>(
+        name=req.name, creator_id=user.id, tenant_id=user.tenant_id,
+        status=<span class="tk-s">"creating"</span>,                          <span class="tk-c"># 状态机起点</span>
+        template_id=tpl.id,
+        autonomy_policy=tpl.default_autonomy_policy,   <span class="tk-c"># 10 类操作的 L1/L2/L3 默认值</span>
+    )
+    db.add(agent); <span class="tk-k">await</span> db.flush()                    <span class="tk-c"># 先拿 uuid</span>
+
+    <span class="tk-c"># 1) 渲染人格：{{agent_name}} / {{creator_name}} / {{created_at}}</span>
+    soul = <span class="tk-f">render_soul_template</span>(<span class="tk-f">read</span>(<span class="tk-s">"agent_template/soul.md"</span>),
+                               agent_name=agent.name, creator_name=user.name)
+    <span class="tk-c"># 2) 拷贝目录：模板 → agent_data/&lt;uuid&gt;/（此后实例独立演化）</span>
+    <span class="tk-f">copy_tree</span>(<span class="tk-s">"agent_template/"</span>, <span class="tk-s">f"agent_data/{agent.id}/"</span>,
+              overrides={<span class="tk-s">"soul.md"</span>: soul})
+
+    <span class="tk-c"># 3) 绑定默认能力：技能直接挂，MCP 走 Smithery 自动导入（幂等）</span>
+    <span class="tk-k">for</span> skill <span class="tk-k">in</span> tpl.default_skills:
+        <span class="tk-f">bind_skill</span>(db, agent, skill)
+    <span class="tk-k">for</span> smithery_id <span class="tk-k">in</span> tpl.default_mcp_servers:
+        tool = <span class="tk-k">await</span> <span class="tk-f">import_mcp_from_smithery</span>(smithery_id)  <span class="tk-c"># 同 URL 已存在则复用</span>
+        <span class="tk-f">bind_tool</span>(db, agent, tool)
+
+    agent.status = <span class="tk-s">"idle"</span>                              <span class="tk-c"># 建档完成，待命</span>
+    <span class="tk-k">await</span> db.commit()
+    <span class="tk-k">return</span> agent</div>
+
+  <h3 class="sub">闭环二：自主策略判定（每次工具调用的同步闸门）</h3>
+  <div class="cb"><span class="tk-c"># autonomy_service.check_and_enforce 的骨架</span>
+<span class="tk-k">async def</span> <span class="tk-f">check_and_enforce</span>(db, agent, action_type, details):
+    level = agent.autonomy_policy.get(action_type, <span class="tk-s">"L2"</span>)  <span class="tk-c"># 未知操作默认 L2，安全收敛</span>
+
+    <span class="tk-k">if</span> level == <span class="tk-s">"L1"</span>:
+        <span class="tk-k">return</span> {<span class="tk-s">"level"</span>: <span class="tk-s">"L1"</span>}                          <span class="tk-c"># 直接放行（如 read_files）</span>
+
+    <span class="tk-k">if</span> level == <span class="tk-s">"L2"</span>:
+        <span class="tk-k">await</span> <span class="tk-f">notify_creator</span>(agent, action_type, details)  <span class="tk-c"># 执行并告知</span>
+        <span class="tk-k">return</span> {<span class="tk-s">"level"</span>: <span class="tk-s">"L2"</span>}
+
+    <span class="tk-c"># L3：确定性审批单 —— 同一 tool_call 重试不重复开单</span>
+    approval_id = <span class="tk-f">uuid5</span>(NS, <span class="tk-s">f"runtime-approval:{action_type}:{details.tool_call_id}"</span>)
+    existing = <span class="tk-k">await</span> <span class="tk-f">get_approval</span>(db, approval_id)
+    <span class="tk-k">if</span> existing:
+        <span class="tk-f">assert_matches</span>(existing, action_type, details)      <span class="tk-c"># 防审批重放到别的操作</span>
+        <span class="tk-k">if</span> existing.status == <span class="tk-s">"approved"</span>:
+            <span class="tk-k">return</span> {<span class="tk-s">"level"</span>: <span class="tk-s">"L3"</span>, <span class="tk-s">"approval_status"</span>: <span class="tk-s">"approved"</span>}
+        <span class="tk-k">raise</span> <span class="tk-e">ApprovalPending</span>(approval_id)               <span class="tk-c"># 挂起本次运行</span>
+
+    <span class="tk-k">await</span> <span class="tk-f">create_approval_request</span>(db, id=approval_id, agent=agent,
+                                  action=action_type, details=details)
+    <span class="tk-k">raise</span> <span class="tk-e">ApprovalPending</span>(approval_id)                   <span class="tk-c"># 等待 ApprovalsTab 人工签批</span></div>
+
+  <div class="co amber">
+    <div class="co-t">为什么「挂起」用异常而不是阻塞等待</div>
+    <p>L3 命中的工具调用通过抛出 <code>ApprovalPending</code> 中断当前 Agent Run，而不是在原地 await 审批结果——审批可能几小时后才发生，长时间持有协程与数据库连接既浪费资源又无法跨进程恢复。审批单落库后运行即可安全结束，批准后由审批回调按 <code>tool_call_id</code> 恢复现场，这正是持久化运行时（见本系列第 01 篇）的价值所在。</p>
+  </div>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，检验你是否真的懂「管理 Agent」</h2>
+    <p>每道题都对应音巢的一个真实实现选择，回答请对着代码讲，不要背八股。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 人格和记忆为什么用文件（soul.md / memory/）而不是数据库字段或向量库？</div>
+    <p>三个理由，层层递进：①<strong>消费者是 LLM</strong>——人格与记忆的最终读者是模型，文件是 LLM 工具链（读/写/列目录）原生可操作的形式，放进数据库反而要再包一层读写工具；②<strong>可审阅可演化</strong>——Agent 运行中会持续改写自己的记忆与人格，文件 diff 对人类可读，这是「自主 Agent 可治理」的前提；③<strong>跨部署形态同构</strong>——openclaw 远程机器人要把整套目录同步到用户本地运行，文件是唯一在平台侧与远程侧都成立的载体。代价是失去事务与结构化查询，音巢用经验库（experience）补检索、用工作区锁补并发——不是文件万能，而是把缺口显式补上。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · L1/L2/L3 自主分级是怎么落地 Human-in-the-loop 的？为什么未知操作默认 L2？</div>
+    <p>落地链路：每次工具调用过 <code>autonomy_service.check_and_enforce</code>，按 action_type 查 agents 表里的 autonomy_policy JSON。L1 直接放行；L2 执行并通知创建者；L3 生成审批单（approval_requests 表）并抛出挂起异常，终止当前 Run，等创建者在 ApprovalsTab 批准后按 tool_call_id 恢复执行。两个工程细节值得展开：审批单 ID 用 <code>uuid5("runtime-approval:{action_type}:{tool_call_id}")</code> 确定性生成，天然幂等；恢复执行前校验动作一致性，防止「批了 A 操作被执行成 B 操作」。未知操作默认 L2 而非 L1，是安全默认值：新接的 MCP 工具哪怕平台还没分级，也至少保证「执行了一定告知主人」。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 配额防烧钱应该同步拦截还是异步统计？音巢怎么选的？</div>
+    <p>两者都要，但职责必须分开。音巢的分工是：<strong>同步拦截在 quota_guard</strong>——<code>check_agent_llm_quota</code> 在每次 LLM 调用前检查日调用上限（默认 1000 次），<code>check_agent_expired</code> 检查 expires_at 存活 TTL，超限直接抛 QuotaExceeded / AgentExpired 终止请求，这是防线，必须同步，否则烧钱已成事实；<strong>异步统计在 token_tracker</strong>——token 日/月用量、cache read/creation 分桶计数在调用后归集到 agents 表的计数字段，配合日/月 reset 时间戳滚动清零。为什么不同步拦 token？因为一次调用的 token 数在调用前不可知，只能用「调用次数」做前置闸门、用「token 累计」做后置熔断——这是用可预测的量做同步闸、用不可预测的量做异步账的典型取舍。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · 主备 LLM failover 是怎么设计的？什么场景会触发切换？</div>
+    <p>agents 表上有一对字段：<code>primary_model_id</code> 与 <code>fallback_model_id</code>，都指向 llm_models 表。运行时优先用主模型发起调用，当主模型不可用（超时、限流、服务商故障）时降级到备模型，保证数字员工不因为单一供应商抖动而「失能」。设计上要注意三点：①主备最好跨服务商，否则同城同云故障会双杀；②切换只影响当次/当轮调用，不改档案——故障恢复后自动回到主模型，避免人工干预；③主备模型的上下文窗口与工具调用能力要对齐，否则 failover 后行为漂移（比如备模型不支持 function calling 时整轮 Run 的失败模式完全不同），这是选型备模型时的硬约束。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · 远程 OpenClaw 机器人用「轮询网关」而不是 WebSocket 长连接，优缺点各是什么？</div>
+    <p>模型：机器人持有 API Key（平台存 api_key_hash 校验），周期性 GET <code>/gateway/poll</code> 拉取待处理消息，执行后 POST <code>/report</code> 回执，另有 <code>/heartbeat</code> 与 <code>/send-message</code>。<strong>优点</strong>：穿透性——轮询是出站 HTTPS，机器人可以在任意 NAT/企业防火墙后运行，不需要平台反向触达；健壮性——无连接状态，机器人重启、网络闪断都不丢消息（消息在网关侧排队）；简单性——无长连接管理、无重连风暴。<strong>缺点</strong>：延迟——消息时延下限是轮询间隔；空转成本——空闲时也在打 poll（可用 openclaw_last_seen 做在线状态与退避）；实时性要求高的场景（流式输出）不适合。对「任务型远程员工」这个定位，穿透性与健壮性的收益远大于秒级延迟的损失，是正确取舍。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · 模板市场的「默认 MCP 自动绑定」是怎么实现的？重复创建会怎样？</div>
+    <p>链路分三段：①模板的 meta.yaml 里声明 <code>default_mcp_servers</code>，内容是 Smithery 服务器 ID（如 "shibui/finance"），seeder 灌入 agent_templates 表；②创建 Agent 时（api/agents.py 的 create_agent），逐个调用 <code>import_mcp_from_smithery</code>——用系统级 Smithery Key 拉取该 MCP Server 的接入信息，在平台侧注册为 Tool；③通过 AgentTool 关联把 Tool 绑定到新 Agent。<strong>幂等设计</strong>：如果平台已存在相同 mcp_server_url 的 Tool，直接复用而不是重复注册——所以从同一个模板创建 10 个 Agent，MCP Server 只导入一次，绑定关系各自独立。这把「装工具」从用户的手工配置变成了模板的一部分，是人才市场「一键招聘、到岗即能干活」体验的关键一环。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>自治的前提，是可治理</h2>
+    <p>文件即人格，让数字员工可以被阅读、被审计、被带走；分级授权与审批流，让自主运行有刹车；配额防线，让长期运行不失控。</p>
+    <p>模板市场解决「招来就能用」，生命周期治理解决「用着不出事」——两者相加，Agent 才从 Demo 变成员工。</p>
+    <p class="big">敢放权，是因为每一级权力都标好了价格与审批人。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 数字员工的一生：从模板市场入职到配额管控 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a>
+  </div>
+</footer>
+
+</body>
+</html>

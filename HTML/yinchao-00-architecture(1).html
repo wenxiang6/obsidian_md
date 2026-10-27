@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音巢整体架构 · 把 AI Agent 当数字员工运营的平台底座</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 00/12 · 整体架构</div>
+    <h1>音巢整体架构<br>把 AI Agent 当数字员工运营的平台底座</h1>
+    <p class="sub">音巢（Clawith）是一个开源多智能体协作平台（Apache 2.0）：每个 Agent 有持久人格、长期记忆、独立工作空间和主动意识，还能在 Plaza 广场上彼此社交。LLM 推理全部走外部 API，本地是一套标准 Web 应用 + Docker 编排——这篇总纲把它的分层、进程角色、租户隔离与 Durable Runtime 一次讲透。</p>
+    <div class="hero-meta">
+      <span>定位 <b>多智能体协作平台</b></span>
+      <span>后端 <b>FastAPI + LangGraph</b></span>
+      <span>规模 <b>64 张表 · 46 个 API 模块</b></span>
+      <span>进程角色 <b>4 种</b></span>
+      <span>Agent 模板 <b>22 个内置</b></span>
+      <span>开源协议 <b>Apache 2.0</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">场景与定位</a>
+    <a href="#design">功能设计</a>
+    <span class="sep">·</span>
+    <a href="#impl">实现方案</a>
+    <a href="#fig-layer">图 1 · 总分层</a>
+    <a href="#fig-role">图 2 · 进程角色</a>
+    <a href="#fig-chat">图 3 · 对话链路</a>
+    <a href="#fig-deploy">图 4 · 部署拓扑</a>
+    <span class="sep">·</span>
+    <a href="#code">最小实现伪代码</a>
+    <a href="#qa">面试 QA</a>
+    <a href="#ending">结语</a>
+    <span class="sep">·</span>
+    <a href="index.html">返回系列导航</a>
+    <a href="yinchao-01-agent-runtime.html">下一篇 · Agent 运行时</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>不是聊天机器人，是一家「数字员工公司」的操作系统</h2>
+    <p>多数 Agent 框架解决「让模型调用工具」，音巢解决的是「让一群 Agent 像员工一样被招聘、分工、协作、考核」。底座因此必须同时是一件事：一套有组织治理能力的标准 Web 应用。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">46</div><div class="l">API 模块（backend/app/api/ 路由文件数）</div></div>
+    <div class="stat"><div class="n teal">64</div><div class="l">数据库表（backend/app/models/ 声明）</div></div>
+    <div class="stat"><div class="n amber">4</div><div class="l">进程角色 bootstrap / api / worker / connector</div></div>
+    <div class="stat"><div class="n green">22</div><div class="l">内置 Agent 模板（backend/agent_templates/）</div></div>
+  </div>
+
+  <h3 class="sub">四类典型业务场景</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">场景</th><th>谁在用什么</th><th>架构上被什么支撑</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>IM 渠道里的数字员工</td>
+        <td>在飞书 / 钉钉 / 企业微信 / 微信 / Discord 里 @ 一个 Agent，它像同事一样接需求、回消息、交付结果</td>
+        <td>connector 进程角色常驻各 IM 长连接；agent_runtime 的 channel_delivery 负责把运行结果投递回渠道</td>
+      </tr>
+      <tr>
+        <td>团队自治与 OKR 运营</td>
+        <td>种子 OKR Agent 每日收集进展、生成报告；定时任务与触发器让 Agent 不等人催就主动干活</td>
+        <td>worker 角色跑触发器守护与调度器；trigger_runtime（dispatch / evaluator / queue / executions）驱动执行</td>
+      </tr>
+      <tr>
+        <td>研发与内容生产力 Agent</td>
+        <td>code-reviewer、backend-architect 等 22 个内置模板开箱即用；Agent 在自己沙箱里跑代码、读写文件</td>
+        <td>每 Agent 独立工作空间（AGENT_DATA_DIR）+ bubblewrap / Docker / E2B / AgentBay 多种沙箱后端</td>
+      </tr>
+      <tr>
+        <td>多租户 SaaS 化运营</td>
+        <td>一套部署服务多个公司：租户隔离、配额、审批、审计、RBAC 一个不能少</td>
+        <td>TenantContextMiddleware + TenantScopedBaseDAO 行级隔离；quota_guard / audit_logger 贯穿服务层</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>Agent 是数字员工：有身份（soul.md 人格）、有记忆（memory.md）、有工位（独立工作空间）、有主动性（Aware + 6 种触发器）、有社交（Plaza 广场），并被组织管理。</h3>
+    <p>这个定位直接决定了架构形态：它不是一个推理框架，而是一个「平台底座」——LLM 推理外包给外部 API，本地把身份、记忆、协作、治理这些框架给不了的东西做扎实。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>三个贯穿全局的取舍</h2>
+    <p>音巢的架构可以被三个决策概括：单体还是微服务、租户怎么隔离、任务队列放哪里。它们决定了后面所有的代码形状。</p>
+  </div>
+
+  <div class="decision">
+    <h3>模块化单体 + 进程角色 vs 微服务拆分 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 拆成 API 服务 / 运行时服务 / 连接器服务等多个微服务，独立仓库独立部署<br>② 单一代码库、单一 FastAPI 应用，用 PROCESS_ROLE 环境变量让一个二进制扮演不同角色</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>选 ②：模块化单体，进程级角色分离（bootstrap / api / worker / connector）</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>核心复杂度在 Agent 运行时语义（状态机、检查点、租户隔离），不在服务边界。角色拆分拿到部署弹性（api 可水平扩、connector 可单独重启），又避开微服务的分布式事务与接口治理成本。docker-compose.cd.yml 已经把 api 与 worker 拆成两个容器在跑。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>共享数据库连接池，worker 突发负载可能挤占 api 的 PG 连接；角色边界靠纪律维持，不是强制的网络边界。代价可接受：中间状态可经由 Redis / 数据库解耦。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>行级租户隔离 vs 分库 / 分 Schema <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 每租户独立数据库或 Schema，物理隔离<br>② 共享表 + tenant_id 列，由中间件注入 ContextVar、DAO 层自动追加租户条件</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>选 ②：行级隔离，隔离逻辑收口在 TenantContextMiddleware + TenantScopedBaseDAO 两处</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>64 张表 × N 个租户的分库方案会让 Alembic 迁移与备份成本爆炸；行级隔离用约 60 行的中间件和一个 DAO 基类换全局约束——scoped 方法在没有租户上下文时直接抛 RuntimeError，把「忘了带 tenant_id」变成启动期即可发现的故障，而不是线上数据串租。跨租户查询只允许平台管理员走父类方法，并要求注释 arch-guard 标记。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>隔离强度低于物理分库，依赖 DAO 纪律与代码评审兜底；大租户的数据倾斜需要后续再做表分区。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>数据库表当工作队列 vs Celery / Kafka <span class="badge brand">D3</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 引入 Celery + Redis / Kafka 做 Agent 任务队列<br>② 用 agent_run_commands 表：pending → claimed（TTL 心跳）→ done / failed，失败按 attempt_count 重试</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>选 ②：工作队列就是一张 PostgreSQL 表，worker 轮询认领</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>Agent 运行状态本来就必须落库（LangGraph Postgres Checkpointer），命令放同一张库意味着「排队中的意图」和「执行中的状态」共享同一事务边界与备份策略，恢复语义天然一致；TTL 认领（默认 60s，每 20s 续约）+ 最大 5 次尝试覆盖了 worker 崩溃场景。少一个中间件，少一类运维事故。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>吞吐上限低于专用消息队列，高频心跳带来写放大；但 Agent 运行的瓶颈在 LLM API 延迟（秒级），不在队列吞吐，瓶颈错位使这个代价几乎不可见。</p></div>
+    </div>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">三个决策的共同审美</div>
+    <p>把复杂度压进「语义正确性」（租户不串、运行可恢复），把基础设施维持在「一个 PG + 一个 Redis 就能跑」的水平。这是一套为中小团队自部署优化的架构——也和 Apache 2.0 开源分发的目标一致：部署门槛每高一分，社区用户就少一批。</p>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>五层结构、四种角色、一条对话链路</h2>
+    <p>实现方案用四张图讲完：总分层看静态结构，进程角色看部署单元，对话链路看动态行为，部署拓扑看怎么跑起来。随后一张「代码依据」表把每个论断钉到真实文件上。</p>
+  </div>
+
+  <div class="fig-t" id="fig-layer"><span class="fno">图 1</span><h3>总分层架构：从 Web/IM 到数据层的完整调用栈</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>调用方层</h3><span class="need free">多入口</span></div>
+      <div class="boxes">
+        <div class="box"><b>Web SPA</b>（frontend/）<small>React 19 + Vite 6 + Zustand + TanStack Query，中/英双语</small></div>
+        <div class="box"><b>IM 渠道</b><small>飞书 / 钉钉 / 企业微信 / 微信 / Discord 长连接</small></div>
+        <div class="box"><b>外部 API 调用</b><small>Webhook / 开放接口</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">HTTP / WebSocket · Nginx 反代 /api → backend:8000 · 前端 3008→3000 ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>FastAPI 应用层（backend/app）</h3><span class="need own">单一应用 · 四角色</span></div>
+      <div class="boxes">
+        <div class="box"><b>api/（46 个路由模块）</b><small>REST + WebSocket（websocket.py / group_websocket.py）</small></div>
+        <div class="box"><b>schemas/</b><small>Pydantic 请求/响应契约</small></div>
+        <div class="box"><b>core/middleware</b><small>TraceId → TenantContext（JWT 解 tenant_id 注入 ContextVar）</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">服务调用 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>服务层（services/）</h3><span class="need own">业务核心</span></div>
+      <div class="boxes">
+        <div class="box"><b>agent_runtime/</b><small>LangGraph StateGraph + 命令队列 + 检查点（约 60 个模块）</small></div>
+        <div class="box"><b>trigger_runtime/</b><small>dispatch / evaluator / queue / executions，6 种触发器</small></div>
+        <div class="box"><b>llm/</b><small>自研多 Provider 客户端：OpenAI 兼容 / Anthropic / Gemini + failover</small></div>
+        <div class="box"><b>realtime_runtime/router.py</b><small>Redis pub/sub 跨实例路由 WebSocket 消息</small></div>
+        <div class="box"><b>沙箱 / 工作空间</b><small>bubblewrap · Docker · E2B · Judge0 · 阿里云 AgentBay</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">SQLAlchemy 2.0 async ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>DAO 层（dao/）</h3><span class="need auto">租户隔离收口处</span></div>
+      <div class="boxes">
+        <div class="box"><b>TenantScopedBaseDAO</b><small>get_scoped / list_scoped / add_scoped 自动带 tenant_id 条件</small></div>
+        <div class="box"><b>BaseDAO</b><small>通用 CRUD；跨租户查询仅平台管理员 + arch-guard 注释</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>数据层</h3><span class="need warn">三件套</span></div>
+      <div class="boxes">
+        <div class="box"><b>PostgreSQL 15+</b><small>64 张业务表 + LangGraph 检查点表；Alembic 管迁移</small></div>
+        <div class="box"><b>Redis 7</b><small>WebSocket 跨实例路由 pub/sub、缓存</small></div>
+        <div class="box"><b>AGENT_DATA_DIR</b><small>每 Agent 的私有文件系统：soul.md / memory.md / skills / 工作产物</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">注意栈里<strong>没有 GPU、没有向量库、没有推理服务</strong>——LLM 全部走外部 API（services/llm/client.py），本地架构因此保持「标准 Web 应用」形状，单机 docker compose up 即可运行全平台。</p>
+
+  <div class="fig-t" id="fig-role"><span class="fno">图 2</span><h3>进程角色部署：一个二进制，四种人格</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>bootstrap 角色</h3><span class="need own">幂等 · 可反复执行</span></div>
+      <div class="boxes">
+        <div class="box"><b>建表</b><small>导入全部 models 后 create_all（生产由 Alembic 接管）</small></div>
+        <div class="box"><b>播种</b><small>内置工具、22 个 Agent 模板、技能、默认 OKR Agent</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>api 角色</h3><span class="need own">可水平扩展</span></div>
+      <div class="boxes">
+        <div class="box"><b>REST API</b><small>46 个路由模块</small></div>
+        <div class="box"><b>WebSocket</b><small>+ Redis pub/sub 订阅器（realtime_router.start）</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>worker 角色</h3><span class="need own">后台计算</span></div>
+      <div class="boxes">
+        <div class="box"><b>trigger_daemon</b><small>触发器守护（cron / 事件 / webhook 等 6 种）</small></div>
+        <div class="box"><b>scheduler</b><small>Agent 定时任务调度</small></div>
+        <div class="box"><b>Runtime worker</b><small>认领 agent_run_commands，驱动 LangGraph 执行</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>connector 角色</h3><span class="need own">长连接</span></div>
+      <div class="boxes">
+        <div class="box"><b>飞书 WebSocket</b><small>feishu_ws_manager</small></div>
+        <div class="box"><b>钉钉 Stream</b><small>dingtalk_stream_manager</small></div>
+        <div class="box"><b>企微 / 微信</b><small>wecom_stream / wechat_poll</small></div>
+        <div class="box"><b>Discord Gateway</b><small>discord_gateway_manager</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">四种角色共享 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>共享状态</h3><span class="need warn">唯一事实源</span></div>
+      <div class="boxes">
+        <div class="box"><b>PostgreSQL</b><small>业务数据 + 命令队列 + LangGraph 检查点</small></div>
+        <div class="box"><b>Redis</b><small>实时消息路由、跨实例协调</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">角色由环境变量 <code>PROCESS_ROLE</code> 控制，支持逗号组合（如 <code>bootstrap,worker,connector</code>），缺省 <code>all</code> 表示单进程全跑。docker-compose.yml 用 <code>all</code> 一键起；docker-compose.cd.yml 拆成 backend-api（PROCESS_ROLE=api）与 backend-worker（bootstrap,worker,connector）两个服务——<strong>同一镜像，两种部署形态</strong>。</p>
+
+  <div class="fig-t" id="fig-chat"><span class="fno">图 3</span><h3>一次对话的全链路：消息怎么变成一次可恢复的 Agent 运行</h3></div>
+  <div class="flow">
+    <span class="chip dark">用户消息<br>Web / IM</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">JWT 鉴权<br>+ tenant_id 注入 ContextVar</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">chat_intake 受理<br>创建 / 复用会话</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">agent_run_commands 入队<br>status = pending</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">command_worker 认领<br>TTL 60s · 每 20s 续约</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">LangGraph 执行<br>模型步 ↔ 工具步循环</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">检查点落 PG<br>随时可中断恢复</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">WS 推送<br>Redis pub/sub 跨实例 → 前端</span>
+  </div>
+  <p class="fig-note">关键性质：<strong>HTTP 请求在「入队」一步就返回了</strong>，之后的执行是异步的、由 worker 驱动的、可中断可恢复的。worker 崩溃时认领 TTL 到期，命令被其他 worker 重新认领，从最近一次检查点续跑——这就是 Durable 的含义。重试上限由 <code>AGENT_RUNTIME_COMMAND_MAX_ATTEMPTS</code>（默认 5）控制。</p>
+
+  <div class="fig-t" id="fig-deploy"><span class="fno">图 4</span><h3>部署拓扑：从单机 Compose 到多进程再到 Helm</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>docker-compose.yml · 单机四服务</h3><span class="need free">开发 / 小规模生产</span></div>
+      <div class="boxes">
+        <div class="box"><b>postgres:15-alpine</b></div>
+        <div class="box"><b>redis:7-alpine</b></div>
+        <div class="box"><b>backend</b><small>PROCESS_ROLE=all · privileged + SYS_ADMIN · 挂 docker.sock（沙箱用）</small></div>
+        <div class="box"><b>frontend</b><small>Nginx · 宿主 3008 → 容器 3000 · 反代 /api</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">水平拆分 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>docker-compose.cd.yml · 多进程形态</h3><span class="need own">api 与 worker 分离</span></div>
+      <div class="boxes">
+        <div class="box"><b>backend-api</b><small>PROCESS_ROLE=api，可多副本</small></div>
+        <div class="box"><b>backend-worker</b><small>PROCESS_ROLE=bootstrap,worker,connector</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">上 K8s ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>helm/clawith · 生产部署</h3><span class="need auto">Chart 已内置</span></div>
+      <div class="boxes">
+        <div class="box"><b>setup.sh / restart.sh</b><small>一键安装与重启脚本</small></div>
+        <div class="box"><b>Alembic</b><small>schema 迁移归 Alembic 管（ALEMBIC_GUIDELINES.md），不再依赖启动建表</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="co amber">
+    <div class="co-t">安全要点（部署前必读）</div>
+    <ul>
+      <li><strong>默认密钥必改</strong>：SECRET_KEY / JWT_SECRET_KEY 出厂值为 <code>change-me</code>，启动时会打 warning，但生产环境必须换掉，否则任何人都能伪造任意租户身份。</li>
+      <li><strong>docker.sock 是高权限入口</strong>：backend 容器挂载它是为了编排沙箱容器，意味着 backend 被攻破 ≈ 宿主机被攻破，访问面要收紧。</li>
+      <li><strong>沙箱 fail-closed</strong>：容器内缺 bubblewrap 时 execute_code 默认拒绝执行，除非显式设置 <code>SANDBOX_ALLOW_UNSAFE_FALLBACK_WHEN_BWRAP_MISSING=true</code>——宁可功能不可用，不可隔离失守。</li>
+      <li><strong>对外暴露走 HTTPS</strong>：参考仓库根目录 HTTPS_GUIDE.md。</li>
+    </ul>
+  </div>
+
+  <h3 class="sub">代码依据（论断 → 真实文件）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:170px">功能点</th><th>关键文件</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>进程角色分支</td><td class="mono">backend/app/main.py</td><td>解析 PROCESS_ROLE，按 bootstrap / api / worker / connector 决定启动哪些组件；注册中间件与 46 个路由</td></tr>
+      <tr><td>租户上下文注入</td><td class="mono">backend/app/core/middleware.py</td><td>TenantContextMiddleware 从 JWT 解出 tenant_id 绑定到 ContextVar</td></tr>
+      <tr><td>行级租户隔离</td><td class="mono">backend/app/dao/base.py</td><td>TenantScopedBaseDAO 的 scoped 方法自动带租户条件；无上下文抛 RuntimeError</td></tr>
+      <tr><td>Agent 运行时图</td><td class="mono">backend/app/services/agent_runtime/graph.py</td><td>LangGraph StateGraph 定义：模型步 / 工具步 / 验证 / 收尾</td></tr>
+      <tr><td>命令队列 worker</td><td class="mono">backend/app/services/agent_runtime/command_worker.py</td><td>RuntimeCommandWorker：TTL 认领、心跳续约、崩溃重领、最大重试</td></tr>
+      <tr><td>工作队列表</td><td class="mono">backend/app/models/agent_run_command.py</td><td>agent_run_commands 表（状态 / attempt_count 带 CheckConstraint）</td></tr>
+      <tr><td>检查点持久化</td><td class="mono">backend/app/services/agent_runtime/checkpointer.py</td><td>langgraph-checkpoint-postgres 封装，中断恢复的落点</td></tr>
+      <tr><td>消息受理入口</td><td class="mono">backend/app/services/agent_runtime/chat_intake.py</td><td>用户消息 → 会话 → 命令入队的受理逻辑</td></tr>
+      <tr><td>触发器运行时</td><td class="mono">backend/app/services/trigger_runtime/</td><td>dispatch / evaluator / queue / executions：6 种触发器的评估与执行</td></tr>
+      <tr><td>跨实例实时路由</td><td class="mono">backend/app/services/realtime_runtime/router.py</td><td>RealtimeRouter：Redis pub/sub 把 WS 消息路由到连接所在实例</td></tr>
+      <tr><td>多 Provider LLM</td><td class="mono">backend/app/services/llm/client.py · failover.py</td><td>OpenAI 兼容 / Anthropic / Gemini 统一客户端 + 主备切换</td></tr>
+      <tr><td>启动播种</td><td class="mono">backend/app/services/tool_seeder.py · template_seeder.py · skill_seeder.py · agent_seeder.py</td><td>内置工具、22 个 Agent 模板、技能、默认 OKR Agent 的幂等播种</td></tr>
+      <tr><td>运行时配置</td><td class="mono">backend/app/config.py</td><td>AGENT_RUNTIME_* 一族开关：认领 TTL、并发、重试、检查点保留天数等</td></tr>
+      <tr><td>部署编排</td><td class="mono">docker-compose.yml · docker-compose.cd.yml · helm/clawith</td><td>单机四服务 / 多进程拆分 / K8s 三种形态</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="code">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两段骨架看懂整个底座</h2>
+    <p>第一段回答「一个二进制怎么扮演四种角色」，第二段回答「租户隔离怎么做到改一处、管全局」。两段都是真实代码的最小化改写，路径见注释。</p>
+  </div>
+
+  <div class="fig-t"><span class="fno">伪代码 1</span><h3>按 PROCESS_ROLE 分支启动（backend/app/main.py 的骨架）</h3></div>
+  <div class="cb"><span class="tk-k">def</span> <span class="tk-f">_role_enabled</span>(*required):
+    roles = {r.strip() <span class="tk-k">for</span> r <span class="tk-k">in</span> settings.PROCESS_ROLE.split(<span class="tk-s">","</span>)} <span class="tk-c"># 缺省 "all"</span>
+    <span class="tk-k">return</span> <span class="tk-s">"all"</span> <span class="tk-k">in</span> roles <span class="tk-k">or</span> <span class="tk-f">any</span>(r <span class="tk-k">in</span> roles <span class="tk-k">for</span> r <span class="tk-k">in</span> required)
+
+<span class="tk-k">async def</span> <span class="tk-f">lifespan</span>(app):
+    <span class="tk-k">if</span> <span class="tk-f">_role_enabled</span>(<span class="tk-s">"all"</span>, <span class="tk-s">"bootstrap"</span>):
+        <span class="tk-k">await</span> <span class="tk-f">create_all_tables</span>()        <span class="tk-c"># 幂等；生产由 Alembic 接管</span>
+        <span class="tk-k">await</span> <span class="tk-f">seed_builtin_tools</span>()       <span class="tk-c"># 内置工具</span>
+        <span class="tk-k">await</span> <span class="tk-f">seed_agent_templates</span>()     <span class="tk-c"># 22 个 Agent 模板</span>
+        <span class="tk-k">await</span> <span class="tk-f">seed_skills</span>()                <span class="tk-c"># 技能</span>
+        <span class="tk-k">await</span> <span class="tk-f">seed_default_agents</span>()        <span class="tk-c"># 默认 Agent</span>
+        <span class="tk-k">await</span> <span class="tk-f">seed_okr_agent</span>()             <span class="tk-c"># 默认 OKR Agent</span>
+
+    <span class="tk-k">if</span> <span class="tk-f">_role_enabled</span>(<span class="tk-s">"all"</span>, <span class="tk-s">"api"</span>):
+        <span class="tk-k">await</span> realtime_router.<span class="tk-f">start</span>(ws_manager.deliver_pubsub_message)
+        <span class="tk-c"># ↑ 订阅 Redis pub/sub，把别的实例上的 WS 消息投递到本地连接</span>
+
+    <span class="tk-k">if</span> <span class="tk-f">_role_enabled</span>(<span class="tk-s">"all"</span>, <span class="tk-s">"worker"</span>):
+        asyncio.<span class="tk-f">create_task</span>(<span class="tk-f">start_trigger_daemon</span>())   <span class="tk-c"># 触发器守护</span>
+        asyncio.<span class="tk-f">create_task</span>(<span class="tk-f">start_scheduler</span>())        <span class="tk-c"># 定时任务调度</span>
+        <span class="tk-k">await</span> stack.<span class="tk-f">enter_async_context</span>(<span class="tk-f">running_runtime_worker_context</span>())
+        <span class="tk-c"># ↑ Durable Runtime worker：轮询认领 agent_run_commands</span>
+
+    <span class="tk-k">if</span> <span class="tk-f">_role_enabled</span>(<span class="tk-s">"all"</span>, <span class="tk-s">"connector"</span>):
+        asyncio.<span class="tk-f">create_task</span>(feishu_ws_manager.<span class="tk-f">start_all</span>())      <span class="tk-c"># 飞书</span>
+        asyncio.<span class="tk-f">create_task</span>(dingtalk_stream_manager.<span class="tk-f">start_all</span>()) <span class="tk-c"># 钉钉</span>
+        asyncio.<span class="tk-f">create_task</span>(wecom_stream_manager.<span class="tk-f">start_all</span>())    <span class="tk-c"># 企微</span>
+        asyncio.<span class="tk-f">create_task</span>(wechat_poll_manager.<span class="tk-f">start_all</span>())     <span class="tk-c"># 微信</span>
+        asyncio.<span class="tk-f">create_task</span>(discord_gateway_manager.<span class="tk-f">start_all</span>()) <span class="tk-c"># Discord</span>
+
+    <span class="tk-k">yield</span>  <span class="tk-c"># 关停时逆序回收：先停 worker 释放检查点锁，再关 Redis</span></div>
+  <p class="fig-note">要点：播种全部幂等（可反复执行不出错）；角色之间不通信，协调完全通过共享的 PostgreSQL 与 Redis 完成——这是「可拆进程部署」成立的前提。</p>
+
+  <div class="fig-t"><span class="fno">伪代码 2</span><h3>租户隔离最小闭环：中间件注入 + DAO 自动过滤</h3></div>
+  <div class="cb"><span class="tk-c"># backend/app/core/middleware.py + backend/app/dao/base.py 的最小化改写</span>
+_tenant_ctx: ContextVar[<span class="tk-t">UUID</span> | <span class="tk-k">None</span>] = <span class="tk-f">ContextVar</span>(<span class="tk-s">"tenant"</span>, default=<span class="tk-k">None</span>)
+
+<span class="tk-k">class</span> <span class="tk-t">TenantContextMiddleware</span>(BaseHTTPMiddleware):
+    <span class="tk-k">async def</span> <span class="tk-f">dispatch</span>(self, request, call_next):
+        payload = <span class="tk-f">try_decode_jwt</span>(request.headers.get(<span class="tk-s">"Authorization"</span>))
+        token = _tenant_ctx.<span class="tk-f">set</span>(payload.get(<span class="tk-s">"tenant_id"</span>) <span class="tk-k">if</span> payload <span class="tk-k">else</span> <span class="tk-k">None</span>)
+        <span class="tk-k">try</span>:
+            <span class="tk-k">return</span> <span class="tk-k">await</span> <span class="tk-f">call_next</span>(request)   <span class="tk-c"># 整个请求链共享这个 ContextVar</span>
+        <span class="tk-k">finally</span>:
+            _tenant_ctx.<span class="tk-f">reset</span>(token)          <span class="tk-c"># 请求结束必须复位，防串租</span>
+
+<span class="tk-k">class</span> <span class="tk-t">TenantScopedBaseDAO</span>(BaseDAO):
+    <span class="tk-k">async def</span> <span class="tk-f">get_scoped</span>(self, id):
+        tid = _tenant_ctx.<span class="tk-f">get</span>()
+        <span class="tk-k">if</span> tid <span class="tk-k">is</span> <span class="tk-k">None</span>:
+            <span class="tk-k">raise</span> <span class="tk-t">RuntimeError</span>(<span class="tk-s">"no tenant context"</span>)  <span class="tk-e"># 故障尽早暴露</span>
+        <span class="tk-k">return</span> <span class="tk-k">await</span> <span class="tk-f">select</span>(self.model).<span class="tk-f">where</span>(
+            self.model.id == id,
+            self.model.tenant_id == tid,      <span class="tk-c"># 租户条件自动追加，业务代码零感知</span>
+        )
+    <span class="tk-c"># list_scoped / add_scoped / delete_scoped 同理；写入时校验 tenant_id 一致</span></div>
+  <p class="fig-note">后台任务没有 HTTP 请求，用 <code>tenant_context(tenant_id)</code> 上下文管理器手动绑定；平台管理员的跨租户查询走父类 BaseDAO 方法，且调用点必须写 <code># arch-guard: allow</code> 注释——隔离靠机制 + 纪律双重兜底。</p>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六问六答：每个问题都落到音巢的真实代码上</h2>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 为什么选模块化单体 + 进程角色，而不是微服务？</div>
+    <p>看复杂度的位置。音巢最难的部分是 Agent 运行时的语义——状态机怎么设计、检查点何时写、租户如何不串——这些是代码内部的复杂度，拆成微服务一分也减不掉，反而新增接口治理、分布式追踪、跨服务事务的成本。PROCESS_ROLE 方案用「一个二进制、四种人格」拿到了微服务最值钱的两样东西：api 角色可水平扩容、connector 角色可独立重启（IM 长连接抖动不影响 API）。docker-compose.cd.yml 已经在生产形态里跑了 backend-api 与 backend-worker 两个服务，证明拆分是真的、不是纸面设计。什么时候该重新考虑微服务？当 worker 的资源画像（CPU 密集沙箱）和 api（IO 密集）差异大到需要不同的实例规格与调度策略时。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · 行级租户隔离和分库分 Schema 怎么取舍？</div>
+    <p>音巢 64 张表、Alembic 管迁移。分库方案意味着每来一个租户迁移要跑一遍、备份策略要翻 N 倍，运维成本随租户数线性增长；而行级隔离把全部复杂度收进两个文件：TenantContextMiddleware（约 40 行，从 JWT 解 tenant_id 进 ContextVar）和 TenantScopedBaseDAO（scoped 方法自动追加 WHERE tenant_id = :tid）。关键设计是<strong>失败模式的选择</strong>：scoped 方法在没有租户上下文时抛 RuntimeError，把「忘带租户」变成开发期立刻炸的错误，而不是线上串数据的事故。代价是隔离强度低于物理隔离——靠 DAO 纪律兜底，所以跨租户查询被限制为平台管理员专用且强制 arch-guard 注释。对 SaaS 中早期（租户数十到数百），这个交换是赚的。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 为什么用数据库表 agent_run_commands 当工作队列，而不是 Celery 或 Kafka？</div>
+    <p>三个理由。① <strong>状态一致性</strong>：Agent 运行状态本来就落 PG（LangGraph checkpointer），命令也放 PG，「排队的意图」和「执行的状态」在同一事务边界里，崩溃恢复时不会出现「队列说做完了、库里没结果」的分裂。② <strong>够用</strong>：Agent 任务的瓶颈是 LLM API 秒级延迟，不是队列吞吐；PG 轮询 + SKIP LOCKED 风格的认领在这个量级绰绰有余。③ <strong>少一个组件</strong>：自部署用户只需要 PG + Redis，不用学 Kafka。可靠性语义自己实现了一小套：claimed 状态带 TTL（默认 60s）、每 20s 心跳续约、worker 死了 TTL 到期被别人重领、attempt_count 到 5 次标记失败。这套东西 Kafka 免费给你，但音巢要的不是消息队列的全部语义，只是「至少一次 + 崩溃重领」，用表实现反而更贴合。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · LangGraph 的 Postgres Checkpointer 到底解决了什么问题？</div>
+    <p>解决「Agent 运行是有状态的长事务，但进程是无状态的」这个根本矛盾。一次 Agent 运行可能持续几分钟、几十轮模型-工具循环，期间 worker 可能重启、用户可能点停止、渠道可能超时。Checkpointer 在图执行的每个超步（super-step）边界把完整状态写进 PG，于是：worker 崩溃后新认领者从最近检查点续跑而不是从头再来；「中断-人工干预-恢复」（审批、修改计划）成为一等能力；时间旅行调试（回放某一步的状态）免费获得。音巢在 config.py 里配了 AGENT_RUNTIME_CHECKPOINT_RETENTION_DAYS=30 做保留清理——检查点表会膨胀，这是用它必须付的存储税。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · WebSocket 在多实例部署下怎么路由？</div>
+    <p>问题本质是：用户的 WS 连接在 api 实例 A 上，但 Agent 运行结果产生在 worker 上，消息怎么找到 A？音巢的 RealtimeRouter（services/realtime_runtime/router.py）用 Redis 做注册表 + pub/sub 总线：连接建立时在 Redis 登记 connection_id → 实例的映射；worker 要推消息时先查路由表，再 publish 到目标实例的专属频道；每个 api 实例启动时跑一个 subscriber loop，收到本实例的消息后投递给本地 WS 连接。这个模式的要点是<strong>连接状态不共享、只共享路由</strong>——实例宕机时它名下的连接本来就断了，路由表随 TTL 过期自动清理，没有脑裂问题。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · 进程角色拆分的好处都说了，代价是什么？</div>
+    <p>四个真实代价。① <strong>共享连接池争抢</strong>：worker 跑沙箱任务时 PG 连接消耗大，api 延迟会抖——缓解办法是拆容器后各自配池（compose.cd 已拆）。② <strong>播种竞态</strong>：多实例同时以 bootstrap 启动会并发播种，所以播种必须全部幂等，且生产上应只让一个实例带 bootstrap 角色。③ <strong>角色边界靠纪律</strong>：代码层面没有任何东西阻止 api 角色的代码调用 worker 的函数，边界是 review 出来的。④ <strong>本地开发心智负担</strong>：排查问题要先想「这段代码在哪个角色里跑」。这些代价的共同点是——它们都是「管理问题」而非「正确性问题」，对一个小团队开源项目，这个交换方向是对的。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>底座的审美：语义做重，设施做轻</h2>
+    <p>音巢把复杂度押注在「数字员工」的语义上——身份、记忆、主动性、协作、治理；同时把基础设施压到最低：一个 PG、一个 Redis、一个二进制、四种角色。</p>
+    <p>LLM 推理外包给外部 API，换来的是任何团队 docker compose up 就能拥有一家「数字员工公司」。</p>
+    <p class="big">下一篇我们钻进底座的心脏：Durable Agent Runtime——agent_run_commands 队列与 LangGraph 检查点如何让一次 Agent 运行「死不掉」。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 音巢整体架构 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    <a href="yinchao-01-agent-runtime.html">下一篇 · Durable Agent Runtime</a> · 文中所有源码路径均经上游仓库逐一核实
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>把 Agent 装进每一个工作群 · 七渠道 IM 集成 · 音巢设计分享 06/12</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 06/12 · IM 渠道集成</div>
+    <h1>把 Agent 装进每一个工作群<br>七渠道 IM 集成</h1>
+    <p class="sub">数字员工不该躲在另一个网页后面等人来找——它应该活在员工已有的工作入口里：在飞书、钉钉群里被 @ 就回话，在企微、微信里当客服，在 Slack、Discord、Teams 里陪海外团队协作。音巢用五类长连接管理器 + 一个投递 outbox，把七种 IM 协议归一化成同一条「事件入、回复出」的闭环。</p>
+    <div class="hero-meta">
+      <span>接入渠道 <b>7</b> 个</span>
+      <span>长连接管理器 <b>5</b> 类</span>
+      <span>投递通道枚举 <b>8</b> 种</span>
+      <span>机器人形态 <b>托管 + 远程 OpenClaw</b></span>
+      <span>核心表 <b>channel_configs / channel_deliveries / gateway_messages</b></span>
+      <span>源码基线 <b>上游 main 分支</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">01 场景与定位</a>
+    <a href="#design">02 功能设计</a>
+    <a href="#impl">03 实现方案</a>
+    <span class="sep">·</span>
+    <a href="#fig-arch">图 1 · 总架构</a>
+    <a href="#fig-inbound">图 2 · 入站链路</a>
+    <a href="#fig-outbound">图 3 · 出站投递</a>
+    <span class="sep">·</span>
+    <a href="#pseudo">04 最小伪代码</a>
+    <a href="#qa">05 面试 QA</a>
+    <a href="#ending">06 结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-05-tools-skills-mcp.html">上一篇 · 工具与 MCP</a>
+    <a href="yinchao-07-org-okr.html">下一篇 · 组织与 OKR</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>Agent 的价值，取决于它离员工的工作入口有多近</h2>
+    <p>一个只能在自己网页里对话的 Agent，使用率会输给「在群里 @ 一下就能干活」的 Agent。IM 渠道集成的定位，就是把音巢 Agent 平台里的每一个数字员工，变成各大 IM 里一个有独立身份的机器人同事。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">7</div><div class="l">IM 渠道（飞书/钉钉/企微/微信/Slack/Discord/Teams）</div></div>
+    <div class="stat"><div class="n teal">5</div><div class="l">类长连接管理器（connector 进程内运行）</div></div>
+    <div class="stat"><div class="n amber">8</div><div class="l">channel_deliveries 投递通道枚举（含 WhatsApp）</div></div>
+    <div class="stat"><div class="n green">2</div><div class="l">机器人形态：托管渠道 + 远程 OpenClaw</div></div>
+  </div>
+
+  <h3 class="sub">四类业务场景</h3>
+  <div class="values">
+    <div class="value">
+      <div class="no">①</div>
+      <h3>工作群里的数字员工</h3>
+      <p>每个 Agent 绑定独立的飞书/钉钉机器人身份。群里 @ 它就派活：「@数据分析 跑一下昨天的留存漏斗」，执行结果回帖到群里。员工不需要开新网页，Agent 就在已有的工作入口里。</p>
+    </div>
+    <div class="value">
+      <div class="no">②</div>
+      <h3>企微 / 微信客服前台</h3>
+      <p>企业微信与客户微信是最重的外部触达面。Agent 以客服身份承接咨询，会话上下文由 <code>channel_session</code> 按渠道 + 外部会话 ID 维持，多轮问答不断片。</p>
+    </div>
+    <div class="value">
+      <div class="no">③</div>
+      <h3>海外团队协作</h3>
+      <p>Slack / Discord / Microsoft Teams 覆盖海外团队与开源社区场景。Discord 在国内网络环境下需要代理出口——音巢的做法是进程内启动 ss-local SOCKS5，而不是要求整机翻墙。</p>
+    </div>
+    <div class="value">
+      <div class="no">④</div>
+      <h3>远程机器人 OpenClaw</h3>
+      <p>不想把凭证托管在平台上的场景：用户自部署的 OpenClaw 机器人持 API Key 走 <code>api/gateway.py</code> 轮询拉消息、上报结果、发心跳——消息照样进入同一个 Agent Runtime。</p>
+    </div>
+  </div>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>IM 集成不是「做七个机器人 Demo」，而是把七种协议差异关进 connector 进程，给 Agent Runtime 只暴露一种消息模型。</h3>
+    <p>入站：渠道事件验签、去重、归一化为站内消息后命令入队；出站：Agent 回复落库后由 outbox（channel_deliveries）按渠道适配格式投递回去。Runtime 自始至终不知道消息来自飞书还是 Discord。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>核心决策：长连接优先，Webhook 兜底</h2>
+    <p>IM 接入只有两条路：平台方回调你的公网 Webhook，或者你主动连平台的长连接收事件。音巢为每个渠道选哪条路，取决于平台能力、部署方的网络条件，以及运维复杂度三件事。</p>
+  </div>
+
+  <div class="decision">
+    <h3>入站事件通道：长连接（WebSocket / Stream）vs 公网 Webhook <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 全 Webhook：每个渠道一个公网回调端点，平台推事件<br>② 全长连接：SDK 主动连平台收事件，无需公网入口<br>③ 混合：有官方长连接 SDK 的优先长连接，只有 Webhook 的保留回调端点</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>混合策略：飞书/钉钉/企微/Discord 走长连接，微信走轮询，Slack/Teams/WhatsApp 保留 Webhook 回调</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>长连接不要求部署方有公网域名和 HTTPS 证书——私有化部署、NAT 内网、开发本机都能直接收事件，这是企业软件落地最现实的门槛。且长连接天然有顺序与心跳，验签压力小。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>长连接是有状态资源：断线重连、多实例去重、进程退出清理都要自己管。音巢为此单设 connector 进程角色，把这份复杂度隔离在一个可独立伸缩的进程里。</p></div>
+    </div>
+  </div>
+
+  <h3 class="sub">两种接入模式对比（按渠道落到源码）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:130px">渠道</th><th>接入模式</th><th>公网入口要求</th><th>断线 / 漏收处理</th></tr></thead>
+    <tbody>
+      <tr><td>飞书</td><td class="mono">长连接 · lark-oapi WebSocket（feishu_ws.py）</td><td class="ok">不需要</td><td>SDK 自动重连；event_id 内存去重防重放</td></tr>
+      <tr><td>钉钉</td><td class="mono">长连接 · dingtalk-stream SDK（dingtalk_stream.py）</td><td class="ok">不需要</td><td>Stream 模式自动重连；回调处理线程池隔离</td></tr>
+      <tr><td>企业微信</td><td class="mono">长连接 · wecom-aibot-sdk（wecom_stream.py）</td><td class="ok">不需要</td><td>SDK 帧级回调（text/image/file/enter_chat）</td></tr>
+      <tr><td>微信</td><td class="mono">轮询 · wechat_poll_manager（wechat_channel.py）</td><td class="ok">不需要</td><td>轮询天然可重入，重启后继续拉</td></tr>
+      <tr><td>Discord</td><td class="mono">Gateway 长连接 · discord.py（discord_gateway.py）</td><td class="ok">不需要</td><td>Gateway 断线自动 resume；出口走 SOCKS5 代理</td></tr>
+      <tr><td>Slack / Teams</td><td class="mono">Webhook 回调（slack.py / teams.py）</td><td class="no">需要公网 HTTPS 端点</td><td>平台重试 + 服务端幂等去重兜底</td></tr>
+      <tr><td>WhatsApp</td><td class="mono">Webhook 回调 + 签名验证（whatsapp.py）</td><td class="no">需要公网 HTTPS 端点</td><td>app_secret 验签，投递走 channel_deliveries</td></tr>
+    </tbody>
+  </table>
+  <p class="fig-note">八行不是拍脑袋：<code>channel_deliveries</code> 表的 CHECK 约束里就是这八个枚举值（feishu / dingtalk / wecom / wechat / whatsapp / slack / discord / microsoft_teams）。入站模式各选所长，出站投递全部收敛到同一张 outbox 表。</p>
+
+  <h3 class="sub">三个关键概念</h3>
+  <table class="tbl">
+    <thead><tr><th style="width:190px">概念 / 表</th><th>职责</th><th>要点</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="kid">channel_configs</td>
+        <td>渠道绑定配置：哪个 Agent 绑了哪个渠道的哪个机器人，凭证与扩展参数（extra_config）</td>
+        <td>一 Agent 一渠道一行；配置变更后长连接管理器热启对应客户端 <span class="badge brand">配置面</span></td>
+      </tr>
+      <tr>
+        <td class="kid">channel_deliveries</td>
+        <td>出站 outbox：一条待投递的 Agent 回复 = 一行记录</td>
+        <td>状态机 pending → claimed → delivered / failed；<code>(run_id, idempotency_key)</code> 唯一约束防重复投递 <span class="badge wr">数据面</span></td>
+      </tr>
+      <tr>
+        <td class="kid">gateway_messages</td>
+        <td>OpenClaw 远程机器人的信箱：待拉取消息与已上报结果</td>
+        <td>配 <code>api/gateway.py</code> 的 poll / report / heartbeat / send 四个端点 <span class="badge rd">远程形态</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>connector 进程扛长连接，outbox 表扛投递可靠性</h2>
+    <p>实现上有两条主线：入站侧由 <code>PROCESS_ROLE=connector</code> 的进程统一拉起五类长连接管理器；出站侧由 Runtime 落 <code>channel_deliveries</code> 投递单，worker 认领后按渠道适配发送。中间用数据库做接缝，两侧互不感知。</p>
+  </div>
+
+  <div class="fig-t" id="fig-arch"><span class="fno">图 1</span><h3>渠道接入总架构：七渠道 → 归一化 → Runtime → outbox 投递</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>IM 渠道层（平台侧）</h3><span class="need free">7 渠道 + WhatsApp</span></div>
+      <div class="boxes">
+        <div class="box"><b>飞书 / 钉钉 / 企微</b><small>官方长连接 SDK 推事件</small></div>
+        <div class="box"><b>微信</b><small>轮询拉取</small></div>
+        <div class="box"><b>Discord</b><small>Gateway 长连接（SOCKS5 出口）</small></div>
+        <div class="box"><b>Slack / Teams / WhatsApp</b><small>Webhook 回调</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">长连接事件 / Webhook 回调 / 轮询结果 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>connector 进程 · 长连接管理器 ×5</h3><span class="need own">PROCESS_ROLE=connector</span></div>
+      <div class="boxes">
+        <div class="box"><b>feishu_ws_manager</b><small>lark-oapi WebSocket</small></div>
+        <div class="box"><b>dingtalk_stream_manager</b><small>dingtalk-stream</small></div>
+        <div class="box"><b>wecom_stream_manager</b><small>wecom-aibot-sdk</small></div>
+        <div class="box"><b>wechat_poll_manager</b><small>轮询</small></div>
+        <div class="box"><b>discord_gateway_manager</b><small>discord.py Gateway</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">验签 / 解密 → event_id 去重 → 归一化（渠道消息 → 站内消息）→ 会话归属（channel_session）↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>Agent Runtime（渠道无关）</h3><span class="need auto">命令入队 · 幂等执行</span></div>
+      <div class="boxes">
+        <div class="box"><b>命令入队</b><small>agent_run_commands · idempotency_key</small></div>
+        <div class="box"><b>LangGraph 执行</b><small>工具调用 / 技能 / 模型</small></div>
+        <div class="box"><b>回复落库</b><small>ChatMessage 持久化</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">stage_channel_delivery 写投递单 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>出站 outbox · channel_deliveries</h3><span class="need warn">至少一次投递</span></div>
+      <div class="boxes">
+        <div class="box"><b>ChannelDeliveryWorker</b><small>认领（租约 claim_expires_at）+ 退避重试</small></div>
+        <div class="box"><b>DatabaseChannelDeliverySender</b><small>按 channel 分发到 8 个适配器</small></div>
+        <div class="box"><b>渠道回帖</b><small>feishu_service / dingtalk_service / wecom_stream …</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">delivered / failed 回执 + 事件留痕 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>远程形态 · OpenClaw 网关</h3><span class="need own">api/gateway.py</span></div>
+      <div class="boxes">
+        <div class="box"><b>X-Api-Key 认证</b><small>api_key_hash 匹配 agent_type=openclaw</small></div>
+        <div class="box"><b>poll / report / heartbeat / send</b><small>gateway_messages 信箱</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">五类长连接管理器在 <code>main.py</code> 的 lifespan 里按进程角色启动：<code>_role_enabled("all", "connector")</code> 为真时依次创建 feishu_ws / dingtalk_stream / wecom_stream / wechat_poll / discord_gw 五个后台任务，并挂统一的异常回调防止任务静默崩溃。</p>
+</section>
+
+<section id="fig-inbound">
+  <div class="fig-t"><span class="fno">图 2</span><h3>入站消息全链路：从 @机器人 到 Runtime 命令入队</h3></div>
+  <div class="flow">
+    <span class="chip dark">用户 @机器人<br>IM 群内发消息</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">渠道事件推送<br>长连接帧 / Webhook POST</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">验签 / 解密<br>拒绝伪造事件</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">event_id 去重<br>已处理直接 ack</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">归一化<br>还原 @ 提及 / 提取文本与附件</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">会话归属<br>find_or_create_channel_session</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">命令入队<br>幂等键入 Runtime</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">立即 ack<br>渠道不等执行结果</span>
+  </div>
+  <p class="fig-note">两个细节值得记住：① 飞书侧的去重标记是在<strong>处理成功之后</strong>才写入 <code>_processed_events</code>（api/feishu.py 注释明确：先标记后崩溃会导致重试事件被吞）；② 归一化阶段会把飞书消息里的 <code>@_user_1</code> 占位符还原成真实用户名（<code>_restore_feishu_text_mentions</code>），让 Runtime 看到的文本与人看到的一致。</p>
+
+  <div class="co teal">
+    <div class="co-t">为什么 ack 在入队之后就返回，而不是等 Agent 跑完</div>
+    <p>IM 平台的回调超时通常只有 3~5 秒，而一个 Agent 任务可能跑几分钟。链路在「命令入队」处异步化：渠道侧立即拿到 ack，执行与回复走图 3 的出站投递闭环。这也是 channel_deliveries 存在的根本原因——<strong>用一张表把「渠道时序」和「Runtime 时序」解耦</strong>。</p>
+  </div>
+</section>
+
+<section id="fig-outbound">
+  <div class="fig-t"><span class="fno">图 3</span><h3>出站投递循环：outbox 认领 → 渠道适配 → 回执落库</h3></div>
+  <div class="flow">
+    <span class="chip dark">Runtime 回复落库<br>stage_channel_delivery</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">投递单 pending<br>channel_deliveries</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">Worker 认领<br>claimed + 租约过期时间</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">渠道适配<br>8 个 sender 分支之一</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">发送 → 渠道确认<br>超时按失败处理</span>
+  </div>
+  <table class="tbl">
+    <thead><tr><th style="width:170px">发送结果</th><th>投递单状态流转</th><th>后续动作</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="ok">渠道确认送达</td>
+        <td class="mono">claimed → delivered，清除 claimed_by / claim_expires_at</td>
+        <td>写 delivery_succeeded 事件；钉钉群场景撤回「思考中」表情回应</td>
+      </tr>
+      <tr>
+        <td class="mut">可重试失败</td>
+        <td class="mono">claimed → pending，attempt_count + 1</td>
+        <td>按退避间隔等待下次认领（attempt_count 越大等越久）</td>
+      </tr>
+      <tr>
+        <td class="no">不可重试 / 超上限</td>
+        <td class="mono">→ failed（终态）</td>
+        <td>写 delivery_failed 事件，错误码 + 安全化错误信息留痕</td>
+      </tr>
+      <tr>
+        <td class="mut">Worker 崩溃</td>
+        <td class="mono">claimed 卡死 → 租约到期</td>
+        <td>下一个 Worker 认领 <code>claim_expires_at &lt;= now</code> 的单子，自动接管</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="fig-note">认领用「状态 + 租约」两字段实现，无需分布式锁：多个 Worker 并发抢单时，数据库行锁保证只有一个能把 pending 改成 claimed；Worker 崩溃不释放，租约到期后自然被接管。配合 <code>(run_id, idempotency_key)</code> 唯一约束，同一条回复最多一张投递单。</p>
+
+  <h3 class="sub">代码依据</h3>
+  <table class="tbl zebra">
+    <thead><tr><th>功能点</th><th style="width:300px">关键文件</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>渠道配置与回调 API</td><td class="mono">backend/app/api/feishu.py · dingtalk.py · wecom.py · wechat.py · slack.py · discord_bot.py · teams.py · whatsapp.py</td><td>渠道绑定 CRUD、Webhook 回调入口、验签解密（如 <code>_verify_and_decode_feishu_callback</code>）</td></tr>
+      <tr><td>飞书事件处理</td><td class="mono">backend/app/api/feishu.py</td><td><code>process_feishu_event</code>：event_id 去重（_processed_events）、@ 提及还原、归一化后入 Runtime</td></tr>
+      <tr><td>飞书长连接</td><td class="mono">backend/app/services/feishu_ws.py</td><td><code>FeishuWSManager</code>：lark-oapi WebSocket 客户端，事件帧派发回主事件循环</td></tr>
+      <tr><td>钉钉 / 企微 / 微信 / Discord 长连接</td><td class="mono">backend/app/services/dingtalk_stream.py · wecom_stream.py · wechat_channel.py · discord_gateway.py</td><td>四个 *Manager：start_all / start_client / stop_client 全生命周期管理</td></tr>
+      <tr><td>进程角色编排</td><td class="mono">backend/app/main.py</td><td><code>PROCESS_ROLE</code> 分支：connector 角色启动五个长连接任务；<code>_start_ss_local</code> 起 Discord 的 SOCKS5 出口</td></tr>
+      <tr><td>渠道会话归属</td><td class="mono">backend/app/services/channel_session.py</td><td><code>find_or_create_channel_session</code>：渠道 + 外部会话 ID → 站内 ChatSession</td></tr>
+      <tr><td>投递单模型</td><td class="mono">backend/app/models/channel_delivery.py</td><td>channel_deliveries 表：8 渠道枚举、四态状态机、幂等唯一约束</td></tr>
+      <tr><td>投递 Worker</td><td class="mono">backend/app/services/agent_runtime/channel_delivery.py</td><td><code>ChannelDeliveryWorker</code>：租约认领、退避重试、回执事件</td></tr>
+      <tr><td>渠道适配发送</td><td class="mono">backend/app/services/agent_runtime/channel_provider_delivery.py</td><td><code>DatabaseChannelDeliverySender</code>：按 channel 分发 8 个发送分支</td></tr>
+      <tr><td>远程机器人网关</td><td class="mono">backend/app/api/gateway.py · models/gateway_message.py · api/agentbay_control.py</td><td>OpenClaw 的 poll / report / heartbeat / send；gateway_messages 信箱表</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudo">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个闭环：事件进来，回复出去</h2>
+    <p>伪代码保留真实实现的关键机制——去重标记后置、幂等键贯穿、租约认领与退避——省略渠道 SDK 的样板代码。</p>
+  </div>
+
+  <h3 class="sub">闭环一：飞书长连接事件处理骨架（对应 feishu_ws.py + api/feishu.py）</h3>
+  <div class="cb"><span class="tk-c"># connector 进程内：每个绑定了飞书渠道的 Agent 一个 WS 客户端</span>
+<span class="tk-k">class</span> <span class="tk-t">FeishuWSManager</span>:
+    <span class="tk-k">async def</span> <span class="tk-f">start_client</span>(agent_id, app_id, app_secret):
+        handler = build_event_handler(on_message=<span class="tk-k">lambda</span> data: dispatch_to_main_loop(agent_id, data))
+        client = lark.ws.Client(app_id, app_secret, event_handler=handler)
+        <span class="tk-k">await</span> client.start()          <span class="tk-c"># 长连接由 SDK 维持与重连</span>
+
+<span class="tk-k">async def</span> <span class="tk-f">process_feishu_event</span>(agent_id, body):
+    event_id = body[<span class="tk-s">"header"</span>][<span class="tk-s">"event_id"</span>]
+    <span class="tk-k">if</span> event_id <span class="tk-k">in</span> _processed_events:            <span class="tk-c"># 去重：渠道重推直接吞掉</span>
+        <span class="tk-k">return</span> {<span class="tk-s">"code"</span>: <span class="tk-n">0</span>, <span class="tk-s">"msg"</span>: <span class="tk-s">"already processed"</span>}
+
+    message = parse_message(body[<span class="tk-s">"event"</span>][<span class="tk-s">"message"</span>])
+    text = restore_mentions(message.text, message.mentions)   <span class="tk-c"># @_user_1 → 真实姓名</span>
+    session = <span class="tk-k">await</span> find_or_create_channel_session(  <span class="tk-c"># 渠道会话 → 站内会话</span>
+        channel=<span class="tk-s">"feishu"</span>, external_chat_id=message.chat_id)
+
+    <span class="tk-k">await</span> accept_runtime_message(                  <span class="tk-c"># 命令入队，幂等键 = 渠道消息 ID</span>
+        agent_id, session, text,
+        external_event_id=message.message_id <span class="tk-k">or</span> event_id,
+        source_message_id=message.message_id <span class="tk-k">if</span> is_group <span class="tk-k">else None</span>)
+
+    _processed_events.add(event_id)                <span class="tk-c"># ★ 成功之后才标记——</span>
+    <span class="tk-k">if</span> <span class="tk-f">len</span>(_processed_events) &gt; <span class="tk-n">1000</span>:            <span class="tk-c">#   保证崩溃重试不被吞</span>
+        _processed_events.clear()
+    <span class="tk-k">return</span> {<span class="tk-s">"code"</span>: <span class="tk-n">0</span>}                            <span class="tk-c"># 立即 ack，不等 Agent 执行</span></div>
+
+  <h3 class="sub">闭环二：出站投递循环（对应 agent_runtime/channel_delivery.py + channel_provider_delivery.py）</h3>
+  <div class="cb"><span class="tk-c"># Runtime 侧：回复落库后写投递单（run_id + idempotency_key 唯一，重复写会被约束挡下）</span>
+<span class="tk-f">stage_channel_delivery</span>(run, session, content)  <span class="tk-c"># → INSERT channel_deliveries(status='pending')</span>
+
+<span class="tk-c"># Worker 侧：认领 → 发送 → 回执，租约兜底崩溃恢复</span>
+<span class="tk-k">class</span> <span class="tk-t">ChannelDeliveryWorker</span>:
+    <span class="tk-k">async def</span> <span class="tk-f">loop</span>():
+        <span class="tk-k">while</span> <span class="tk-n">True</span>:
+            envelope = <span class="tk-k">await</span> <span class="tk-self">self</span>._claim()        <span class="tk-c"># pending → claimed，写 claimed_by + claim_expires_at</span>
+            <span class="tk-k">if</span> envelope <span class="tk-k">is None</span>:                  <span class="tk-c">#   同时回收租约过期的孤儿单</span>
+                <span class="tk-k">await</span> sleep(poll_interval); <span class="tk-k">continue</span>
+            <span class="tk-k">try</span>:
+                result = <span class="tk-k">await</span> sender.send(envelope)   <span class="tk-c"># 按 channel 分发适配器</span>
+                <span class="tk-k">await</span> <span class="tk-self">self</span>._complete(envelope, result)   <span class="tk-c"># → delivered + delivery_succeeded 事件</span>
+            <span class="tk-k">except</span> ChannelDeliveryError <span class="tk-k">as</span> e:
+                <span class="tk-k">await</span> <span class="tk-self">self</span>._retry_or_fail(envelope, e)    <span class="tk-c"># pending(退避) 或 failed 终态</span>
+
+<span class="tk-k">class</span> <span class="tk-t">DatabaseChannelDeliverySender</span>:
+    SENDERS = {<span class="tk-s">"feishu"</span>: _feishu, <span class="tk-s">"dingtalk"</span>: _dingtalk, <span class="tk-s">"wecom"</span>: _wecom,
+               <span class="tk-s">"wechat"</span>: _wechat, <span class="tk-s">"slack"</span>: _slack, <span class="tk-s">"discord"</span>: _discord,
+               <span class="tk-s">"microsoft_teams"</span>: _teams, <span class="tk-s">"whatsapp"</span>: _whatsapp}
+    <span class="tk-k">async def</span> <span class="tk-f">send</span>(envelope):
+        config = <span class="tk-k">await</span> load_channel_config(envelope)     <span class="tk-c"># channel_configs 取凭证与目标</span>
+        <span class="tk-k">for</span> chunk <span class="tk-k">in</span> _chunks(envelope.text, CHANNEL_LIMIT):  <span class="tk-c"># 超长消息按渠道上限切片</span>
+            <span class="tk-k">await</span> SENDERS[envelope.channel](envelope, config, chunk)
+        <span class="tk-k">await</span> recall_thinking_reaction(envelope, config)    <span class="tk-c"># 钉钉：撤回「思考中」表情</span></div>
+
+  <p class="fig-note">两个闭环之间没有任何直接调用——接缝就是数据库。这意味着 connector 进程和 Runtime worker 可以分别崩溃、分别重启、分别伸缩，消息不丢（未 ack 的事件渠道会重推）、回复不重（幂等键 + 唯一约束）。</p>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，从选型聊到崩溃恢复</h2>
+    <p>每道题的回答都落到音巢的真实实现上，不停留在概念层。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 长连接（WebSocket/Stream）和公网 Webhook 回调，怎么取舍？</div>
+    <p>看三个变量：平台能力、部署方网络、运维成本。Webhook 模式实现最简单——起一个 HTTP 端点等平台推——但它要求部署方有公网可达的 HTTPS 入口，这对私有化部署和内网客户是硬门槛。长连接模式反过来：实现重（重连、心跳、状态管理），但对部署方零网络要求，本机开发都能收事件。音巢的答案是混合：有成熟长连接 SDK 的（飞书 lark-oapi、钉钉 dingtalk-stream、企微 wecom-aibot-sdk、Discord discord.py）一律长连接；只有回调形态的（Slack/Teams/WhatsApp）保留 Webhook；微信连 SDK 都没有，直接轮询。复杂度集中在 connector 进程角色里，用 <code>PROCESS_ROLE</code> 把它从 API 进程中拆出去独立伸缩。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · IM 平台保证的是「至少一次」投递，重复消息怎么去重？</div>
+    <p>音巢是三层去重，各管一段：<strong>① 事件层</strong>——飞书事件带 <code>event_id</code>，处理前查内存集合 <code>_processed_events</code>，重复事件直接返回成功；关键是标记在<strong>处理成功之后</strong>才写入，否则进程在入队前崩溃、渠道重推时会被误判为已处理而吞掉消息。<strong>② 命令层</strong>——归一化后入 Runtime 的命令带 <code>idempotency_key</code>（由渠道消息 ID 派生），数据库唯一约束兜底，即使进程重启、内存集合丢了，同一事件也不会产生第二次执行。<strong>③ 出站层</strong>——<code>channel_deliveries</code> 上 <code>(run_id, idempotency_key)</code> 唯一，同一条 Agent 回复最多生成一张投递单。内存集合是第一道低成本防线，数据库约束才是正确性来源。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 七个渠道的消息模型差异巨大，怎么抽象出统一模型而不丢能力？</div>
+    <p>抽象的原则是「归一化到 Runtime 需要的最小集合，渠道特性留在两侧适配层」。入站侧，各渠道的事件各自解析（飞书要还原 @ 提及占位符，企微要按帧类型分 text/image/file，钉钉要下载媒体附件），但最终都收敛成同一件事：<code>find_or_create_channel_session(channel, external_chat_id)</code> 找到站内会话，然后带 <code>external_event_id</code> 入队一条命令。Runtime 看到的只有「某会话收到一条文本消息」，不知道也不关心来自哪个渠道。出站侧对称：<code>DatabaseChannelDeliverySender</code> 里按 channel 分发到八个发送分支，长消息切片、表情回应撤回这类渠道怪癖都收在各自分支里。抽象层只管「会话 + 文本 + 幂等键」，渠道能力靠适配层而不是靠污染统一模型。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · 长连接断了、进程重启了，这段时间的消息会不会丢？</div>
+    <p>分入站和出站看。入站：主流 IM 平台对未成功 ack 的事件会重推（飞书会按梯度重试），所以断线窗口内的消息靠平台重试补偿，进程恢复后能补收；配合 Q2 的去重，重推不会造成重复执行。真正会丢的是「平台重试窗口之外的漏收」，这要靠运营层的对账兜底，设计上接受这个残余风险。出站：投递单持久化在 channel_deliveries，Worker 崩溃靠<strong>租约机制</strong>恢复——认领时写 <code>claimed_by + claim_expires_at</code>，崩溃的单子租约到期后被下一个 Worker 重新认领；可重试失败走 <code>attempt_count</code> 递增的退避重试，不可重试进 failed 终态留痕。整个设计的基调是：进程随时可死，状态全在表里。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · Agent 在平台内是流式输出的，IM 侧怎么模拟「正在输入」的体验？</div>
+    <p>IM 渠道大多没有原生的流式消息 API，音巢用了两个替代手段。一是<strong>表情反应当进度信号</strong>：钉钉群场景下，收到消息后先给消息打一个「思考中」的 reaction，回复发送成功后在投递层调用 <code>recall_thinking_reaction</code> 撤回（飞书侧对称地有 <code>add_message_reaction</code>）——用户在 Agent 思考期间有明确反馈，而不是对着沉默的群干等。二是<strong>终态消息一次送达</strong>：回复按渠道长度上限切片（<code>_chunks</code>）后顺序发送，而不是边生成边推。这是有意的取舍：IM 是异步场景，用户预期是「@ 之后过一会儿收到完整回复」，流式逐字刷新既做不到（多数渠道编辑消息有限流）也没必要。把流式体验留在 Web 端，IM 端保证的是「有反馈、答复完整、不刷屏」。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · Discord 需要代理出口，这种环境适配怎么和正常配置隔离？</div>
+    <p>看 <code>main.py</code> 的 <code>_start_ss_local</code>，它是一个教科书式的「环境适配层」写法：<strong>① 配置外置</strong>——代理节点从 <code>SS_CONFIG_FILE</code>（默认 /data/ss-nodes.json，gitignore，Docker 卷挂载）读取，凭证不进代码库；文件缺失时降级到 <code>SS_SERVER</code>/<code>SS_PASSWORD</code> 环境变量。<strong>② 进程内拉起</strong>——用 asyncio 子进程启动 ss-local，监听 127.0.0.1:1080，按节点优先级逐个试，成功才把 <code>DISCORD_PROXY=socks5h://...</code> 写进环境变量给 discord.py 用。<strong>③ 失败不炸</strong>——ss-local 不存在、配置为空、JSON 损坏、所有节点连不上，全部只记日志继续启动，Discord 直连降级运行。配置隔离的精髓是：环境差异被压缩成一个「可选的环境变量」，主流程代码里不出现任何 if-china 式的分支。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>渠道会过时，闭环不会</h2>
+    <p>今天接的是飞书和钉钉，明天可能是下一个还没出生的协作平台。音巢 IM 集成真正沉淀下来的，不是七个渠道的适配代码，而是那个不变的结构：协议差异关进 connector，消息进出走两张表，Runtime 永远只面对一种消息模型。</p>
+    <p class="big">当 Agent 活在员工已有的工作入口里，它才从「一个要特意打开的工具」变成「一个随时在场的同事」。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 把 Agent 装进每一个工作群：七渠道 IM 集成 · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    <a href="yinchao-05-tools-skills-mcp.html">上一篇 · 工具、技能与 MCP</a> · <a href="yinchao-07-org-okr.html">下一篇 · 组织架构与 OKR</a>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>让 Agent 自己醒过来 · 音巢 Aware 自主意识系统</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 03/12 · Aware 自主意识</div>
+    <h1>让 Agent 自己醒过来<br>Aware 自主意识系统</h1>
+    <p class="sub">只会应答的 Agent 是客服，会自己醒过来的 Agent 才是员工。音巢（Clawith）的 Aware 系统由三块组成：Focus Items 让 Agent 记住「我在盯什么」，六种触发器让它知道「什么时候该醒」，心跳让它没事也会「起来转转」——时间、消息、网页、外部系统，都是它的闹钟。</p>
+    <div class="hero-meta">
+      <span>触发器类型 <b>6</b> 种</span>
+      <span>调度节拍 <b>15s</b> tick</span>
+      <span>每 Agent 触发器上限 <b>20</b></span>
+      <span>poll 最小间隔 <b>5</b> 分钟</span>
+      <span>webhook 限流 <b>5</b>/分钟</span>
+      <span>代码基线 <b>main v1.11.5</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scenes">01 · 场景</a>
+    <a href="#design">02 · 设计</a>
+    <a href="#impl">03 · 实现</a>
+    <span class="sep">·</span>
+    <a href="#fig-arch">图 1 · 总架构</a>
+    <a href="#fig-eval">图 2 · 评估入队</a>
+    <a href="#fig-poll">图 3 · poll 去重</a>
+    <span class="sep">·</span>
+    <a href="#pseudo">04 · 伪代码</a>
+    <a href="#qa">05 · 面试 QA</a>
+    <a href="#ending">06 · 结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-02-agent-lifecycle.html">上一篇 · Agent 生命周期</a>
+    <a href="yinchao-04-collaboration.html">下一篇 · 协同</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scenes">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>Aware 解决什么问题：从「随叫随到」到「不请自来」</h2>
+    <p>传统对话式 Agent 的全部行为都由用户消息驱动——人不说话，它就永远睡着。Aware 系统把「唤醒源」从用户手里解放出来：时间到点、外部事件、消息到达、网页变化，都能成为一次 Agent Run 的起点。Agent 因此第一次拥有了「自己的工作日程」。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">6</div><div class="l">触发器类型（cron/once/interval/poll/on_message/webhook）</div></div>
+    <div class="stat"><div class="n teal">15s</div><div class="l">trigger_daemon 调度节拍（TICK_INTERVAL）</div></div>
+    <div class="stat"><div class="n amber">3</div><div class="l">Focus 状态（待办 / 进行中 / 完成）</div></div>
+    <div class="stat"><div class="n green">~60s</div><div class="l">心跳检查节拍（每 4 个 tick 一次）</div></div>
+  </div>
+
+  <h3 class="sub">七类典型业务场景</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:150px">场景</th><th>唤醒方式</th><th>触发器类型</th><th>价值</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>每天 9 点汇总竞品动态</td>
+        <td>到点唤醒，Agent 自主检索、整理、发报告</td>
+        <td class="mono">cron {"expr": "0 9 * * *"}</td>
+        <td>定时情报员，不占人力</td>
+      </tr>
+      <tr>
+        <td>盯一个网页 / API 变化</td>
+        <td>周期拉取，内容指纹变化才触发</td>
+        <td class="mono">poll {url, json_path}</td>
+        <td>变更监控，只报变化不报平安</td>
+      </tr>
+      <tr>
+        <td>CI 挂了通知 Agent 排查</td>
+        <td>外部系统 POST 公开端点，事件驱动</td>
+        <td class="mono">webhook（/api/webhooks/t/{token}）</td>
+        <td>研发值班员，秒级响应</td>
+      </tr>
+      <tr>
+        <td>收到特定对象消息自动响应</td>
+        <td>某 Agent / 某用户来消息即醒</td>
+        <td class="mono">on_message {from_agent_name}</td>
+        <td>A2A 协作链的天然粘合剂</td>
+      </tr>
+      <tr>
+        <td>一次性提醒</td>
+        <td>指定时间触发一次后自动停用</td>
+        <td class="mono">once {at}</td>
+        <td>临时待办不残留</td>
+      </tr>
+      <tr>
+        <td>周期性自检</td>
+        <td>固定间隔唤醒，巡检自己的任务</td>
+        <td class="mono">interval {minutes: 30}</td>
+        <td>持续在岗感</td>
+      </tr>
+      <tr>
+        <td>心跳自我感知</td>
+        <td>非事件驱动：按 interval + 活跃时段周期性唤醒，无事可做就回 <code>HEARTBEAT_OK</code></td>
+        <td class="mono">heartbeat（独立于触发器）</td>
+        <td>好奇心与主动性：检查任务、看广场、沉淀经验</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>Aware 不是「给 Agent 配一个 crontab」，而是把「什么时候醒、醒了做什么」变成 Agent 自己能读写的一等公民。</h3>
+    <p>触发器和 Focus 都通过内置工具（set_trigger / upsert_focus_item 等）暴露给 Agent 自己管理——它可以在对话中自己决定「明天早上再提醒我跟进这件事」，这就是「自主意识」的工程含义。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>三个构件：Focus 记住目标，触发器负责唤醒，心跳负责巡检</h2>
+    <p>设计上最关键的取舍是「状态放哪」和「谁来触发」。音巢的答案：状态入库（Postgres），触发统一收口到一个 15 秒节拍的守护循环，唤醒后一律转成 Agent Run 命令进入统一运行时。</p>
+  </div>
+
+  <h3 class="sub">构件一：Focus Items —— Agent 的「正在关注」清单</h3>
+  <p class="body">Focus 是结构化落库的关注点（表 <code>agent_focus_items</code>），每条有 <code>key</code>（Agent 内唯一）、标题、描述、状态（<code>in_progress</code> / <code>completed</code>）、类型（<code>normal</code> / <code>system</code>）与来源（user / trigger / a2a / okr）。它替代了早期的 <code>focus.md</code> 工作文件——模型注释里写得很直白：文件没有校验、没有稳定 ID，触发器与工具无法共享同一份事实源。</p>
+  <ul class="body">
+    <li>Agent 通过内置工具 <code>list_focus_items</code> / <code>upsert_focus_item</code> / <code>complete_focus_item</code> 自己增删改查（<code>builtin_tool_definitions.py</code>）；</li>
+    <li>Focus 会被渲染进每次 Run 的上下文（<code>render_focus_context</code>：进行中 / 系统关注 / 最近完成三段），Agent 每次醒来都知道自己「正在盯什么」；</li>
+    <li>状态语义即清单语义：<code>[ ]</code> 待办、<code>[/]</code> 进行中、<code>[x]</code> 完成，对应 status 字段的取值流转。</li>
+  </ul>
+
+  <h3 class="sub">构件二：六种触发器 —— 唤醒条件的一等公民</h3>
+  <table class="tbl">
+    <thead><tr><th style="width:120px">类型</th><th>配置示例</th><th>判定方式</th><th>去重 / 幂等键</th></tr></thead>
+    <tbody>
+      <tr><td class="kid">cron</td><td class="mono">{"expr": "0 9 * * 1-5"}</td><td>croniter 按 Agent 时区求上一个应触发点，落进 30s 宽容窗才算命中</td><td class="mono">cron:{id}:{scheduled_at}</td></tr>
+      <tr><td class="kid">once</td><td class="mono">{"at": "2026-03-10T09:00:00+08:00"}</td><td>到点且 fire_count == 0；触发后自动停用</td><td class="mono">once:{id}:{at}</td></tr>
+      <tr><td class="kid">interval</td><td class="mono">{"minutes": 30}</td><td>last_fired_at（或 created_at）+ N 分钟 ≤ now</td><td class="mono">interval:{id}:{scheduled_at}</td></tr>
+      <tr><td class="kid">poll</td><td class="mono">{"url", "json_path", "interval_min"}</td><td>抓取 → JSON 路径取值 → 与 _last_value 指纹比对，变化才触发</td><td class="mono">poll:{id}:{sha256(_last_value)}</td></tr>
+      <tr><td class="kid">on_message</td><td class="mono">{"from_agent_name" / "from_user_name"}</td><td>轮询消息表：since 之后是否有来自指定对象的新消息</td><td class="mono">on_message:{id}:{sha256(消息指纹)}</td></tr>
+      <tr><td class="kid">webhook</td><td class="mono">{"token", "secret"?}</td><td>daemon 不评估；外部 POST 直接入队 execution</td><td class="mut">事件即键（每次 POST 一条）</td></tr>
+    </tbody>
+  </table>
+
+  <div class="decision">
+    <h3>决策：触发器由谁创建 —— 平台预置 vs Agent 自主注册 <span class="badge brand">D1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 只允许管理员 / 用户在 UI 配置触发器，Agent 被动执行<br>② 把 set_trigger / update_trigger / cancel_trigger / list_triggers 做成内置工具，Agent 可自主注册与管理</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>②，触发器是 Agent 的一等公民，Agent 自己管理；平台只负责限额与兜底</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>「明天提醒我跟进」这类意图在对话中产生，只有 Agent 自己能把它变成结构化唤醒条件。<code>reason</code> 字段要求自包含——它会成为未来那次 Run 的指令；每个触发器必须挂到 Focus（<code>focus_ref</code> 缺省时系统自动建一条），保证醒来时有上下文。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>Agent 可能给自己埋一堆闹钟。用限额对冲：每 Agent 上限 20 个触发器、poll 最小 5 分钟、webhook 每分钟 5 次、on_message 每小时 30 次超限自动停用。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>决策：唤醒后如何执行 —— 直接调用 vs 命令队列 <span class="badge brand">D2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① daemon 命中触发器后直接在当前进程内跑 Agent Run<br>② 先落 <code>trigger_executions</code> 执行记录（带幂等键），由 worker 按租约认领，再转为 <code>trigger_completion</code> 命令进 <code>agent_run_commands</code> 统一运行时</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>②，三段式：评估 → 执行记录（可认领）→ 运行时命令</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>多副本部署下必须防重复触发：幂等键唯一约束（trigger_id + idempotency_key）挡住重复入队，<code>SELECT ... FOR UPDATE SKIP LOCKED</code> + 5 分钟租约（lease_owner = 实例 ID）挡住重复执行。心跳、webhook、定时触发共享同一套运行时与审计。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>链路变长，从「到点」到「开跑」多了一个 tick + 一次认领的延迟（秒级）；换来的是水平扩展与崩溃恢复能力（租约过期自动回收重跑）。</p></div>
+    </div>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Focus-Trigger 绑定：闭环的关键设计</div>
+    <p>触发器表上的 <code>focus_ref</code> 字段把「唤醒条件」绑回「关注点」：唤醒上下文里会注入「关联 Focus：{key}」，Agent 醒来就知道这次闹钟是为了哪件事。事情做完后 Agent 调 <code>complete_focus_item</code> 收尾，并用 <code>cancel_trigger</code> 停掉对应闹钟（工具描述里明确写着「任务完成时使用」）；<code>once</code> 触发器则在触发后由系统自动停用。目标与闹钟成对出现、成对消失，不留僵尸触发器。</p>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>一条主链路：外部世界 → 守护循环 → 执行队列 → 统一运行时</h2>
+    <p>实现集中在 <code>backend/app/services/trigger_daemon.py</code> 与 <code>backend/app/services/trigger_runtime/</code> 包（dispatch / evaluator / queue / executions / intake / keys 六个模块），加一张执行记录表和一个公开 webhook 端点。</p>
+  </div>
+
+  <div class="fig-t" id="fig-arch"><span class="fno">图 1</span><h3>Aware 总架构：四种外部信号，一个收口循环</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>外部世界（唤醒信号源）</h3><span class="need free">4 类信号</span></div>
+      <div class="boxes">
+        <div class="box"><b>时间</b><small>cron / once / interval 到期</small></div>
+        <div class="box"><b>网页 / API</b><small>poll 内容指纹变化</small></div>
+        <div class="box"><b>消息</b><small>on_message 指定对象来信</small></div>
+        <div class="box"><b>外部系统</b><small>webhook POST（CI / Grafana / GitHub）</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">trigger_daemon 每 15s 扫一遍 agent_triggers（is_enabled = true）↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>trigger_runtime 评估与入队（本模块核心）</h3><span class="need own">6 个模块</span></div>
+      <div class="boxes">
+        <div class="box"><b>evaluator</b><small>按类型判定是否到点 / 变化 / 有信；misfire 30s 宽容</small></div>
+        <div class="box"><b>keys</b><small>每类型生成确定性幂等键</small></div>
+        <div class="box"><b>queue</b><small>写 trigger_executions，唯一约束防重</small></div>
+        <div class="box"><b>executions</b><small>worker SKIP LOCKED 认领 + 5min 租约</small></div>
+        <div class="box"><b>intake</b><small>构造唤醒上下文（原因 + 关联 Focus）</small></div>
+        <div class="box"><b>dispatch</b><small>到点触发器的入队入口</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">转为 trigger_completion 命令 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>统一 Agent Runtime</h3><span class="need auto">与对话共享同一运行时</span></div>
+      <div class="boxes">
+        <div class="box"><b>agent_run_commands 队列</b><small>触发与对话命令同池调度</small></div>
+        <div class="box"><b>Agent Run</b><small>source_type = trigger / heartbeat</small></div>
+        <div class="box"><b>内置工具</b><small>Run 中可继续管 Focus / 触发器</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">Run 结束 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>状态沉淀</h3><span class="need own">写回与留痕</span></div>
+      <div class="boxes">
+        <div class="box"><b>Focus 更新</b><small>推进 / 完成关注点</small></div>
+        <div class="box"><b>trigger_executions</b><small>终态回写（completed / failed）</small></div>
+        <div class="box"><b>记忆与经验</b><small>Run 产物进 memory / experience</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">心跳（heartbeat）不在这张图的主链路上：它由 daemon 每 4 个 tick（约 60 秒）顺带检查一次，对开启 <code>heartbeat_enabled</code> 且处于活跃时段的 Agent 做原子认领后直接入运行时——它是「无事件也醒来巡检」，与「有事件才唤醒」的触发器互补。</p>
+
+  <h3 class="sub">触发评估与入队：每一跳都有防重闸门</h3>
+  <div class="fig-t" id="fig-eval"><span class="fno">图 2</span><h3>从「到点」到「开跑」的五道闸门</h3></div>
+  <div class="flow">
+    <span class="chip dark">tick 扫描<br>15s 一轮</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">evaluator 判定<br>到点 / 变化 / 有信</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">前置闸门<br>cooldown · max_fires · expires_at · misfire 30s</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">幂等键入队<br>uq(trigger_id, idempotency_key)</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">worker 认领<br>SKIP LOCKED + 5min 租约</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">执行 Run<br>终态回写 executions</span>
+  </div>
+  <p class="fig-note">幂等键是确定性的：cron/interval 用应触发时刻，poll 用内容指纹的 sha256，on_message 用消息指纹的 sha256——同一事件无论被几个副本评估多少次，数据库唯一约束只放行第一条。认领后的租约过期（5 分钟未完成）会被其他 worker 回收重跑，崩溃不会丢任务。</p>
+
+  <h3 class="sub">poll 触发器：变化才触发，平安不打扰</h3>
+  <div class="fig-t" id="fig-poll"><span class="fno">图 3</span><h3>poll 去重流程：抓取 → 指纹比对 → 变化才入队</h3></div>
+  <div class="flow">
+    <span class="chip dark">到轮询点<br>interval ≥ 5min</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">SSRF 检查<br>私网 / 回环地址直接拒</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">HTTP 抓取<br>10s 超时</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">json_path 取值<br>提取关注字段</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">指纹比对<br>vs config._last_value</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">变化 → 入队<br>同时回写 _last_value</span>
+  </div>
+  <p class="fig-note">两种触发模式：<code>fire_on = "change"</code>（默认）——值与上次不同才触发；<code>fire_on = "match"</code>——值等于 <code>match_value</code> 就触发（盯「状态变成 done」这类目标态）。无论是否触发，<code>_last_value</code> 都会回写到触发器 config，这就是「状态保存」：去重的依据不在内存里，在数据库里，重启不丢。首次轮询只建档不触发（last_value 为空时不报），避免 Agent 一注册就被历史状态轰炸。</p>
+
+  <h3 class="sub">心跳：没有事件也定期醒来</h3>
+  <p class="body">心跳服务的循环很简单：找出 <code>heartbeat_enabled</code> 且状态为 running/idle 的 Agent，按 Agent 时区检查活跃时段（默认 09:00–18:00），距上次心跳超过 <code>heartbeat_interval_minutes</code>（默认 240 分钟）就到点。认领是原子的——一条 <code>UPDATE ... WHERE last_heartbeat_at &lt;= now - interval</code>，rowcount 为 1 才算抢到，多副本安全。醒来后 Agent 拿到一份有界上下文（任务、收件箱等），按 <code>HEARTBEAT.md</code> 自定义指令（或默认指令）巡检：无事可做就以 <code>HEARTBEAT_OK</code> 收尾，有事就完成并只报告已验证的结果。私有 Agent 有额外护栏：不得向广场（Plaza）等组织级公开面发布内容。</p>
+
+  <h3 class="sub">代码依据</h3>
+  <table class="tbl zebra">
+    <thead><tr><th>功能点</th><th>关键文件</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>触发器数据模型</td>
+        <td class="mono">backend/app/models/trigger.py</td>
+        <td>AgentTrigger 表：type / config / reason / focus_ref / cooldown_seconds / max_fires / expires_at</td>
+      </tr>
+      <tr>
+        <td>执行记录模型</td>
+        <td class="mono">backend/app/models/trigger_execution.py</td>
+        <td>trigger_executions 表：幂等键唯一约束、租约字段（lease_owner / lease_expires_at）</td>
+      </tr>
+      <tr>
+        <td>调度主循环</td>
+        <td class="mono">backend/app/services/trigger_daemon.py</td>
+        <td>15s tick 扫描到期触发器；on_message 30 次/小时限流；顺带驱动心跳与经验清理</td>
+      </tr>
+      <tr>
+        <td>触发判定</td>
+        <td class="mono">backend/app/services/trigger_runtime/evaluator.py</td>
+        <td>六类判定逻辑；cron 时区与 30s misfire 宽容；poll 抓取与 SSRF 拦截</td>
+      </tr>
+      <tr>
+        <td>幂等键</td>
+        <td class="mono">backend/app/services/trigger_runtime/keys.py</td>
+        <td>按类型生成确定性 idempotency_key</td>
+      </tr>
+      <tr>
+        <td>入队与认领</td>
+        <td class="mono">backend/app/services/trigger_runtime/queue.py · executions.py</td>
+        <td>写执行记录（IntegrityError 去重）；worker SKIP LOCKED 认领 + 租约</td>
+      </tr>
+      <tr>
+        <td>唤醒上下文</td>
+        <td class="mono">backend/app/services/trigger_runtime/intake.py</td>
+        <td>组装「本次唤醒上下文」：触发器名 / 原因 / 关联 Focus</td>
+      </tr>
+      <tr>
+        <td>终态回写</td>
+        <td class="mono">backend/app/services/agent_runtime/trigger_completion.py</td>
+        <td>Run 终态幂等回写 trigger_executions（uuid5 回执防重）</td>
+      </tr>
+      <tr>
+        <td>Agent 自主管理工具</td>
+        <td class="mono">backend/app/services/builtin_tool_definitions.py · agent_tools.py</td>
+        <td>list/upsert/complete_focus_item 与 set/update/cancel/list_trigger 的工具定义与执行</td>
+      </tr>
+      <tr>
+        <td>Focus 服务与 API</td>
+        <td class="mono">backend/app/services/focus_service.py · api/focus.py</td>
+        <td>关注点 CRUD、上下文渲染（render_focus_context）</td>
+      </tr>
+      <tr>
+        <td>触发器 API</td>
+        <td class="mono">backend/app/api/triggers.py</td>
+        <td>/api/agents 下的触发器管理端点</td>
+      </tr>
+      <tr>
+        <td>Webhook 公开端点</td>
+        <td class="mono">backend/app/api/webhooks.py · main.py:467</td>
+        <td>POST /api/webhooks/t/{token}：Redis 限流、64KB 上限、可选 HMAC 验签</td>
+      </tr>
+      <tr>
+        <td>心跳</td>
+        <td class="mono">backend/app/services/heartbeat.py · heartbeat_runtime.py</td>
+        <td>周期唤醒、原子认领、HEARTBEAT.md 自定义指令、私有 Agent 发布护栏</td>
+      </tr>
+      <tr>
+        <td>限额配置</td>
+        <td class="mono">backend/app/models/agent.py · models/tenant.py</td>
+        <td>每 Agent：max_triggers=20 / min_poll_interval_min=5 / webhook_rate_limit=5；租户级默认值与下限</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudo">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个循环：daemon 的 15 秒，poll 的一次判定</h2>
+    <p>省略 ORM 与异常处理细节，保留最小闭环：扫描 → 判定 → 幂等入队 → 租约认领 → 执行 → 回写。</p>
+  </div>
+
+  <h3 class="sub">伪代码 1 · trigger_daemon 调度循环</h3>
+  <div class="cb"><span class="tk-c"># 对应 services/trigger_daemon.py 的 _tick 主循环</span>
+<span class="tk-k">async def</span> <span class="tk-f">trigger_daemon_loop</span>():
+    <span class="tk-k">while</span> <span class="tk-n">True</span>:
+        now = utcnow()
+        triggers = <span class="tk-k">await</span> db.query(AgentTrigger).where(is_enabled=<span class="tk-n">True</span>)
+
+        <span class="tk-k">for</span> t <span class="tk-k">in</span> triggers:
+            <span class="tk-k">if</span> t.expires_at <span class="tk-k">and</span> now >= t.expires_at:
+                t.is_enabled = <span class="tk-n">False</span>; <span class="tk-k">continue</span>          <span class="tk-c"># 过期自动停用</span>
+
+            scheduled_at = <span class="tk-k">await</span> <span class="tk-f">evaluate_trigger</span>(t, now)      <span class="tk-c"># 见伪代码 2</span>
+            <span class="tk-k">if</span> scheduled_at <span class="tk-k">is</span> <span class="tk-n">None</span>:
+                <span class="tk-k">continue</span>                                        <span class="tk-c"># 没到点 / 被闸门拦下</span>
+
+            key = <span class="tk-f">build_idempotency_key</span>(t, scheduled_at)      <span class="tk-c"># 确定性幂等键</span>
+            <span class="tk-k">try</span>:
+                <span class="tk-k">await</span> db.insert(TriggerExecution(
+                    trigger_id=t.id, idempotency_key=key,
+                    status=<span class="tk-s">"pending"</span>, scheduled_at=scheduled_at,
+                    payload=<span class="tk-f">runtime_payload</span>(t),                <span class="tk-c"># 匹配到的消息等上下文</span>
+                ))
+            <span class="tk-k">except</span> IntegrityError:
+                <span class="tk-k">continue</span>                                        <span class="tk-c"># 别副本已入队，去重成功</span>
+            t.last_fired_at = now; t.fire_count += <span class="tk-n">1</span>
+            <span class="tk-k">if</span> t.type == <span class="tk-s">"once"</span>: t.is_enabled = <span class="tk-n">False</span>          <span class="tk-c"># 一次性触发即停</span>
+
+        <span class="tk-c"># worker 侧：认领 pending 执行，转统一运行时命令</span>
+        pairs = <span class="tk-k">await</span> <span class="tk-f">claim_pending_trigger_executions</span>()         <span class="tk-c"># FOR UPDATE SKIP LOCKED</span>
+        <span class="tk-k">for</span> execution, trigger <span class="tk-k">in</span> pairs:
+            execution.lease_owner = INSTANCE_ID                <span class="tk-c"># 5 分钟租约</span>
+            <span class="tk-k">await</span> <span class="tk-f">enqueue</span>(agent_run_commands, type=<span class="tk-s">"trigger_completion"</span>,
+                        context=<span class="tk-f">build_trigger_context</span>(trigger))  <span class="tk-c"># 唤醒原因 + 关联 Focus</span>
+
+        <span class="tk-k">await</span> asyncio.sleep(<span class="tk-n">15</span>)                              <span class="tk-c"># TICK_INTERVAL</span></div>
+
+  <h3 class="sub">伪代码 2 · poll 触发器评估（变化检测 + 状态保存）</h3>
+  <div class="cb"><span class="tk-c"># 对应 services/trigger_runtime/evaluator.py 的 poll 分支</span>
+<span class="tk-k">async def</span> <span class="tk-f">evaluate_poll</span>(trigger, now):
+    cfg = trigger.config
+    <span class="tk-k">if</span> now - (trigger.last_fired_at <span class="tk-k">or</span> trigger.created_at) \
+            < <span class="tk-f">minutes</span>(<span class="tk-f">max</span>(cfg.interval_min, <span class="tk-n">5</span>)):           <span class="tk-c"># 最小轮询间隔防滥用</span>
+        <span class="tk-k">return</span> <span class="tk-n">None</span>
+
+    <span class="tk-k">if</span> <span class="tk-f">is_private_url</span>(cfg.url):                            <span class="tk-c"># SSRF 闸门：拒私网/回环</span>
+        <span class="tk-k">raise</span> <span class="tk-e">Blocked</span>(<span class="tk-s">"private/internal URL"</span>)
+
+    resp = <span class="tk-k">await</span> httpx.<span class="tk-f">request</span>(cfg.method <span class="tk-k">or</span> <span class="tk-s">"GET"</span>, cfg.url,
+                             headers=cfg.headers, timeout=<span class="tk-n">10</span>)
+    current = <span class="tk-f">extract_json_path</span>(resp.json(), cfg.json_path <span class="tk-k">or</span> <span class="tk-s">"$"</span>)
+
+    <span class="tk-k">if</span> cfg.fire_on == <span class="tk-s">"match"</span>:                             <span class="tk-c"># 模式一：命中目标值</span>
+        should_fire = current == cfg.match_value
+    <span class="tk-k">else</span>:                                                  <span class="tk-c"># 模式二：变化检测（默认）</span>
+        should_fire = cfg.get(<span class="tk-s">"_last_value"</span>) <span class="tk-k">is not</span> <span class="tk-n">None</span> \
+                      <span class="tk-k">and</span> <span class="tk-f">str</span>(current) != cfg[<span class="tk-s">"_last_value"</span>]
+
+    cfg[<span class="tk-s">"_last_value"</span>] = <span class="tk-f">str</span>(current)                       <span class="tk-c"># 状态入库，重启不丢</span>
+    <span class="tk-k">await</span> db.<span class="tk-f">update</span>(AgentTrigger, id=trigger.id, config=cfg)
+
+    <span class="tk-k">return</span> now <span class="tk-k">if</span> should_fire <span class="tk-k">else</span> <span class="tk-n">None</span>                   <span class="tk-c"># 变化才触发，平安不打扰</span></div>
+
+  <div class="co green">
+    <div class="co-t">读法提示</div>
+    <p>两段伪代码合起来就是 Aware 的最小闭环：<strong>判定只负责「该不该醒」，入队负责「只醒一次」，运行时负责「醒来干什么」</strong>。幂等键唯一约束与 SKIP LOCKED 租约是分布式安全的两颗螺丝，少了任何一颗，多副本部署都会在同一个闹钟上把 Agent 叫醒两次。</p>
+  </div>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，从分布式安全问到设计哲学</h2>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · 多副本部署下，如何避免同一个触发器被多个实例重复触发？</div>
+    <p>音巢用了三层防重，而不是指望单点部署：<strong>① 入队去重</strong>——每次触发先算确定性幂等键（cron 用应触发时刻、poll 用内容指纹 sha256、on_message 用消息指纹 sha256），写入 <code>trigger_executions</code> 时靠 <code>uq(trigger_id, idempotency_key)</code> 唯一约束挡重，撞键即放弃；<strong>② 认领互斥</strong>——worker 用 <code>SELECT ... FOR UPDATE SKIP LOCKED</code> 抢 pending 记录，抢到后写上 lease_owner（实例 ID）和 5 分钟租约；<strong>③ 崩溃回收</strong>——租约过期未完成的记录重新变为可认领，任务不丢。这套「数据库即协调器」的方案不依赖外部锁服务，Postgres 就是分布式锁。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · cron 触发器错过执行时间（misfire）怎么办？</div>
+    <p>看 miss 了多久。音巢的策略是 <strong>30 秒宽容窗</strong>（<code>MISFIRE_GRACE</code>）：evaluator 用 croniter 按 Agent 所在时区算出「上一个应触发时刻」，如果它落在 now 往前 30 秒内，照常触发——daemon 的 tick 是 15 秒，所以正常抖动和一次 tick 延迟都能被宽容掉。超过 30 秒就放弃这一次，等下一个周期，<strong>不补跑</strong>。为什么不是一律补跑？因为对「每天 9 点汇总竞品」这类任务，9 点半补跑出来的报告语境已经不对了，过期执行比漏执行更糟；且 <code>scheduled_at &lt;= created_at</code> 的判定还顺手挡住了「刚注册就把历史时刻全补一遍」的风暴。这是个有观点的取舍：定时 Agent 任务的语义更像日历提醒，不像消息队列。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · webhook 是公开端点（无鉴权），安全怎么做？</div>
+    <p><code>/api/webhooks/t/{token}</code> 确实是公开 POST 端点（main.py 挂载时注明无 API 前缀），安全靠四道闸而非登录态：<strong>① 不可猜的 URL token</strong> 本身就是凭证，且 token 查不到时也返回 200，不泄露 token 是否存在；<strong>② 限流</strong>——Redis 滑动窗口每 token 每分钟 5 次（Agent 级可配 <code>webhook_rate_limit</code>），硬顶 60 次/分钟防内存滥用，被限流的丢弃会写审计日志（<code>webhook_rate_limited</code>）让主人看得见；<strong>③ 负载上限 64KB</strong>；<strong>④ 可选 HMAC 验签</strong>——config 里配了 secret 就校验 <code>x-hub-signature-256</code>（GitHub 风格），用 <code>hmac.compare_digest</code> 防时序攻击。防重放则交给下游幂等键：同一事件重复 POST 也只入队一次。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · Agent 能自己注册触发器，怎么防止它给自己埋一堆闹钟把系统打爆？</div>
+    <p>限额是分层设计的，而不是一刀切的开关：<strong>数量闸</strong>——每 Agent 默认 20 个触发器上限（<code>agents.max_triggers</code>，租户级有默认值 <code>default_max_triggers</code>）；<strong>频率闸</strong>——poll 最小间隔 5 分钟（Agent 级 <code>min_poll_interval_min</code>，租户有下限 floor 防调低），每个触发器还有 <code>cooldown_seconds</code>（默认 60 秒）冷却；<strong>行为闸</strong>——on_message 每 Agent 每小时最多触发 30 次，超限<strong>自动停用该触发器</strong>并告警（防 A2A 消息环路：A 醒来说话触发 B，B 说话又触发 A）；<strong>寿命闸</strong>——<code>max_fires</code> 到数自动停、<code>expires_at</code> 到期自动停、once 触发即停。设计上值得注意的一点：这些限额写在 Agent 和租户两张表上，是<strong>配置而非硬编码</strong>，运营上可以按租户调节奏。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · 这套触发器和 crontab / Airflow 的本质区别是什么？</div>
+    <p>三个字：<strong>一等公民</strong>。crontab 的调度对象是无状态的脚本，Airflow 的 DAG 由工程师在代码里定义；音巢的触发器是 <strong>Agent 自己可读写的资源</strong>——它通过 set_trigger 工具在对话中自主注册（「明早提醒我」这句话直接变成一条 cron 记录），reason 字段就是未来那次唤醒的指令，focus_ref 把闹钟绑到具体关注点，醒来后进入的是和真人对话完全相同的 Agent Runtime（同一命令队列、同一工具面、同一审计）。还有一个容易被忽略的差异：crontab 触发的是「任务」，这里触发的是「带上下文的判断」——唤醒上下文里带着原因和关联 Focus，Agent 醒来后可以决定「看了眼情况，其实不用行动」，这是调度系统给不了的。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · poll 触发器的去重与状态是怎么保存的？重启会丢吗？</div>
+    <p>状态不在内存，在数据库——每次轮询后把当前值写回触发器 config 的 <code>_last_value</code> 字段（JSONB），下次比对的就是上一轮的落库值，进程重启、副本切换都不影响。去重有两个层面：<strong>判定层</strong>——值没变（或首次建档）就不触发，「变化才唤醒，平安不打扰」；<strong>入队层</strong>——poll 的幂等键是 <code>poll:{trigger_id}:{sha256(_last_value)}</code>，同一内容即使被多个副本同时判为「变了」，唯一约束也只放行一条执行记录。另外有两个防御细节值得说：抓取前做 <code>is_private_url</code> 检查（解析 DNS 后拒绝私网/回环地址，防 Agent 被诱导当 SSRF 跳板打内网）；HTTP 超时固定 10 秒，慢目标不会拖垮 15 秒的调度节拍。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>自主意识，始于「自己会醒」</h2>
+    <p>Focus 让 Agent 记得自己在盯什么，触发器让外部世界能叫醒它，心跳让它没事也会起来转转。</p>
+    <p>这三块拼起来，Agent 才第一次有了自己的时间表——而不是永远等着人类开口。</p>
+    <p class="big">所谓数字员工，不是「随叫随到」，而是「不请自来，来了还真有事」。Aware 系统就是把这件事做成了工程。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · Aware 自主意识（Focus Items + 触发器 + 心跳） · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    上一篇 <a href="yinchao-02-agent-lifecycle.html">02 · Agent 生命周期</a> · 下一篇 <a href="yinchao-04-collaboration.html">04 · 协同</a>
+  </div>
+</footer>
+
+</body>
+</html>

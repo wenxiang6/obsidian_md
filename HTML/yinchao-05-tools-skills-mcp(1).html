@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>130+ 内置工具之外：MCP 发现与自创技能的进化系统 · 音巢设计分享 05</title>
+<style>
+  :root{
+    --ink:#16213a;
+    --ink-soft:#3c4a63;
+    --muted:#67718a;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --line:#e6e2d9;
+    --brand:#4338ca;
+    --brand-2:#6d28d9;
+    --teal:#0e7490;
+    --amber:#b45309;
+    --amber-bg:#fdf3e3;
+    --teal-bg:#e9f6f8;
+    --brand-bg:#eef0fd;
+    --green:#15803d;
+    --green-bg:#e7f6ec;
+    --red:#b91c1c;
+    --navy:#0f1b33;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.75;font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+  section{scroll-margin-top:64px}
+  .nb{white-space:nowrap}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.88em;background:#f0eee7;border-radius:5px;padding:1px 6px;color:#5b4a8a}
+  strong{color:var(--ink)}
+
+  /* ===== Hero ===== */
+  .hero{
+    background:
+      radial-gradient(1200px 500px at 85% -10%,rgba(109,40,217,.45),transparent 60%),
+      radial-gradient(900px 500px at 10% 110%,rgba(14,116,144,.35),transparent 55%),
+      linear-gradient(160deg,#101c38 0%,#17224a 55%,#1c1a4d 100%);
+    color:#eef1fb;padding:88px 0 72px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,#000 30%,transparent 75%);
+  }
+  .hero-inner{position:relative}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;letter-spacing:.14em;font-weight:600;
+    color:#b8c2ff;text-transform:uppercase;
+    border:1px solid rgba(184,194,255,.35);border-radius:999px;
+    padding:6px 16px;margin-bottom:26px;
+  }
+  .hero h1{font-size:42px;line-height:1.25;font-weight:800;letter-spacing:.01em;margin-bottom:16px}
+  .hero .sub{font-size:18.5px;color:#c3cbec;max-width:740px;margin-bottom:34px}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13.5px;color:#9aa6cf}
+  .hero-meta span{border:1px solid rgba(154,166,207,.3);border-radius:8px;padding:5px 12px;background:rgba(255,255,255,.04)}
+  .hero-meta b{color:#e8e6ff;font-weight:700}
+
+  /* ===== TOC ===== */
+  .toc{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:0;padding-bottom:0}
+  .toc a{
+    white-space:nowrap;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:13px 13px;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .toc a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+  .toc .sep{align-self:center;color:#d6d1c4;font-size:12px;padding:0 2px}
+
+  /* ===== Sections ===== */
+  section{padding:64px 0 8px}
+  .sec-head{margin-bottom:30px}
+  .sec-no{
+    display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.12em;
+    color:var(--brand);background:var(--brand-bg);border-radius:6px;
+    padding:3px 10px;margin-bottom:12px;
+  }
+  .sec-head h2{font-size:27px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .sec-head p{color:var(--muted);max-width:780px}
+  h3.sub{font-size:18px;font-weight:800;margin:34px 0 12px}
+  h3.sub:first-of-type{margin-top:0}
+  p.body{color:var(--ink-soft);font-size:15px;margin-bottom:12px;max-width:860px}
+  ul.body{padding-left:20px;color:var(--ink-soft);font-size:15px;margin-bottom:12px}
+  ul.body li{margin:4px 0}
+
+  /* ===== Cards ===== */
+  .values{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .value{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;
+  }
+  .value .no{
+    width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    background:var(--brand-bg);color:var(--brand);font-size:13.5px;font-weight:800;flex:none;
+  }
+  .value h3{font-size:16px;font-weight:700}
+  .value p{font-size:14px;color:var(--ink-soft)}
+
+  .core{
+    margin-top:22px;border-radius:var(--radius);padding:30px 32px;color:#f3f5ff;
+    background:linear-gradient(135deg,#1b2450 0%,#3b2a86 60%,#5b21b6 100%);
+    box-shadow:0 20px 45px -18px rgba(59,42,134,.55);position:relative;overflow:hidden;
+  }
+  .core::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);
+  }
+  .core .tag{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#c7bfff;text-transform:uppercase;margin-bottom:10px}
+  .core h3{font-size:21px;font-weight:800;margin-bottom:10px;max-width:680px}
+  .core p{color:#d5d9f5;font-size:15px;max-width:760px}
+
+  /* ===== Callouts ===== */
+  .co{border-radius:14px;padding:16px 20px 14px;margin:16px 0;position:relative;border:1px solid;background:var(--card);box-shadow:var(--shadow)}
+  .co::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px}
+  .co .co-t{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-left:12px}
+  .co p,.co li{font-size:13.5px;color:var(--ink-soft);padding-left:12px}
+  .co ul{padding-left:28px}
+  .co li{margin:2px 0}
+  .co.amber{background:linear-gradient(180deg,#fffdf8,#fff);border-color:#ecd3ab}
+  .co.amber::before{background:var(--amber)}
+  .co.amber .co-t{color:var(--amber)}
+  .co.teal{background:linear-gradient(180deg,#f6fbfc,#fff);border-color:#bfe3ea}
+  .co.teal::before{background:var(--teal)}
+  .co.teal .co-t{color:var(--teal)}
+  .co.green{background:linear-gradient(180deg,#f7fdf9,#fff);border-color:#bbe5c8}
+  .co.green::before{background:var(--green)}
+  .co.green .co-t{color:var(--green)}
+
+  /* ===== Tables ===== */
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin:14px 0}
+  .tbl th,.tbl td{padding:12px 16px;font-size:13.5px;text-align:left;vertical-align:top}
+  .tbl thead th{background:var(--navy);color:#e7ebf8;font-size:12.5px;letter-spacing:.04em}
+  .tbl thead th:last-child{background:linear-gradient(135deg,#3b2a86,#4338ca)}
+  .tbl tbody tr + tr td{border-top:1px solid var(--line)}
+  .tbl td:first-child{font-weight:700;color:var(--ink)}
+  .tbl.zebra tbody tr:nth-child(even) td{background:#fbfaf7}
+  .tbl .kid{font-family:"SF Mono",Menlo,monospace;font-size:12px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .tbl .mono{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--ink-soft)}
+  .tbl .ok{color:var(--green);font-weight:700}
+  .tbl .no{color:var(--red);font-weight:700}
+  .tbl .mut{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .badge.rd{background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea}
+  .badge.wr{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d9b5}
+  .badge.ok{background:var(--green-bg);color:var(--green);border:1px solid #bbe5c8}
+  .badge.brand{background:var(--brand-bg);color:var(--brand);border:1px solid #d5d9f5}
+  .badge.gray{background:#f1efe9;color:var(--muted);border:1px solid var(--line)}
+
+  /* ===== Code blocks ===== */
+  .cb{
+    background:#101c38;color:#c8d2f0;border-radius:14px;padding:18px 22px;margin:14px 0;
+    font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.8px;line-height:1.75;
+    overflow-x:auto;box-shadow:var(--shadow);white-space:pre;
+  }
+  .cb .tk-k{color:#c4b5fd}
+  .cb .tk-s{color:#86efac}
+  .cb .tk-c{color:#5c6a96;font-style:italic}
+  .cb .tk-n{color:#fcd34d}
+  .cb .tk-f{color:#67e8f9}
+  .cb .tk-t{color:#f0abfc}
+  .cb .tk-e{color:#fca5a5}
+
+  /* ===== Architecture ===== */
+  .arch{display:flex;flex-direction:column;gap:0}
+  .layer{border-radius:14px;padding:16px 22px;position:relative;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+  .layer + .arrow-down{height:30px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11.5px;gap:8px}
+  .layer-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .layer-head h3{font-size:15px;font-weight:800}
+  .layer-head .need{font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px;white-space:nowrap}
+  .need.free{background:var(--green-bg);color:var(--green)}
+  .need.own{background:var(--brand-bg);color:var(--brand)}
+  .need.auto{background:var(--teal-bg);color:var(--teal)}
+  .need.warn{background:var(--amber-bg);color:var(--amber)}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 13px;background:#fbfaf7;color:var(--ink-soft)}
+  .box b{color:var(--ink);font-weight:700}
+  .box small{display:block;font-size:11.5px;color:var(--muted)}
+  .layer.hl{background:linear-gradient(180deg,#fbfaFF,#f5f3ff);border-color:#d9d3f6}
+
+  /* ===== Decision blocks ===== */
+  .decision{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin:14px 0}
+  .decision h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  @media(max-width:760px){.dec-grid{grid-template-columns:1fr 1fr}}
+  .dec-cell{padding:10px 14px;border-left:1px dashed var(--line)}
+  .dec-cell:first-child{border-left:none;padding-left:0}
+  @media(max-width:760px){.dec-cell:nth-child(3){border-left:none;padding-left:0}}
+  .dec-cell h5{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .dec-cell p{font-size:13px;color:var(--ink-soft)}
+  .dec-cell.dec h5{color:var(--brand)}
+  .dec-cell.dec p{color:var(--brand);font-weight:700}
+  .dec-cell.why h5{color:var(--teal)}
+  .dec-cell.cost h5{color:var(--amber)}
+
+  /* ===== Flow chips ===== */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0}
+  .flow .chip{font-size:12.5px;font-weight:700;border-radius:9px;padding:7px 13px;background:var(--teal-bg);color:var(--teal);border:1px solid #bfe3ea;white-space:nowrap}
+  .flow .chip.gate{background:var(--amber-bg);color:var(--amber);border-color:#f0d9b5}
+  .flow .chip.brand{background:var(--brand-bg);color:var(--brand);border-color:#d5d9f5}
+  .flow .chip.dark{background:var(--navy);color:#e7ebf8;border-color:var(--navy)}
+  .flow .chev{color:#c3bcab;flex:none}
+
+  /* ===== Stat strip ===== */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .n{font-size:26px;font-weight:800;line-height:1.2;color:var(--brand)}
+  .stat .n.teal{color:var(--teal)}.stat .n.amber{color:var(--amber)}.stat .n.green{color:var(--green)}
+  .stat .l{font-size:12px;color:var(--muted)}
+
+  /* ===== Figure caption ===== */
+  .fig-t{display:flex;align-items:center;gap:10px;margin:26px 0 6px}
+  .fig-t .fno{font-size:11.5px;font-weight:800;color:#fff;background:var(--navy);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .fig-t h3{font-size:16.5px;font-weight:800}
+  .fig-note{font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+
+  /* ===== Ending ===== */
+  .ending{
+    margin-top:64px;border-radius:var(--radius);padding:44px 40px;text-align:center;
+    background:linear-gradient(160deg,#101c38,#1c1a4d);color:#dfe4f7;scroll-margin-top:80px;
+  }
+  .ending h2{font-size:24px;font-weight:800;margin-bottom:14px;color:#fff}
+  .ending p{max-width:700px;margin:0 auto 8px;color:#b9c1e2;font-size:15px}
+  .ending .big{font-size:17px;color:#e8e6ff;font-weight:600;margin-top:16px}
+
+  footer{padding:36px 0 48px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer .wrap{border-top:1px solid var(--line);padding-top:26px}
+
+  @media(max-width:640px){
+    .hero{padding:60px 0 52px}
+    .hero h1{font-size:29px}
+    .hero .sub{font-size:16px}
+    section{padding:48px 0 4px}
+    .sec-head h2{font-size:22px}
+    .tbl th,.tbl td{padding:10px 11px;font-size:12.5px}
+  }
+  @media print{
+    .toc{position:static}
+    .hero,.ending{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="kicker">音巢设计分享 · 05/12 · 工具·技能·MCP</div>
+    <h1>130+ 内置工具之外<br>MCP 发现与自创技能的进化系统</h1>
+    <p class="sub">Agent 的能力不该在发版那天被封顶。音巢（Clawith）把能力供给侧拆成三种形态——内置工具开箱即用、MCP 工具运行时发现并一键导入、技能由 Agent 把自己的最佳实践打包沉淀——三种形态汇入同一条绑定、治理与审计管线，构成一个会自我进化的工具体系。</p>
+    <div class="hero-meta">
+      <span>内置工具定义 <b>136</b> 条</span>
+      <span>AgentBay 云沙箱族 <b>33</b> 个</span>
+      <span>MCP 注册中心 <b>Smithery / ModelScope</b></span>
+      <span>技能市场 <b>ClawHub</b></span>
+      <span>元技能 <b>skill-creator</b></span>
+      <span>基于 <b>main · v1.11.5</b> 源码</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#scene">01 · 场景</a>
+    <a href="#design">02 · 设计</a>
+    <a href="#impl">03 · 实现</a>
+    <span class="sep">·</span>
+    <a href="#fig-supply">图 1 · 供给分层</a>
+    <a href="#fig-evolve">图 2 · 自我进化</a>
+    <a href="#fig-call">图 3 · 调用链路</a>
+    <span class="sep">·</span>
+    <a href="#pseudo">04 · 伪代码</a>
+    <a href="#qa">05 · 面试 QA</a>
+    <a href="#ending">06 · 结语</a>
+    <span class="sep">·</span>
+    <a href="yinchao-04-collaboration.html">上一篇 · 多 Agent 协同</a>
+    <a href="yinchao-06-im-channels.html">下一篇 · IM 渠道接入</a>
+    <a href="index.html">返回系列导航</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ 01 场景与定位 ============ -->
+<section id="scene">
+  <div class="sec-head">
+    <span class="sec-no">01 · 场景</span>
+    <h2>没有工具的 Agent 只是聊天框，工具是它的双手与感官</h2>
+    <p>LLM 本身只会「说」，不会「做」。音巢 Agent 平台把「做」的能力抽象成三层供给：内置工具随平台发版、MCP 工具运行时发现接入、技能由使用经验沉淀而来——分别对应「平台给的」「外部借的」「自己长的」。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">136</div><div class="l">builtin_tool_definitions.py 中的模型可见工具定义</div></div>
+    <div class="stat"><div class="n teal">93</div><div class="l">基础内置工具（文件/搜索/代码/图片/邮件/飞书/OKR…）</div></div>
+    <div class="stat"><div class="n amber">33</div><div class="l">AgentBay 云沙箱工具（浏览器 + GUI 操控）</div></div>
+    <div class="stat"><div class="n green">4</div><div class="l">能力治理元工具（发现/导入/搜技能/装技能）</div></div>
+  </div>
+
+  <h3 class="sub">五类真实业务场景</h3>
+  <div class="values">
+    <div class="value">
+      <div class="no">①</div>
+      <h3>开箱即用的办公自动化</h3>
+      <p>新创建的 Agent 绑定基础工具组即可干活：<code>read/write/edit_file</code> 操作工作区文件，<code>convert_csv_to_xlsx</code>、<code>convert_html_to_pdf/pptx</code>、<code>convert_markdown_to_docx</code> 做文档转换，<code>web_search</code>（jina/exa/duckduckgo/tavily/google/bing 多引擎）与 <code>read_webpage</code> 联网调研，<code>execute_code</code>（本地沙箱或 E2B）跑数据处理脚本，<code>generate_image_*</code>（SiliconFlow/OpenAI/Google/自定义）配图，<code>send_email</code> 发结果。零配置，创建即用。</p>
+    </div>
+    <div class="value">
+      <div class="no">②</div>
+      <h3>企业协同：飞书全家桶 + OKR</h3>
+      <p>飞书工具族覆盖消息收发、用户搜索、多维表格 bitable CRUD（<code>bitable_create_app</code> 到 <code>bitable_delete_record</code> 七个）、云文档/知识库读写、日历与审批流；OKR 工具族支撑目标查询、进度收集（<code>collect_okr_progress</code>）、日报/月报生成（<code>generate_okr_report</code>、<code>generate_monthly_okr_report</code>）。Agent 由此从「个人助手」升级为「组织成员」。</p>
+    </div>
+    <div class="value">
+      <div class="no">③</div>
+      <h3>云端浏览器与电脑操作</h3>
+      <p>AgentBay 云沙箱族 33 个工具让 Agent 在云端真实操作：浏览器导航/截图/点击/输入/登录，代码执行，乃至电脑 GUI 操控（窗口列举、激活、关闭、光标定位、可见应用枚举）。适合需要登录态、需要真实浏览器环境的采集与自动化场景，与本机沙箱形成互补。</p>
+    </div>
+    <div class="value">
+      <div class="no">④</div>
+      <h3>运行时发现新能力：MCP 即搜即装</h3>
+      <p>任务做到一半发现缺能力——比如要操作某个 SaaS 的 API。Agent 调 <code>discover_resources</code> 在 Smithery / ModelScope 注册中心搜索 MCP Server，再调 <code>import_mcp_server</code> 一键导入：连接、列出工具、落库、绑定，全程不打断当前任务。Agent 模板还可以在 meta.yaml 里声明 <code>default_mcp_servers</code>，创建时自动导入预置能力。</p>
+    </div>
+    <div class="value">
+      <div class="no">⑤</div>
+      <h3>自我进化：把最佳实践打包成技能</h3>
+      <p>一个 Agent 反复把「内容调研写作」做得很好，就可以用 <strong>skill-creator 元技能</strong>把这套方法论沉淀成新技能：分析器拆解成功样本、评分器按 schema 打分、脚本打包并跑评估，最后 <code>install_skill</code> 装回平台（或从 ClawHub 技能市场装别人的）。技能本质是文件包（SKILL.md + 脚本 + 参考文档），落 <code>skills</code> / <code>skill_files</code> 表，注入工作区供 Agent 按需阅读。</p>
+    </div>
+    <div class="value">
+      <div class="no">⑥</div>
+      <h3>Agent 间协作的消息总线</h3>
+      <p><code>send_message_to_agent</code> 与消息发送族工具让 Agent 之间、Agent 与平台渠道之间互发消息——工具系统不仅是「调用外部世界」，也是多 Agent 协同（见 04 篇）的传输底座之一。</p>
+    </div>
+  </div>
+
+  <div class="core">
+    <div class="tag">定位 · 一句话</div>
+    <h3>工具、技能、MCP 是三件事：工具是「可调用的能力」，技能是「可复用的方法论」，MCP 是「能力的标准化插头」——音巢把它们拧进同一条治理管线。</h3>
+    <p>所以本篇的主线不是「有哪些工具」（那是文档活），而是：三种供给形态如何被统一抽象、统一绑定、统一治理，以及运行时进化（发现→导入→沉淀→再装回）这条闭环怎么转起来。</p>
+  </div>
+</section>
+
+<!-- ============ 02 功能设计 ============ -->
+<section id="design">
+  <div class="sec-head">
+    <span class="sec-no">02 · 设计</span>
+    <h2>三个关键决策：统一契约、技能即文件、发现走注册中心</h2>
+    <p>能力供给侧最大的设计风险是「每接一种新能力就开一条新管线」。音巢的设计哲学相反：供给侧可以百花齐放，消费侧必须收敛成一条线。</p>
+  </div>
+
+  <h3 class="sub">三种供给形态的本质区别</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:120px">形态</th><th>供给方</th><th>载体</th><th>模型感知方式</th><th>治理</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>内置工具</td>
+        <td>平台发版</td>
+        <td>代码 + JSON Schema 定义（<code>builtin_tool_definitions.py</code>），启动播种进 <code>tools</code> 表</td>
+        <td>name + description + JSON Schema 注入模型上下文</td>
+        <td>自主分级 L1/L2/L3 + 执行落账 <span class="badge brand">全量</span></td>
+      </tr>
+      <tr>
+        <td>MCP 工具</td>
+        <td>外部 MCP Server（运行时接入）</td>
+        <td>远程 Server 的 tools/list 结果，导入后落 <code>tools</code> 表（kind 标记 MCP 来源）</td>
+        <td>同上——导入时被清洗成与内置一致的 canonical schema</td>
+        <td>同上，治理口径与内置完全一致 <span class="badge brand">全量</span></td>
+      </tr>
+      <tr>
+        <td>技能（Skill）</td>
+        <td>平台预置 / ClawHub 市场 / Agent 自创</td>
+        <td>文件包：SKILL.md + 脚本 + 参考文档，落 <code>skills</code> / <code>skill_files</code> 表</td>
+        <td><strong>不作为工具注入</strong>；以文件形式进工作区，Agent 用既有文件工具阅读后按方法论行动</td>
+        <td>评分器 + 评估脚本把关质量；安装与启用走技能管理面 <span class="badge gray">轻量</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="decision">
+    <h3>决策一：三种供给形态，共用同一条绑定与执行管线 <span class="badge brand">K1</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 内置工具、MCP 工具各走各的调用链（内置直接函数分发，MCP 走独立代理层），技能做成一种新的工具类型<br>② 全部收敛：统一落 <code>tools</code> 表、统一 <code>agent_tools</code> N-M 绑定、统一 canonical schema、统一经 control_guard → 自主分级 → 执行 → 审计的管线</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>② 统一管线；技能不做成工具，保持文件包形态</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>治理只写一遍：L1/L2/L3 自主分级、L3 审批中断、<code>agent_tool_executions</code> 审计落账对内置与 MCP 一视同仁，新增供给形态零治理成本。模型侧也只看到一种工具契约（<code>get_agent_tools_for_llm()</code> 统一组装），不感知工具来自本地还是远程。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>MCP 导入时要做一次「标准化清洗」：传输协议自动探测（SSE / Streamable HTTP）、schema 归一、命名与权限边界的落库表达——复杂度前置到了导入期，但换来运行期的完全统一。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>决策二：技能是「文件包」而不是「新工具」 <span class="badge brand">K2</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 技能注册为新的工具类型，模型用 tool_call 显式调用<br>② 技能是文件包（SKILL.md + 脚本 + 参考资料），挂载进 Agent 工作区，Agent 通过读文件获得方法论，用既有通用工具执行</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>② 文件包形态，<code>skills</code> + <code>skill_files</code> 两张表承载</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>技能与工具解决的是不同问题：工具回答「能做什么」（能力接口），技能回答「怎么做好」（流程与经验）。文件包形态让技能天然可读、可版本化、可被 Agent 自创（skill-creator 产出的就是文件包），且不膨胀工具列表、不占用宝贵的工具选择注意力。这与业界 Agent Skills 的共识形态一致。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>技能生效依赖模型「愿意读、读得懂」——SKILL.md 的 frontmatter（name/description）质量直接决定触发率，因此 skill-creator 配套了评分器（grader）与评估脚本（run_eval）把质量做成可度量、可回归的环节，而不是靠自觉。</p></div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>决策三：能力发现走注册中心，而不是让用户手填 URL <span class="badge brand">K3</span></h3>
+    <div class="dec-grid">
+      <div class="dec-cell opt"><h5>选项</h5><p>① 用户手动填写 MCP Server 地址与配置导入<br>② 内置 <code>discover_resources</code> 工具直连 Smithery / ModelScope 注册中心搜索，<code>import_mcp_server</code> 一键导入；模板用 meta.yaml 的 <code>default_mcp_servers</code> 声明预置依赖</p></div>
+      <div class="dec-cell dec"><h5>决定</h5><p>② 为主，① 作为直接导入（import direct）通道保留</p></div>
+      <div class="dec-cell why"><h5>原因</h5><p>「发现」是进化的起点。把搜索注册中心本身做成 Agent 可调用的工具，意味着发现能力这件事也被 Agent 化了——不是人去逛市场，而是 Agent 在任务上下文中自己找到缺的能力并装上，这才构成闭环。</p></div>
+      <div class="dec-cell cost"><h5>代价</h5><p>依赖外部注册中心的可用性与 API Key 管理（Smithery key 按 Agent 维度读取并解密）；远端 Server 的质量参差，导入即绑定需要克制——这也是把导入动作本身纳入自主分级治理的原因。</p></div>
+    </div>
+  </div>
+
+  <div class="co amber">
+    <div class="co-t">设计红线：供给侧可以无限扩张，上下文预算不能</div>
+    <p>136 个内置定义全量塞给模型既不经济也伤准确率。音巢的纪律是：<strong>工具默认不进入模型上下文，只有被 <code>agent_tools</code> 绑定到具体 Agent 的工具才会被 <code>get_agent_tools_for_llm()</code> 组装注入</strong>；AgentBay 电脑操控族还会按云端 OS 类型动态改写描述（<code>_patch_computer_tool_descriptions</code>）。能力是货架，不是全倒进购物车的。</p>
+  </div>
+</section>
+
+<!-- ============ 03 实现方案 ============ -->
+<section id="impl">
+  <div class="sec-head">
+    <span class="sec-no">03 · 实现</span>
+    <h2>一条供给链、一条进化链、一条调用链</h2>
+    <p>三张图讲清整个子系统：能力从哪来（供给分层）、怎么越用越强（运行时进化）、每一次调用怎么被管住（执行链路）。</p>
+  </div>
+
+  <h3 class="sub" id="fig-supply">工具供给分层架构</h3>
+  <div class="fig-t"><span class="fno">图 1</span><h3>供给分层：三种形态汇入同一条「绑定 → 契约 → 执行」管线</h3></div>
+  <div class="arch">
+    <div class="layer">
+      <div class="layer-head"><h3>供给层 · 三种形态</h3><span class="need own">平台 / 外部 / 自创</span></div>
+      <div class="boxes">
+        <div class="box"><b>内置工具 136 条定义</b><small>builtin_tool_definitions.py · 基础 93 + AgentBay 33 + 部署/群聊扩展</small></div>
+        <div class="box"><b>MCP 工具</b><small>Smithery / ModelScope 注册中心 · 或直连 MCP Server</small></div>
+        <div class="box"><b>技能文件包</b><small>SKILL.md + 脚本 + 参考 · ClawHub / skill-creator 自创</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">播种 / 导入 / 安装 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>注册与绑定层 · 落库</h3><span class="need auto">启动播种 + 运行时增量</span></div>
+      <div class="boxes">
+        <div class="box"><b>tool_seeder.seed_builtin_tools()</b><small>启动时把内置定义播种进 tools 表；clean_orphaned_mcp_tools() 清理孤儿</small></div>
+        <div class="box"><b>resource_discovery 导入</b><small>MCPClient 探测传输 → list_tools → 工具落 tools 表</small></div>
+        <div class="box"><b>skills / skill_files</b><small>skill_seeder 预置 + install_skill 安装</small></div>
+        <div class="box"><b>agent_tools（N-M 绑定）</b><small>工具与 Agent 的多对多关联 + 工具级配置（API Key / 超时）</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">按绑定组装模型契约 ↓</div>
+    <div class="layer hl">
+      <div class="layer-head"><h3>模型契约层 · 统一 Schema</h3><span class="need own">本层是「统一」的发生地</span></div>
+      <div class="boxes">
+        <div class="box"><b>get_agent_tools_for_llm(agent_id)</b><small>按绑定过滤 + 配置解析 + 条件投影</small></div>
+        <div class="box"><b>_canonicalize_llm_tool()</b><small>内置与 MCP 工具归一为同一 name/description/schema 结构</small></div>
+        <div class="box"><b>技能不进工具列表</b><small>以文件注入工作区，Agent 读 SKILL.md 获得方法论</small></div>
+      </div>
+    </div>
+    <div class="arrow-down">tool_call 进入执行管线 ↓</div>
+    <div class="layer">
+      <div class="layer-head"><h3>执行管线 · 治理与审计</h3><span class="need warn">每次调用必经</span></div>
+      <div class="boxes">
+        <div class="box"><b>control_guard</b><small>图编排入口守卫（agent_runtime/graph.py）</small></div>
+        <div class="box"><b>自主分级 L1/L2/L3</b><small>autonomy_service · L3 触发审批中断</small></div>
+        <div class="box"><b>按 kind 分发</b><small>本地沙箱 / E2B / AgentBay 云端 / MCP 远程调用</small></div>
+        <div class="box"><b>agent_tool_executions</b><small>参数脱敏、结果截断、全量落账</small></div>
+      </div>
+    </div>
+  </div>
+  <p class="fig-note">要点有二：其一，<code>builtin_tool_definitions.py</code> 是<strong>模型契约的唯一权威</strong>——数据库行只负责绑定、启停与配置展示，描述与 Schema 以该模块为准（文件头注释明确写了这一点），所以改工具描述不必迁移数据；其二，技能始终走旁路（文件注入），不汇入工具列表，这是 K2 决策在架构图上的直接体现。</p>
+
+  <h3 class="sub" id="fig-evolve">运行时自我进化流程</h3>
+  <div class="fig-t"><span class="fno">图 2</span><h3>进化双通道：外部能力「搜到就装」，内部经验「用完就沉淀」</h3></div>
+  <p class="body"><strong>通道 A · MCP 能力接入</strong>（发现 → 导入 → 绑定 → 可用）：</p>
+  <div class="flow">
+    <span class="chip dark">任务中发现能力缺口<br>「需要操作某 SaaS」</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">discover_resources<br>搜 Smithery / ModelScope</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">import_mcp_server<br>自主分级把关</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">MCPClient 连接<br>自动探测 SSE / Streamable</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">list_tools → 落 tools 表<br>+ agent_tools 绑定</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">当前任务立即可用</span>
+  </div>
+  <p class="body"><strong>通道 B · 经验沉淀为技能</strong>（实践 → 分析 → 打包 → 装回）：</p>
+  <div class="flow">
+    <span class="chip dark">反复跑通某类任务<br>最佳实践浮现</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">skill-creator 元技能<br>analyzer 拆解成功样本</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">grader 评分 + run_eval<br>评估脚本回归</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">package_skill 打包<br>SKILL.md + 脚本 + 参考</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">install_skill<br>落 skills / skill_files</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">注入工作区 · 全平台可复用</span>
+  </div>
+  <p class="fig-note">两条通道共用一套治理哲学：<strong>扩张动作本身也是工具调用</strong>（discover/import/install 都是注册在册的工具），因此同样受自主分级约束、同样落审计——Agent 可以自我扩展，但每一次扩展都留痕、可回溯、可追责。模板的 <code>default_mcp_servers</code>（meta.yaml，template_seeder 解析）则是「出厂预装」通道：用 Smithery ID 声明依赖，从模板创建 Agent 时自动导入并绑定。</p>
+
+  <h3 class="sub" id="fig-call">一次工具调用的完整链路</h3>
+  <div class="fig-t"><span class="fno">图 3</span><h3>调用链路：模型的一个 tool_call，要过五道关才碰到真实世界</h3></div>
+  <div class="flow">
+    <span class="chip dark">模型步输出<br>tool_call(name, args)</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">control_guard<br>图入口守卫</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">自主分级检查<br>L1 / L2 / L3</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip gate">L3？审批中断<br>批准后恢复执行</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">Schema 校验<br>参数脱敏 sanitize</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip brand">按 kind 分发执行<br>本地沙箱 / E2B / AgentBay / MCP</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip">结果归一化<br>截断 + 错误结构化</span>
+    <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="chip dark">回注模型上下文<br>+ agent_tool_executions 落账</span>
+  </div>
+  <table class="tbl">
+    <thead><tr><th style="width:170px">关卡</th><th>职责</th><th>对应实现</th></tr></thead>
+    <tbody>
+      <tr><td>control_guard</td><td>运行图的入口守卫：运行状态、取消信号、回合预算等先做拦截，非法或已取消的运行不会触达工具</td><td class="mono">agent_runtime/graph.py · CONTROL_GUARD_NODE</td></tr>
+      <tr><td>自主分级</td><td>按动作类型查策略：L1 自动执行并告知创建者；L2 通知后自动执行（默认）；L3 必须先批准</td><td class="mono">services/autonomy_service.py</td></tr>
+      <tr><td>L3 审批中断</td><td>生成审批单，运行在此挂起（中断），创建者在 Web / 飞书卡片批准后从断点恢复，不丢上下文</td><td class="mono">autonomy_service + agent_runtime/feishu_approval_authorization.py</td></tr>
+      <tr><td>校验与脱敏</td><td>参数按 Schema 校验；敏感字段（密钥类 key）在落账与回显前脱敏；超长结果按字节预算截断</td><td class="mono">agent_runtime/tool_execution.py · sanitize_tool_arguments / sanitize_tool_feedback_text</td></tr>
+      <tr><td>分发与落账</td><td>按工具 kind 走本地实现或 MCPClient.call_tool 远程调用；无论成败，执行记录写入 agent_tool_executions</td><td class="mono">agent_tools.py + mcp_client.py + models/agent_tool_execution.py</td></tr>
+    </tbody>
+  </table>
+  <p class="fig-note">注意链路的对称性：<strong>结果回注前同样要过清洗</strong>——外部工具返回的内容可能含敏感信息或超长文本，直接进上下文既危险又烧钱。tool_execution.py 里的 sanitize / truncate / normalize 一组函数就是干这个的，这也是「错误结构化返回、不抛栈给模型」纪律的落点。</p>
+
+  <h3 class="sub">代码依据（上游 main · v1.11.5 核实）</h3>
+  <table class="tbl zebra">
+    <thead><tr><th style="width:190px">功能点</th><th>关键文件</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td>内置工具定义（模型契约）</td><td class="mono">backend/app/services/builtin_tool_definitions.py</td><td>4225 行、136 条 name/description/JSON Schema 定义；文件头明确「DB 行不是模型契约，本模块才是」；feishu_* 自 2189 行起、bitable_* 2224–2348、agentbay_* 2870 起共 33 个</td></tr>
+      <tr><td>工具组装与模型注入</td><td class="mono">backend/app/services/agent_tools.py</td><td>get_agent_tools_for_llm() 按绑定组装模型可见工具集；_canonicalize_llm_tool() 归一 schema；_patch_computer_tool_descriptions() 按 OS 改写描述</td></tr>
+      <tr><td>内置工具播种</td><td class="mono">backend/app/services/tool_seeder.py</td><td>seed_builtin_tools() 启动播种进 tools 表；clean_orphaned_mcp_tools() 清理失效 MCP 工具</td></tr>
+      <tr><td>工具配置</td><td class="mono">backend/app/services/tool_config.py</td><td>工具级配置（搜索引擎/API Key/沙箱参数）的读取与默认值</td></tr>
+      <tr><td>MCP 客户端</td><td class="mono">backend/app/services/mcp_client.py</td><td>MCPClient：SSE / Streamable HTTP 传输自动探测，initialize / list_tools / call_tool</td></tr>
+      <tr><td>资源发现与导入</td><td class="mono">backend/app/services/resource_discovery.py</td><td>Smithery / ModelScope 注册中心搜索（search_registries），import_mcp_from_smithery / import_mcp_direct 一键导入落库</td></tr>
+      <tr><td>执行节点与清洗</td><td class="mono">backend/app/services/agent_runtime/tool_execution.py</td><td>参数/结果脱敏（sanitize_*）、结果归一化（normalize_tool_outcome）、执行落账</td></tr>
+      <tr><td>运行图与入口守卫</td><td class="mono">backend/app/services/agent_runtime/graph.py</td><td>LangGraph 图编排；CONTROL_GUARD_NODE = "control_guard" 节点</td></tr>
+      <tr><td>自主分级治理</td><td class="mono">backend/app/services/autonomy_service.py</td><td>L1/L2/L3 策略判定、L3 审批单生成、飞书+Web 双通道通知</td></tr>
+      <tr><td>L3 飞书审批</td><td class="mono">backend/app/services/agent_runtime/feishu_approval_authorization.py</td><td>审批卡片交互与授权回写</td></tr>
+      <tr><td>AgentBay 云沙箱</td><td class="mono">backend/app/services/agentbay_client.py · agentbay_live.py</td><td>云端浏览器/GUI 会话的客户端与实时控制</td></tr>
+      <tr><td>文档转换</td><td class="mono">backend/app/services/document_conversion/</td><td>html_to_pdf / html_to_pptx / chrome_renderer / pptx_renderer</td></tr>
+      <tr><td>工具与执行数据模型</td><td class="mono">backend/app/models/tool.py · agent_tool_execution.py</td><td>tools / agent_tools（N-M 绑定）/ agent_tool_executions（执行流水）三张表</td></tr>
+      <tr><td>技能模型与 API</td><td class="mono">backend/app/models/skill.py · api/skills.py</td><td>skills / skill_files 表；ClawHub 市场搜索/下载/安装、GitHub 导入、SKILL.md frontmatter 解析</td></tr>
+      <tr><td>技能播种与元技能</td><td class="mono">backend/app/services/skill_seeder.py · skill_creator_files/</td><td>预置技能播种；skill-creator 元技能全套：analyzer/comparator/grader 提示词 + package_skill / run_eval / quick_validate 等脚本</td></tr>
+      <tr><td>模板默认 MCP 依赖</td><td class="mono">backend/app/services/template_seeder.py</td><td>解析 meta.yaml 的 default_mcp_servers，模板创建 Agent 时自动导入绑定</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 04 最小实现伪代码 ============ -->
+<section id="pseudo">
+  <div class="sec-head">
+    <span class="sec-no">04 · 伪代码</span>
+    <h2>两个最小闭环：统一分发执行、MCP 一键导入</h2>
+    <p>伪代码刻意省略重试、并发与观测细节，只保留机制骨架：工具怎么被管住地执行，外部能力怎么被标准化地接进来。</p>
+  </div>
+
+  <h3 class="sub">骨架一：工具的统一分发与执行</h3>
+  <div class="cb"><span class="tk-c"># 一次 tool_call 的最小闭环：校验 → 分级 → 分发 → 清洗 → 落账</span>
+<span class="tk-k">async def</span> <span class="tk-f">execute_tool_call</span>(agent_id, call):
+    tool = <span class="tk-k">await</span> <span class="tk-f">load_bound_tool</span>(agent_id, call.name)          <span class="tk-c"># agent_tools 绑定校验：没绑定 = 不存在</span>
+    <span class="tk-k">if</span> tool <span class="tk-k">is</span> <span class="tk-t">None</span>:
+        <span class="tk-k">return</span> <span class="tk-f">err</span>(<span class="tk-s">"tool_not_available"</span>)                  <span class="tk-c"># 错误结构化，不抛栈给模型</span>
+
+    <span class="tk-f">validate</span>(call.args, tool.input_schema)                     <span class="tk-c"># JSON Schema 校验，契约即护栏</span>
+
+    level = <span class="tk-k">await</span> autonomy.<span class="tk-f">check</span>(agent_id, action=tool.name)     <span class="tk-c"># 默认 L2</span>
+    <span class="tk-k">if</span> level == <span class="tk-s">"L3"</span>:
+        approval = <span class="tk-k">await</span> <span class="tk-f">create_approval</span>(agent_id, call)        <span class="tk-c"># Web + 飞书卡片通知创建者</span>
+        <span class="tk-k">raise</span> <span class="tk-e">Interrupt</span>(approval.id)                          <span class="tk-c"># 运行挂起；批准后从断点恢复</span>
+    <span class="tk-k">elif</span> level <span class="tk-k">in</span> (<span class="tk-s">"L1"</span>, <span class="tk-s">"L2"</span>):
+        <span class="tk-k">await</span> <span class="tk-f">notify_creator</span>(agent_id, call)                   <span class="tk-c"># 告知但不等待</span>
+
+    <span class="tk-k">try</span>:
+        <span class="tk-k">if</span> tool.kind == <span class="tk-s">"mcp"</span>:                                <span class="tk-c"># 统一契约，按 kind 分发</span>
+            raw = <span class="tk-k">await</span> <span class="tk-f">MCPClient</span>(tool.server_url).<span class="tk-f">call_tool</span>(tool.remote_name, call.args)
+        <span class="tk-k">else</span>:                                                <span class="tk-c"># builtin：本地沙箱 / E2B / AgentBay</span>
+            raw = <span class="tk-k">await</span> BUILTIN_HANDLERS[tool.name](agent_id, call.args)
+        outcome = <span class="tk-f">normalize_tool_outcome</span>(raw)                  <span class="tk-c"># 归一化为统一结果结构</span>
+    <span class="tk-k">except</span> <span class="tk-t">Exception</span> <span class="tk-k">as</span> e:
+        outcome = <span class="tk-f">err</span>(<span class="tk-s">"tool_failed"</span>, <span class="tk-f">str</span>(e)[:<span class="tk-n">200</span>])           <span class="tk-c"># 失败也是合法结果，让模型自己补救</span>
+
+    <span class="tk-k">await</span> db.<span class="tk-f">insert</span>(<span class="tk-s">"agent_tool_executions"</span>,                  <span class="tk-c"># 全量落账：成败都留痕</span>
+        agent_id=agent_id, tool=tool.name,
+        args=<span class="tk-f">sanitize_tool_arguments</span>(call.args),              <span class="tk-c"># 敏感字段脱敏后落账</span>
+        result=<span class="tk-f">truncate</span>(outcome, max_bytes=<span class="tk-n">4096</span>))
+
+    <span class="tk-k">return</span> <span class="tk-f">sanitize_tool_feedback_text</span>(outcome.text)           <span class="tk-c"># 清洗后回注模型上下文</span></div>
+
+  <h3 class="sub">骨架二：import_mcp_server 的最小导入流程</h3>
+  <div class="cb"><span class="tk-c"># 从「一个 MCP Server 引用」到「一组绑定就绪的工具」</span>
+<span class="tk-k">async def</span> <span class="tk-f">import_mcp_server</span>(agent_id, ref):                  <span class="tk-c"># ref: Smithery ID 或直连 URL</span>
+    <span class="tk-k">if</span> ref.is_smithery_id:
+        cfg = <span class="tk-k">await</span> smithery.<span class="tk-f">resolve_connection</span>(ref.id)         <span class="tk-c"># 注册中心换连接配置（含鉴权 URL）</span>
+    <span class="tk-k">else</span>:
+        cfg = {<span class="tk-s">"url"</span>: ref.url, <span class="tk-s">"api_key"</span>: ref.api_key}         <span class="tk-c"># import direct 通道</span>
+
+    client = <span class="tk-f">MCPClient</span>(cfg[<span class="tk-s">"url"</span>], cfg[<span class="tk-s">"api_key"</span>])
+    <span class="tk-k">await</span> client.<span class="tk-f">initialize</span>()                                  <span class="tk-c"># 自动探测传输：先 Streamable，失败回退 SSE</span>
+    remote_tools = <span class="tk-k">await</span> client.<span class="tk-f">list_tools</span>()                   <span class="tk-c"># 拿到远端真实 schema —— 信任源头是协议</span>
+
+    <span class="tk-k">await</span> autonomy.<span class="tk-f">require_allowed</span>(agent_id, <span class="tk-s">"import_mcp_server"</span>)  <span class="tk-c"># 扩张动作同样过治理</span>
+
+    <span class="tk-k">for</span> rt <span class="tk-k">in</span> remote_tools:
+        row = <span class="tk-k">await</span> db.<span class="tk-f">upsert</span>(<span class="tk-s">"tools"</span>,                          <span class="tk-c"># 幂等落库：重复导入不产生重复工具</span>
+            name=<span class="tk-f">namespaced</span>(cfg[<span class="tk-s">"url"</span>], rt[<span class="tk-s">"name"</span>]),
+            kind=<span class="tk-s">"mcp"</span>, server_url=cfg[<span class="tk-s">"url"</span>],
+            description=rt[<span class="tk-s">"description"</span>], input_schema=rt[<span class="tk-s">"inputSchema"</span>])
+        <span class="tk-k">await</span> db.<span class="tk-f">upsert</span>(<span class="tk-s">"agent_tools"</span>, agent_id=agent_id, tool_id=row.id)  <span class="tk-c"># N-M 绑定即生效</span>
+
+    <span class="tk-k">return</span> {<span class="tk-s">"imported"</span>: <span class="tk-f">len</span>(remote_tools), <span class="tk-s">"server"</span>: cfg[<span class="tk-s">"url"</span>]}
+<span class="tk-c"># 之后 get_agent_tools_for_llm(agent_id) 自动包含这批工具 —— 当前任务内闭环</span></div>
+
+  <div class="co green">
+    <div class="co-t">为什么这两个闭环是「最小」但「完备」的</div>
+    <p>骨架一证明了「统一管线」不是口号：builtin 与 MCP 的差异被压缩到 <strong>一次 if 分支</strong>，之前（校验、分级）之后（清洗、落账）全部共用。骨架二证明了「进化」不需要特殊机制：导入就是「连接 → list_tools → 落库 → 绑定」四步，绑定生效的瞬间，统一的组装函数自然把新工具送进模型上下文——没有任何「刷新」「重启」「重新发布」环节。</p>
+  </div>
+</section>
+
+<!-- ============ 05 面试题 QA ============ -->
+<section id="qa">
+  <div class="sec-head">
+    <span class="sec-no">05 · 面试 QA</span>
+    <h2>六道题，从协议原理问到工程取舍</h2>
+    <p>每题都按「先讲清原理，再落到音巢的具体实现」来答——这也是面试中最有说服力的答法。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q1 · MCP 协议到底是什么？它解决了什么本质问题？</div>
+    <p>MCP（Model Context Protocol）是 Anthropic 主导的开放协议，标准化「模型应用 ↔ 外部能力」之间的接口：Server 暴露 tools（可调用能力）、resources（可读数据）、prompts（提示模板），Client 通过 JSON-RPC 风格的 initialize / list_tools / call_tool 与之交互，传输层支持 stdio、SSE、Streamable HTTP。</p>
+    <p>它解决的本质问题是<strong>工具描述的 N×M 集成爆炸</strong>：没有标准时，N 个 Agent 框架接 M 个外部服务要写 N×M 个适配器；有了 MCP，服务方实现一次 Server，所有兼容 Client 即用。音巢的实现（<code>services/mcp_client.py</code>）里有一个很工程化的细节：Client 会<strong>自动探测传输协议</strong>——先尝试 Streamable HTTP，失败后回退 SSE——因为生态里两种实现的 Server 都大量存在，让用户（或 Agent）感知传输细节是集成体验的失败。这正是「协议标准化」落到代码里的样子：连协议版本的参差都要由 Client 侧吸收掉。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q2 · 内置工具和 MCP 工具来源完全不同，schema 与治理上怎么做到统一？</div>
+    <p>关键是<strong>把差异消化在导入期，运行期只剩一种形态</strong>。MCP 工具在 import 时被「物化」：list_tools 拿到的 description 与 inputSchema 直接落进 <code>tools</code> 表，与内置工具同表存储、同结构表达（kind 字段区分来源）。之后所有环节无差别：<code>agent_tools</code> 绑定、<code>get_agent_tools_for_llm()</code> 组装、自主分级、执行落账，全都不感知工具来自哪里——分发执行时才按 kind 决定走本地 handler 还是 MCPClient.call_tool。</p>
+    <p>内置侧还有一个容易被忽视的设计：<code>builtin_tool_definitions.py</code> 文件头明确声明「数据库行不是模型契约，本模块才是」——内置工具的描述与 Schema 以代码为准，DB 行只管绑定、启停与配置。这带来两个好处：改工具文案不用写数据迁移；模型看到的契约永远与代码实现同源，不会出现「DB 里描述与代码行为漂移」的事故。治理统一的本质就是一句话：<strong>让审计和分级逻辑只写一遍，且对所有供给形态强制生效</strong>。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q3 · 工具描述（description/schema）对 LLM 选工具的准确率有多大影响？有什么写法经验？</div>
+    <p>影响是决定性的——模型选工具时<strong>只能看到 name + description + 参数 schema</strong>，看不到实现。描述写得差，工具等于不存在，或者更糟：被误选。经验有四条：</p>
+    <ul>
+      <li><strong>描述的第一句写「什么时候用」，不是「这是什么」</strong>。「读取 Agent 工作区内文件的文本内容；二进制文件请改用 execute_code」比「文件读取工具」有效得多——模型匹配的是场景，不是名词。</li>
+      <li><strong>把边界条件与互斥关系写进描述</strong>。比如音巢的 execute_code 与 execute_code_e2b 并存，描述必须说清本地沙箱与 E2B 云沙箱各自适用什么，否则模型随机二选一。</li>
+      <li><strong>参数级描述约束取值空间</strong>：路径类参数用「Agent 根目录相对路径」这类明确约定（音巢用 AGENT_RELATIVE_PATH_ARGUMENTS 统一约束了一整族文件工具的路径语义），比事后报错纠偏便宜得多。</li>
+      <li><strong>描述是运行时可调的</strong>。音巢会按 AgentBay 云端 OS 类型动态改写电脑操控工具的描述（_patch_computer_tool_descriptions）——同一份定义，面向 Windows 与 Linux 给不同的操作提示。这说明描述不该被当成静态文案，而是可以根据上下文投影的「活契约」。</li>
+    </ul>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q4 · Agent 自创技能听起来很美好，质量怎么保证？会不会沉淀出一堆垃圾技能？</div>
+    <p>音巢的回答是：<strong>把技能生产本身做成一条带质量闸门的流水线，而不是一次灵光乍现</strong>。skill-creator 元技能（<code>services/skill_creator_files/</code>）是一整套角色与脚本的组合：analyzer 负责拆解成功任务样本、提炼可复用流程；comparator 对比候选写法；grader 按 schema 给技能草稿打分；run_eval / quick_validate 脚本用预设用例对技能做回归评估；package_skill 负责打包。技能不是「写完就上架」，而是「评分过线 + 评估通过」才进入可安装状态。</p>
+    <p>这背后的判断是：Agent 生成内容的最大风险不是错，而是<strong>不可度量地平庸</strong>——看起来都对，用起来没用。所以要引入两个外部锚点：一是 frontmatter 规范（name/description 决定触发率，评分器专门盯这个）；二是可执行的评估用例（技能宣称能做好什么任务，就用什么任务回归它）。ClawHub 市场侧同理，安装入口在 <code>api/skills.py</code>，安装的是文件包，出问题了卸载与降级的成本都很低——文件包形态（K2 决策）在这里又一次兑现了收益。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q5 · 工具数量爆炸时，怎么决定哪些工具注入模型上下文？</div>
+    <p>先承认一个事实：工具选择是注意力分配问题，注入越多，单工具被选准的概率越低，token 成本还线性上涨。音巢的策略是三道闸：</p>
+    <ul>
+      <li><strong>绑定即白名单</strong>。136 条定义默认与模型无关，只有通过 <code>agent_tools</code> 显式绑定到具体 Agent 的工具才会被 <code>get_agent_tools_for_llm()</code> 组装注入。创建 Agent 时选工具组，就是在做能力预算。</li>
+      <li><strong>条件投影</strong>。组装阶段按 Agent 实际配置动态裁剪与改写：没有配飞书的 Agent 不注入飞书工具族（_agent_has_feishu 判断），AgentBay 电脑工具按 OS 类型改写描述——同一货架，不同 Agent 看到不同的陈列。</li>
+      <li><strong>把「找能力」做成工具，而不是全量预装</strong>。这是最根本的一招：与其把 136 个工具塞进去防万一，不如只装当前够用的，再给一个 <code>discover_resources</code>——能力缺口在运行时被发现、被搜索、被导入（图 2 通道 A）。工具上下文从「全集快照」变成「按需流式加载」，这是进化系统相对静态工具列表的结构性优势。</li>
+    </ul>
+    <p>补充一个反面教训：不要用「description 写短点」来省 token——描述是选择准确率的全部依据，省描述的钱会在误调用上十倍奉还。要省的是工具数量，不是单个工具的表达。</p>
+  </div>
+
+  <div class="co teal">
+    <div class="co-t">Q6 · L3 审批要求「人批准才能执行」，这跟工具执行的自动流转不矛盾吗？interrupt 怎么配合？</div>
+    <p>不矛盾，因为 LangGraph 的中断恢复机制让「等待人」成为一个一等公民的图状态，而不是工程上的尴尬例外。具体配合分四步：① 模型产出 tool_call 后，autonomy_service 按动作类型查策略，命中 L3 就创建审批单并<strong>抛出中断</strong>——运行图在此挂起，当前全部上下文（对话历史、已完成步骤）随 checkpoint 持久化；② 创建者收到 Web 通知与飞书审批卡片（feishu_approval_authorization.py 负责卡片交互）；③ 批准后，运行<strong>从中断点恢复</strong>，工具带着原始参数继续执行，模型侧无感知；④ 拒绝则生成结构化的「未获授权」结果回注上下文，让模型体面地向用户解释并换路径。</p>
+    <p>这套设计的要点在于：<strong>审批不改变工具执行链路，只是在链路上加了一扇可暂停的门</strong>。L1/L2/L3 共用同一条执行与落账路径（见伪代码骨架一），区别只在「过门之前等不等」。因此审批记录与执行记录在同一张流水里天然关联（approval_id），审计时能完整回答「这个高危操作谁批的、几点批的、执行结果如何」。相比「L3 操作直接拒绝」的偷懒方案，中断恢复保住了 Agent 处理高危但合理任务的能力；相比「先执行后补批」的放纵方案，它守住了副作用不外溢的底线。</p>
+  </div>
+</section>
+
+<!-- ============ 06 结语 ============ -->
+<section id="ending">
+  <div class="ending">
+    <h2>能力不是清单，是生态</h2>
+    <p>静态的 Agent 平台把工具做成一张发版时定死的清单；音巢把它做成一个生态——内置工具是底座，MCP 是伸向外部世界的标准化插头，技能是经验沉淀的容器。</p>
+    <p>而真正让这个生态转起来的，是两件不显眼的事：所有形态共用同一条治理管线（所以扩张不失控），以及发现与沉淀本身也是工具（所以进化可以自治）。</p>
+    <p class="big">一个 Agent 平台的能力上限，不该由它的发版日决定，而该由它的使用史决定——这就是「能力的供给侧」最终要回答的问题。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    音巢（Clawith）设计分享系列 · 工具、技能与 MCP（能力的供给侧） · 基于上游 main 分支 v1.11.5 源码分析 · <a href="index.html">返回系列导航</a><br>
+    上一篇 <a href="yinchao-04-collaboration.html">04 · 多 Agent 协同</a> · 下一篇 <a href="yinchao-06-im-channels.html">06 · IM 渠道接入</a>
+  </div>
+</footer>
+
+</body>
+</html>
